@@ -1,0 +1,149 @@
+.container {
+  align-items: stretch;
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(0, 1.15fr) minmax(340px, 480px);
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.brandPanel {
+  background:
+    linear-gradient(145deg, rgba(15, 23, 42, 0.76), rgba(29, 78, 216, 0.82)),
+    url("/images/hero (2).jpg");
+  background-position: center;
+  background-size: cover;
+  border-radius: 32px;
+  color: #f8fafc;
+  display: flex;
+  min-height: 360px;
+  overflow: hidden;
+  padding: 40px;
+  position: relative;
+}
+
+.brandOverlay {
+  align-self: flex-end;
+  max-width: 420px;
+  position: relative;
+  z-index: 1;
+}
+
+.brandEyebrow {
+  color: rgba(248, 250, 252, 0.72);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.brandTitle {
+  font-size: clamp(2rem, 3vw, 3.4rem);
+  font-weight: 800;
+  line-height: 1.1;
+  margin-top: 16px;
+}
+
+.brandDesc {
+  color: rgba(248, 250, 252, 0.82);
+  font-size: 1rem;
+  margin-top: 16px;
+}
+
+.highlightRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.highlightChip {
+  backdrop-filter: blur(8px);
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  color: #f8fafc;
+  font-size: 0.92rem;
+  font-weight: 600;
+  padding: 10px 14px;
+}
+
+.formPanel {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+}
+
+.card {
+  backdrop-filter: blur(14px);
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.56);
+  border-radius: 28px !important;
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  width: 100%;
+}
+
+.header {
+  margin-bottom: 24px;
+}
+
+.title {
+  color: var(--color-text-primary);
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.subtitle {
+  color: var(--color-text-muted);
+  font-size: 0.98rem;
+  margin-top: 10px;
+}
+
+.loginBtn {
+  border: none !important;
+  border-radius: 16px !important;
+  box-shadow: 0 14px 28px rgba(29, 78, 216, 0.22);
+  height: 48px !important;
+  margin-top: 8px;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    opacity 0.18s ease;
+}
+
+.loginBtn:hover {
+  box-shadow: 0 18px 36px rgba(29, 78, 216, 0.28);
+  transform: translateY(-1px);
+}
+
+.footer {
+  border-top: 1px solid rgba(217, 226, 236, 0.8);
+  color: var(--color-text-muted);
+  margin-top: 24px;
+  padding-top: 20px;
+  text-align: center;
+}
+
+.footerLink {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+@media (max-width: 960px) {
+  .container {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding: 16px;
+  }
+
+  .brandPanel {
+    border-radius: 24px;
+    padding: 28px;
+  }
+}

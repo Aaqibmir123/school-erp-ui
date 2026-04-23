@@ -1,50 +1,63 @@
-# Welcome to your Expo app 👋
+# School ERP Platform
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Production-oriented School ERP workspace with three apps:
 
-## Get started
+- `mobile`: Expo + React Native app for students and parents
+- `backend`: Node.js + Express + TypeScript API
+- `test-app`: Next.js admin web app
 
-1. Install dependencies
+## Structure
 
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```text
+school-mobile-new/
+|- backend/         # Express API, business logic, MongoDB integration
+|- shared-types/    # Shared TypeScript contracts used across apps
+|- src/             # Expo mobile application source
+|- test-app/        # Next.js admin web app
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Environment
 
-## Learn more
+Use the provided examples as the starting point:
 
-To learn more about developing your project with Expo, look at the following resources:
+- Root mobile app: `.env.example`
+- Backend API: `backend/.env.example`
+- Admin web: `test-app/.env.example`
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## Useful Commands
 
-## Join the community
+### Mobile app
 
-Join our community of developers creating universal apps.
+```bash
+npm install
+npm run start
+npm run lint
+npm run typecheck
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+### Backend
+
+```bash
+cd backend
+npm install
+npm run dev
+npm run build
+npm run typecheck
+```
+
+### Admin web
+
+```bash
+cd test-app
+npm install
+npm run dev
+npm run lint
+npm run typecheck
+```
+
+## Notes
+
+- Mobile and web both read their API URL from environment variables.
+- Backend CORS origins are configurable through `CLIENT_URLS`.
+- Shared types should be updated whenever the mobile app and admin web need the
+  same response contract.
