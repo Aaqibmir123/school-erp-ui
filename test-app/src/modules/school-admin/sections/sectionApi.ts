@@ -5,7 +5,7 @@ import type {
   CreateSectionsResponse,
   Section,
   SectionQueryDTO,
-} from "../../../../../shared-types/section.types";
+} from "@/shared-types/section.types";
 
 export const sectionApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -65,3 +65,4 @@ export const {
   useCreateSectionsMutation,
   useDeleteSectionMutation,
 } = sectionApi;
+

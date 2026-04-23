@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { applySchoolApi } from "../api/auth.api";
-import { ApplySchoolDTO } from "../../../../../shared-types/auth.types";
+import { ApplySchoolDTO } from "@/shared-types/auth.types";
 
 export const useApplySchool = () => {
   const [loading, setLoading] = useState(false);
@@ -19,3 +19,4 @@ export const useApplySchool = () => {
 
   return { applySchool, loading };
 };
+

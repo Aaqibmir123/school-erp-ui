@@ -2,7 +2,7 @@ import {
   ApplySchoolDTO,
   LoginDTO,
   LoginResponse,
-} from "../../../../../shared-types/auth.types";
+} from "@/shared-types/auth.types";
 
 import api from "../../../services/api";
 
@@ -32,3 +32,4 @@ export const setPassword = async (token: string, password: string) => {
 
   return response.data.data;
 };
+

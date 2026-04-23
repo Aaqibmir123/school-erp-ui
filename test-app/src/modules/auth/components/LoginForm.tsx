@@ -11,7 +11,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { showToast } from "@/src/utils/toast";
-import { LoginDTO } from "../../../../../shared-types/auth.types";
+import { LoginDTO } from "@/shared-types/auth.types";
 import { useLogin } from "../hooks/useLogin";
 import styles from "./LoginForm.module.css";
 
@@ -125,3 +125,4 @@ export default function LoginForm() {
     </main>
   );
 }
+

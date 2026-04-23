@@ -5,7 +5,7 @@ import { Button, Grid, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { useState } from "react";
 
-import { StudentDTO } from "../../../../../../shared-types/student.types";
+import { StudentDTO } from "@/shared-types/student.types";
 import FeeDrawer from "./FeeDrawer";
 import FeeHistoryTable from "./FeeHistoryTable";
 
@@ -117,3 +117,4 @@ export default function FeeTable({
     </>
   );
 }
+

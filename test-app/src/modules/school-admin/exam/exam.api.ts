@@ -1,12 +1,12 @@
 import { baseApi } from "@/src/store/api/baseApi";
 
-import { ICreateExam, IExam } from "../../../../../shared-types/exam.types";
-import { ApiResponse } from "../../../../../shared-types/response.types";
+import { ICreateExam, IExam } from "@/shared-types/exam.types";
+import { ApiResponse } from "@/shared-types/response.types";
 import {
   ICreateSchedule,
   ISchedule,
-} from "../../../../../shared-types/schedule.types";
-import { ITeacher } from "../../../../../shared-types/teacher.types";
+} from "@/shared-types/schedule.types";
+import { ITeacher } from "@/shared-types/teacher.types";
 
 export const examApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -161,3 +161,4 @@ export const {
   usePreviewScheduleMutation,
   useSuggestTimeSlotsMutation,
 } = examApi;
+

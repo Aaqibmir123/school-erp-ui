@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import {
   LoginDTO,
   LoginResponse,
-} from "../../../../../shared-types/auth.types";
+} from "@/shared-types/auth.types";
 import { loginApi } from "../api/auth.api";
 
 export const useLogin = () => {
@@ -23,3 +23,4 @@ export const useLogin = () => {
 
   return { login, loading };
 };
+

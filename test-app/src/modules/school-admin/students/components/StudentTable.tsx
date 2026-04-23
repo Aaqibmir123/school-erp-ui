@@ -8,7 +8,7 @@ import type { ColumnsType } from "antd/es/table";
 
 import { useGetStudentsQuery } from "../studentApi";
 
-import type { StudentPopulated } from "../../../../../../shared-types/student.types";
+import type { StudentPopulated } from "@/shared-types/student.types";
 
 import StudentRowActions from "./StudentRowActions";
 
@@ -87,3 +87,4 @@ function StudentTable() {
 }
 
 export default React.memo(StudentTable);
+

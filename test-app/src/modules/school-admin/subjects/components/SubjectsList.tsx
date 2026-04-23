@@ -9,7 +9,7 @@ import {
   useGetSubjectsByClassQuery,
 } from "../subject.api";
 
-import { ISubject } from "../../../../../../shared-types/subject.types";
+import { ISubject } from "@/shared-types/subject.types";
 
 interface Props {
   classId: string;
@@ -105,3 +105,4 @@ export default function SubjectsList({ classId }: Props) {
     </div>
   );
 }
+

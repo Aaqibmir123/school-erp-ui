@@ -23,7 +23,7 @@ import {
   useDeletePeriodMutation,
   useGetPeriodsQuery,
 } from "./periodApi";
-import { PeriodType } from "../../../../../shared-types/period.types";
+import { PeriodType } from "@/shared-types/period.types";
 
 const { Text } = Typography;
 
@@ -223,3 +223,4 @@ export default function PeriodPage() {
     </Card>
   );
 }
+

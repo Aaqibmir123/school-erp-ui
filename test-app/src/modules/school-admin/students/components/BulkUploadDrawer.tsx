@@ -12,7 +12,7 @@ import {
 import type {
   BulkImportResponse,
   StudentBulkTemplateRow,
-} from "../../../../../../shared-types/student.types";
+} from "@/shared-types/student.types";
 
 interface Props {
   open: boolean;
@@ -179,3 +179,4 @@ export default function BulkUploadDrawer({ open, onClose }: Props) {
     </Drawer>
   );
 }
+

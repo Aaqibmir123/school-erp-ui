@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { useState } from "react";
 
 import TeacherAssignmentsTable from "@/src/modules/school-admin/teacher-assignments/components/TeacherAssignmentsTable";
-import { TeacherAssignment } from "../../../../../shared-types/teacherAssignment.types";
+import { TeacherAssignment } from "@/shared-types/teacherAssignment.types";
 import { useGetTeacherAssignmentsQuery } from "../../../../src/modules/school-admin/teacher-assignments/teacherAssignment.api";
 
 export default function TeacherAssignmentsPage() {

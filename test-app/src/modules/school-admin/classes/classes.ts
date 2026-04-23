@@ -2,7 +2,7 @@ import { baseApi } from "@/src/store/api/baseApi";
 import type {
     ClassResponse,
     CreateClassesDTO,
-} from "../../../../../shared-types/class.types";
+} from "@/shared-types/class.types";
 
 export const classApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -28,3 +28,4 @@ export const classApi = baseApi.injectEndpoints({
 });
 
 export const { useGetClassesQuery, useCreateClassMutation } = classApi;
+

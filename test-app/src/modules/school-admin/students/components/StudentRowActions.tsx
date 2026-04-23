@@ -6,7 +6,7 @@ import React, { useState } from "react";
 
 import { useDeleteStudentMutation } from "../studentApi";
 
-import type { StudentPopulated } from "../../../../../../shared-types/student.types";
+import type { StudentPopulated } from "@/shared-types/student.types";
 
 import StudentDrawer from "./StudentDrawer";
 
@@ -74,3 +74,4 @@ const StudentRowActions: React.FC<Props> = ({ record }) => {
 };
 
 export default React.memo(StudentRowActions);
+

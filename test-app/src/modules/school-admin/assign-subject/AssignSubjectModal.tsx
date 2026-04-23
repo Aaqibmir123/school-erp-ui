@@ -10,7 +10,7 @@ import { useAssignSubjectMutation } from "./teacherAssignment.api";
 
 /* GLOBAL TYPES */
 import { showToast } from "@/src/utils/toast";
-import { ISubject } from "../../../../../shared-types/subject.types";
+import { ISubject } from "@/shared-types/subject.types";
 
 interface Props {
   open: boolean;
@@ -153,3 +153,4 @@ export default function AssignSubjectModal({ open, onClose, teacher }: Props) {
     </Modal>
   );
 }
+

@@ -1,5 +1,5 @@
 import api from "@/src/services/api";
-import { CreateClassesDTO } from "../../../../../../shared-types/class.types";
+import { CreateClassesDTO } from "@/shared-types/class.types";
 
 /* TYPES */
 
@@ -25,3 +25,4 @@ export const getClassesApi = async (): Promise<ClassItem[]> => {
   const res = await api.get<GetClassesResponse>("/school-admin/classes");
   return res.data.data;
 };
+

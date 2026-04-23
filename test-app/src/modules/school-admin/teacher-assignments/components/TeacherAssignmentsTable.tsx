@@ -4,7 +4,7 @@ import { Button, Modal, Space, Table, Tag, message } from "antd";
 import { ColumnsType } from "antd/es/table";
 import { useState } from "react";
 
-import { TeacherAssignment } from "../../../../../../shared-types/teacherAssignment.types";
+import { TeacherAssignment } from "@/shared-types/teacherAssignment.types";
 import { useDeleteTeacherAssignmentMutation } from "../teacherAssignment.api";
 
 interface Props {
@@ -162,3 +162,4 @@ export default function TeacherAssignmentsTable({
     />
   );
 }
+

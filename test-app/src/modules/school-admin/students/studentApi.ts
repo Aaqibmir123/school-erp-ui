@@ -6,7 +6,7 @@ import type {
   GetStudentsParams,
   PreviewStudentsResponse,
   StudentPopulated,
-} from "../../../../../shared-types/student.types";
+} from "@/shared-types/student.types";
 
 /* ================= RESPONSE TYPE ================= */
 export interface StudentsApiResponse {
@@ -112,3 +112,4 @@ export const {
   usePreviewStudentsMutation,
   useImportStudentsMutation,
 } = studentApi;
+

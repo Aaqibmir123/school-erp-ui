@@ -1,6 +1,6 @@
 import { baseApi } from "@/src/store/api/baseApi";
-import { ApiResponse } from "../../../../../shared-types/api.types";
-import { Fee } from "../../../../../shared-types/fee.types";
+import { ApiResponse } from "@/shared-types/api.types";
+import { Fee } from "@/shared-types/fee.types";
 
 /* ================= TYPES ================= */
 
@@ -120,3 +120,4 @@ export const {
   useDeleteFeeMutation,
   useGenerateReceiptMutation,
 } = feeApi;
+

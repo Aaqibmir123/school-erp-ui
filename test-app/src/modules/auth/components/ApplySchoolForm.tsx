@@ -11,7 +11,7 @@ import {
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ApplySchoolDTO } from "../../../../../shared-types/auth.types";
+import { ApplySchoolDTO } from "@/shared-types/auth.types";
 import { useApplySchool } from "../hooks/useApplySchool";
 
 const { Title, Text } = Typography;
@@ -194,3 +194,4 @@ const styles = {
     fontWeight: 600,
   },
 };
+

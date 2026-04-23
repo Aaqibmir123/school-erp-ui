@@ -1,5 +1,5 @@
 import { baseApi } from "@/src/store/api/baseApi";
-import type { AssignSubjectPayload } from "../../../../../shared-types/teacherAssignment.types";
+import type { AssignSubjectPayload } from "@/shared-types/teacherAssignment.types";
 
 /* ---------------- TYPES ---------------- */
 
@@ -50,3 +50,4 @@ export const {
   useSetTeacherPasswordMutation,
   useGetAcademicYearsQuery,
 } = teacherAssignmentApi;
+

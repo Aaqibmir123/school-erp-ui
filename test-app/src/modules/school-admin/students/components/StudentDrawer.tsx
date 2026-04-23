@@ -25,8 +25,8 @@ import {
 
 import { getClassesApi } from "../../classes/api/class.api";
 
-import type { Section } from "../../../../../../shared-types/section.types";
-import { CreateStudentDTO } from "../../../../../../shared-types/student.types";
+import type { Section } from "@/shared-types/section.types";
+import { CreateStudentDTO } from "@/shared-types/student.types";
 
 interface ClassItem {
   _id: string;
@@ -294,3 +294,4 @@ export default function StudentDrawer({ open, onClose, initialData }: Props) {
     </Drawer>
   );
 }
+

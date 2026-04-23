@@ -17,7 +17,7 @@ import {
 import {
   IClassSubjects,
   ISubject,
-} from "../../../../shared-types/subject.types";
+} from "@/shared-types/subject.types";
 
 interface ClassItem {
   _id: string;
@@ -171,3 +171,4 @@ export default function SubjectsPage() {
     </Card>
   );
 }
+

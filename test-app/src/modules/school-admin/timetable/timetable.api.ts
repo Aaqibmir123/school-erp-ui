@@ -2,7 +2,7 @@ import { baseApi } from "@/src/store/api/baseApi";
 import {
   CreateTimetableDTO,
   TimetableItem,
-} from "../../../../../shared-types/timetable.types";
+} from "@/shared-types/timetable.types";
 
 type SaveTimetablePayload = CreateTimetableDTO[];
 
@@ -34,3 +34,4 @@ export const {
   useLazyGetTimetableQuery,
   useSaveTimetableMutation,
 } = timetableApi;
+

@@ -2,7 +2,7 @@ import { baseApi } from "@/src/store/api/baseApi";
 import {
   IClassSubjects,
   ISubject,
-} from "../../../../../shared-types/subject.types";
+} from "@/shared-types/subject.types";
 
 /* =========================
    API
@@ -55,3 +55,4 @@ export const {
   useCreateSubjectsMutation,
   useDeleteSubjectMutation,
 } = subjectApi;
+

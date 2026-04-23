@@ -8,7 +8,7 @@
 // import type {
 //   ClassItem,
 //   Subject,
-// } from "../../../../../../shared-types/timetable.types";
+// } from "@/shared-types/timetable.types";
 
 // /* TEMP */
 // import { getClassesApi } from "../../classes/api/class.api";
@@ -72,3 +72,4 @@
 //     </Card>
 //   );
 // }
+

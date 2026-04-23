@@ -10,7 +10,7 @@ import { Button, Popconfirm, Space, Table, Tag, message } from "antd";
 import dayjs from "dayjs";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { IExam } from "../../../../../shared-types/exam.types";
+import { IExam } from "@/shared-types/exam.types";
 import CreateExamScreen from "./CreateExamScreen";
 
 import {
@@ -151,3 +151,4 @@ const ExamListScreen = () => {
 };
 
 export default ExamListScreen;
+

@@ -1,4 +1,4 @@
-import { ApplySchoolDto } from "../../../../shared-types/school.types";
+import { ApplySchoolDto } from "@/shared-types/school.types";
 import api from "../../services/api";
 
 export const getPendingSchools = async (): Promise<ApplySchoolDto[]> => {
@@ -16,3 +16,4 @@ export const approveSchool = async (
   );
   return res.data;
 };
+

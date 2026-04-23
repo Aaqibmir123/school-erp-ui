@@ -7,7 +7,7 @@ import { useDeleteSectionMutation, useGetSectionsQuery } from "../sectionApi";
 
 import { showToast } from "@/src/utils/toast";
 import type { ColumnsType } from "antd/es/table";
-import type { Section } from "../../../../../../shared-types/section.types";
+import type { Section } from "@/shared-types/section.types";
 interface SectionGroup {
   className: string;
   sections: Section[];
@@ -95,3 +95,4 @@ export default function SectionList() {
     />
   );
 }
+

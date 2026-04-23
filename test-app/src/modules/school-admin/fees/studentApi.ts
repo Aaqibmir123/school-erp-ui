@@ -1,6 +1,6 @@
 import { baseApi } from "@/src/store/api/baseApi";
-import { ApiResponse } from "../../../../../shared-types/api.types";
-import { StudentDTO } from "../../../../../shared-types/student.types";
+import { ApiResponse } from "@/shared-types/api.types";
+import { StudentDTO } from "@/shared-types/student.types";
 
 export const studentApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -30,3 +30,4 @@ export const studentApi = baseApi.injectEndpoints({
 });
 
 export const { useGetAllStudentsByClassQuery } = studentApi;
+

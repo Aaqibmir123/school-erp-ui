@@ -2,7 +2,7 @@ import { baseApi } from "@/src/store/api/baseApi";
 import type {
   CreatePeriodDTO,
   Period,
-} from "../../../../../shared-types/period.types";
+} from "@/shared-types/period.types";
 
 export const periodApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -43,3 +43,4 @@ export const {
   useCreatePeriodMutation,
   useDeletePeriodMutation,
 } = periodApi;
+
