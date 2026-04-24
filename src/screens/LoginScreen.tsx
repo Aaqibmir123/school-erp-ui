@@ -10,6 +10,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { FirebaseRecaptchaVerifierModal } from "expo-firebase-recaptcha";
 import { signInWithPhoneNumber } from "firebase/auth";
@@ -56,6 +57,7 @@ export default function LoginScreen() {
   const [step, setStep] = useState<"phone" | "otp">("phone");
   const [loading, setLoading] = useState(false);
   const [timer, setTimer] = useState(0);
+  const insets = useSafeAreaInsets();
 
   const recaptchaVerifier = useRef<any>(null);
   const confirmationRef = useRef<any>(null);
@@ -94,7 +96,6 @@ export default function LoginScreen() {
       setTimer(RESEND_TIME);
       showToast.success("OTP sent");
     } catch (error: any) {
-      console.log("Firebase OTP error:", error);
       showToast.error(getFirebaseMessage(error));
     }
   };
@@ -164,122 +165,150 @@ export default function LoginScreen() {
   };
 
   return (
-    <LinearGradient
-      colors={["#0F172A", "#1D4ED8", "#38BDF8"]}
-      style={styles.screen}
-    >
-      <FirebaseRecaptchaVerifierModal
-        ref={recaptchaVerifier}
-        firebaseConfig={firebaseConfig}
-        attemptInvisibleVerification
-      />
-
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={styles.keyboardView}
+    <SafeAreaView style={styles.screen} edges={["top", "bottom"]}>
+      <LinearGradient
+        colors={["#0F172A", "#1D4ED8", "#38BDF8"]}
+        style={styles.gradient}
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
+        <FirebaseRecaptchaVerifierModal
+          ref={recaptchaVerifier}
+          firebaseConfig={firebaseConfig}
+          attemptInvisibleVerification
+        />
+
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          keyboardVerticalOffset={insets.top}
+          style={styles.keyboardView}
         >
-          <View style={styles.shell}>
-            <View style={styles.hero}>
-              <Image
-                source={require("../../assets/images/splash-icon.png")}
-                contentFit="contain"
-                style={styles.logo}
-              />
-              <Text style={styles.heroTitle}>School ERP</Text>
-              <Text style={styles.heroSubtitle}>
-                {step === "phone" ? "Login with phone" : "Enter OTP"}
-              </Text>
-            </View>
-
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>
-                {step === "phone" ? "Login" : "Verify OTP"}
-              </Text>
-
-              <View style={styles.form}>
-                <AppInput
-                  label="Phone Number"
-                  keyboardType="phone-pad"
-                  leftIcon="call-outline"
-                  maxLength={10}
-                  onChangeText={(value) => {
-                    const sanitizedValue = value.replace(/[^0-9]/g, "");
-                    setPhone(sanitizedValue);
-
-                    if (step === "otp") {
-                      setOtp("");
-                      setStep("phone");
-                      confirmationRef.current = null;
-                    }
-                  }}
-                  placeholder="10-digit number"
-                  value={normalizedPhone}
+          <ScrollView
+            contentContainerStyle={[
+              styles.scrollContent,
+              { paddingBottom: Math.max(insets.bottom, SPACING.lg) + 24 },
+            ]}
+            contentInsetAdjustmentBehavior="always"
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.shell}>
+              <View style={styles.hero}>
+                <Image
+                  source={require("../../assets/images/splash-icon.png")}
+                  contentFit="contain"
+                  style={styles.logo}
                 />
+                <Text style={styles.heroTitle}>School ERP</Text>
+                <Text style={styles.heroSubtitle}>
+                  {step === "phone"
+                    ? "Login with your registered phone number"
+                    : `Enter the 6-digit code sent to +91 ${normalizedPhone}`}
+                </Text>
+              </View>
 
-                {step === "otp" ? (
-                  <>
-                    <AppInput
-                      label="OTP"
-                      keyboardType="number-pad"
-                      leftIcon="shield-checkmark-outline"
-                      maxLength={6}
-                      onChangeText={(value) =>
-                        setOtp(value.replace(/[^0-9]/g, ""))
+              <View style={styles.card}>
+                <Text style={styles.cardTitle}>
+                  {step === "phone" ? "Login" : "Verify OTP"}
+                </Text>
+
+                <View style={styles.form}>
+                  <AppInput
+                    compact
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    keyboardType="phone-pad"
+                    label="Phone Number"
+                    leftIcon="call-outline"
+                    maxLength={10}
+                    onChangeText={(value) => {
+                      const sanitizedValue = value.replace(/[^0-9]/g, "");
+                      setPhone(sanitizedValue);
+
+                      if (step === "otp") {
+                        setOtp("");
+                        setStep("phone");
+                        confirmationRef.current = null;
                       }
-                      placeholder="6-digit OTP"
-                      value={otp}
-                    />
-
-                    <View style={styles.inlineRow}>
-                      <Text style={styles.helperText}>+91 {normalizedPhone}</Text>
-                      <Pressable onPress={() => setStep("phone")}>
-                        <Text style={styles.linkText}>Edit</Text>
-                      </Pressable>
-                    </View>
-
-                    <AppButton
-                      title="Verify"
-                      onPress={handleVerifyOtp}
-                      loading={loading}
-                      disabled={!isConnected}
-                    />
-
-                    <Pressable
-                      disabled={!isConnected || timer > 0}
-                      onPress={handleResendOtp}
-                      style={({ pressed }) => [
-                        styles.secondaryAction,
-                        pressed && timer <= 0 && styles.secondaryPressed,
-                      ]}
-                    >
-                      <Text style={styles.secondaryText}>
-                        {!isConnected
-                          ? "Offline"
-                          : timer > 0
-                            ? `Resend in ${timer}s`
-                            : "Resend OTP"}
-                      </Text>
-                    </Pressable>
-                  </>
-                ) : (
-                  <AppButton
-                    title="Send OTP"
-                    onPress={handleSendOtp}
-                    loading={loading}
-                    disabled={normalizedPhone.length !== 10 || !isConnected}
+                    }}
+                    onSubmitEditing={handleSendOtp}
+                    placeholder="10-digit mobile number"
+                    returnKeyType="done"
+                    textContentType="telephoneNumber"
+                    value={normalizedPhone}
                   />
-                )}
+
+                  {step === "otp" ? (
+                    <>
+                      <AppInput
+                        compact
+                        autoCorrect={false}
+                        keyboardType="number-pad"
+                        label="OTP"
+                        leftIcon="shield-checkmark-outline"
+                        maxLength={6}
+                        onChangeText={(value) =>
+                          setOtp(value.replace(/[^0-9]/g, ""))
+                        }
+                        onSubmitEditing={handleVerifyOtp}
+                        placeholder="6-digit OTP"
+                        returnKeyType="done"
+                        textContentType="oneTimeCode"
+                        value={otp}
+                      />
+
+                      <View style={styles.inlineRow}>
+                        <Text style={styles.helperText}>
+                          +91 {normalizedPhone}
+                        </Text>
+                        <Pressable
+                          onPress={() => {
+                            setStep("phone");
+                            setOtp("");
+                          }}
+                        >
+                          <Text style={styles.linkText}>Edit</Text>
+                        </Pressable>
+                      </View>
+
+                      <AppButton
+                        title="Verify"
+                        onPress={handleVerifyOtp}
+                        loading={loading}
+                        disabled={!isConnected}
+                      />
+
+                      <Pressable
+                        disabled={!isConnected || timer > 0}
+                        onPress={handleResendOtp}
+                        style={({ pressed }) => [
+                          styles.secondaryAction,
+                          pressed && timer <= 0 && styles.secondaryPressed,
+                        ]}
+                      >
+                        <Text style={styles.secondaryText}>
+                          {!isConnected
+                            ? "Offline"
+                            : timer > 0
+                              ? `Resend in ${timer}s`
+                              : "Resend OTP"}
+                        </Text>
+                      </Pressable>
+                    </>
+                  ) : (
+                    <AppButton
+                      title="Send OTP"
+                      onPress={handleSendOtp}
+                      loading={loading}
+                      disabled={normalizedPhone.length !== 10 || !isConnected}
+                    />
+                  )}
+                </View>
               </View>
             </View>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </LinearGradient>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </LinearGradient>
+    </SafeAreaView>
   );
 }
 
@@ -288,15 +317,15 @@ const styles = StyleSheet.create({
     ...SHADOWS.card,
     backgroundColor: "rgba(255,255,255,0.95)",
     borderRadius: RADIUS.xl,
-    padding: SPACING.xl,
+    padding: SPACING.lg,
   },
   cardTitle: {
-    ...TYPOGRAPHY.title,
+    ...TYPOGRAPHY.sectionTitle,
     color: COLORS.textPrimary,
     textAlign: "center",
   },
   form: {
-    gap: SPACING.sm,
+    gap: SPACING.md,
     marginTop: SPACING.lg,
   },
   helperText: {
@@ -305,17 +334,18 @@ const styles = StyleSheet.create({
   },
   hero: {
     alignItems: "center",
-    marginBottom: SPACING.xl,
+    marginBottom: SPACING.lg,
   },
   heroSubtitle: {
     ...TYPOGRAPHY.body,
     color: "rgba(248,250,252,0.88)",
     marginTop: SPACING.xs,
+    textAlign: "center",
   },
   heroTitle: {
-    ...TYPOGRAPHY.headline,
+    ...TYPOGRAPHY.title,
     color: COLORS.textInverse,
-    marginTop: SPACING.md,
+    marginTop: SPACING.sm,
   },
   inlineRow: {
     alignItems: "center",
@@ -331,16 +361,21 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   logo: {
-    height: 108,
-    width: 108,
+    height: 88,
+    width: 88,
   },
   screen: {
+    flex: 1,
+    backgroundColor: "#0F172A",
+  },
+  gradient: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: "center",
-    padding: SPACING.lg,
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.lg,
   },
   secondaryAction: {
     alignItems: "center",

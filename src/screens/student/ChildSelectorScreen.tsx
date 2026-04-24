@@ -26,7 +26,6 @@ const ChildSelectorScreen = () => {
 
   const renderItem = ({ item, index }: any) => {
     const initials = item.firstName?.charAt(0) + item.lastName?.charAt(0);
-    console.log(item, "item");
 
     return (
       <TouchableOpacity

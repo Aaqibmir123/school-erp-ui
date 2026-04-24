@@ -32,8 +32,9 @@ const HomeworkListScreen = () => {
     try {
       await deleteHomework(deleteId).unwrap();
       setDeleteId(null);
-    } catch (err) {
-      console.log("Delete Error:", err);
+    } catch {
+      // WHY: Deletion errors are already shown via UI flows elsewhere, so we
+      // avoid console noise in production builds.
     }
   };
 

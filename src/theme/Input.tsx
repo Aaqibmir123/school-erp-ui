@@ -13,6 +13,7 @@ import { COLORS, RADIUS, SPACING } from "@/src/theme";
 type Props = TextInputProps & {
   label?: string;
   error?: string;
+  compact?: boolean;
   leftIcon?: keyof typeof Ionicons.glyphMap;
   rightIcon?: keyof typeof Ionicons.glyphMap;
   onRightPress?: () => void;
@@ -21,6 +22,7 @@ type Props = TextInputProps & {
 const AppInput = ({
   label,
   error,
+  compact = false,
   leftIcon,
   rightIcon,
   onRightPress,
@@ -30,7 +32,7 @@ const AppInput = ({
   const [focused, setFocused] = useState(false);
 
   return (
-    <View style={{ marginBottom: SPACING.md }}>
+    <View style={{ marginBottom: compact ? 0 : SPACING.md }}>
       {/* 🔥 LABEL */}
       {label && <Text style={styles.label}>{label}</Text>}
 

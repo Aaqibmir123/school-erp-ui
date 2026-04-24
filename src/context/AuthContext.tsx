@@ -88,8 +88,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             }
           }
         }
-      } catch (error) {
-        console.log("Auth load error:", error);
+      } catch {
+        // WHY: Authentication hydration should fail silently so a stale cache
+        // does not block the app from rendering the login screen.
       } finally {
         setLoading(false);
       }
@@ -130,8 +131,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         await AsyncStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(list));
       }
-    } catch (error) {
-      console.log("Login state error:", error);
+    } catch {
+      // WHY: Login state persistence is best-effort; API errors already surface
+      // through the login screen, so we avoid noisy duplicate console output.
     }
   };
 
