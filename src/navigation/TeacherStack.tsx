@@ -1,4 +1,5 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { DrawerActions } from "@react-navigation/native";
 import React from "react";
 import { StyleSheet } from "react-native";
 
@@ -47,7 +48,7 @@ const TeacherStack = () => {
             onBack={back ? () => navigation.goBack() : undefined}
             onMenu={
               route.name === "Main"
-                ? () => navigation.toggleDrawer()
+                ? () => navigation.dispatch(DrawerActions.toggleDrawer())
                 : undefined
             }
           />

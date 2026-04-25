@@ -15,10 +15,4 @@ const auth = getAuth(app);
 
 auth.useDeviceLanguage();
 
-if (__DEV__) {
-  // WHY: This keeps Firebase console test phone numbers usable during local
-  // development without changing production phone-auth behavior.
-  auth.settings.appVerificationDisabledForTesting = true;
-}
-
 export { app, auth, firebaseConfig };

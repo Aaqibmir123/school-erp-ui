@@ -1,5 +1,3 @@
-// src/screens/teacher/results/EnterMarksScreen.tsx
-
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import * as DocumentPicker from "expo-document-picker";
@@ -17,12 +15,13 @@ import {
 
 import {
   useDeleteResultMutation,
-  useGetResultsByExamQuery
+  useGetResultsByExamQuery,
+  useGetStudentsByClassQuery,
 } from "../../../api/teacher/teacherApi";
 
 const BASE_URL = "https://alertly-prehensile-gretta.ngrok-free.dev/api";
 
-const EnterMarksScreen = () => {
+const EditResultScreen = () => {
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
   const exam = route.params?.exam;
@@ -31,18 +30,19 @@ const EnterMarksScreen = () => {
   const sectionId = exam?.sectionId?._id || exam?.sectionId;
   const examId = exam?._id;
 
-  const { data: students = [], isLoading } = useGetStudentsByClassApiQuery(
+  const { data: students = [], isLoading } = useGetStudentsByClassQuery(
     { classId, sectionId },
     { skip: !classId },
   );
 
-  const { data: resultsData, refetch } = useGetResultsByExamQuery({ examId });
+  const { data: resultsData = [], refetch } = useGetResultsByExamQuery(
+    { examId },
+    { skip: !examId },
+  );
 
-  const [deleteResult] = useDeleteResultMutation(); // ✅
-
+  const [deleteResult] = useDeleteResultMutation();
   const [marksData, setMarksData] = useState<any>({});
   const [loading, setLoading] = useState(false);
-
   const [uploadedCount, setUploadedCount] = useState(0);
   const [totalStudents, setTotalStudents] = useState(0);
 
@@ -52,39 +52,40 @@ const EnterMarksScreen = () => {
       : Math.round((uploadedCount / totalStudents) * 100);
   }, [uploadedCount, totalStudents]);
 
-  /* ================= MERGE ================= */
   useEffect(() => {
     if (!students.length) return;
 
-    const resultMap: any = {};
+    const resultMap: Record<string, any> = {};
 
-    if (resultsData?.data) {
-      resultsData.data.forEach((r: any) => {
-        resultMap[r.studentId._id] = r;
-      });
-    }
+    resultsData.forEach((result: any) => {
+      const sid = result.studentId?._id || result.studentId;
+      resultMap[String(sid)] = result;
+    });
 
-    const merged: any = {};
+    const merged: Record<string, any> = {};
 
-    students.forEach((s: any) => {
-      const result = resultMap[s._id];
+    students.forEach((student: any) => {
+      const sid = String(student._id);
+      const result = resultMap[sid];
 
-      merged[s._id] = {
-        marks: result?.marksObtained?.toString() || "",
+      merged[student._id] = {
+        marks:
+          result?.marksObtained !== undefined
+            ? String(result.marksObtained)
+            : "",
         fileUri: result?.marksheetUrl || null,
         fileName: result?.marksheetUrl
           ? result.marksheetUrl.split("/").pop()
           : null,
         fileType: "image/jpeg",
         isSaved: !!result,
-        resultId: result?._id || null, // ✅ IMPORTANT
+        resultId: result?._id || null,
       };
     });
 
     setMarksData(merged);
   }, [students, resultsData]);
 
-  /* ================= MARKS ================= */
   const handleMarksChange = useCallback((id: string, value: string) => {
     setMarksData((prev: any) => ({
       ...prev,
@@ -95,7 +96,6 @@ const EnterMarksScreen = () => {
     }));
   }, []);
 
-  /* ================= FILE ================= */
   const handleUpload = async (id: string) => {
     const result = await DocumentPicker.getDocumentAsync({
       type: ["application/pdf", "image/*"],
@@ -116,7 +116,6 @@ const EnterMarksScreen = () => {
     }));
   };
 
-  /* ================= DELETE ================= */
   const handleDelete = async (studentId: string) => {
     const data = marksData[studentId];
 
@@ -126,19 +125,15 @@ const EnterMarksScreen = () => {
     }
 
     Alert.alert("Confirm", "Delete this result?", [
-      {
-        text: "Cancel",
-      },
+      { text: "Cancel" },
       {
         text: "Delete",
         onPress: async () => {
           try {
             await deleteResult(data.resultId).unwrap();
-
             Alert.alert("Deleted");
-
-            refetch(); // 🔥 refresh
-          } catch (err) {
+            refetch();
+          } catch {
             Alert.alert("Error deleting");
           }
         },
@@ -146,7 +141,6 @@ const EnterMarksScreen = () => {
     ]);
   };
 
-  /* ================= SAVE ================= */
   const handleSave = async () => {
     try {
       setLoading(true);
@@ -178,7 +172,7 @@ const EnterMarksScreen = () => {
           const item = marksData[studentId];
 
           resultsArray.push({
-            examId: exam._id,
+            examId,
             studentId,
             classId: exam.classId._id,
             subjectId: exam.subjectId._id,
@@ -210,8 +204,8 @@ const EnterMarksScreen = () => {
         setUploadedCount((prev) => prev + chunkIds.length);
       }
 
-      Alert.alert("Saved ✅");
-      refetch(); // 🔥 refresh
+      Alert.alert("Saved");
+      refetch();
     } catch (err: any) {
       Alert.alert("Error", err.message);
     } finally {
@@ -219,7 +213,6 @@ const EnterMarksScreen = () => {
     }
   };
 
-  /* ================= UI ================= */
   const renderItem = ({ item }: any) => {
     const studentData = marksData[item._id] || {};
 
@@ -244,7 +237,7 @@ const EnterMarksScreen = () => {
               })
             }
           >
-            <Text style={styles.file}>📎 View</Text>
+            <Text style={styles.file}>View</Text>
           </TouchableOpacity>
         )}
 
@@ -286,60 +279,52 @@ const EnterMarksScreen = () => {
           <Text style={styles.saveText}>Save Results</Text>
         )}
       </TouchableOpacity>
+
+      {progressPercent > 0 && (
+        <Text style={styles.progress}>{progressPercent}% done</Text>
+      )}
     </View>
   );
 };
 
-export default EnterMarksScreen;
-
-/* ================= STYLES ================= */
+export default EditResultScreen;
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f5f6fa" },
-
   card: {
     backgroundColor: "#fff",
     margin: 10,
     padding: 14,
     borderRadius: 12,
   },
-
   name: { fontWeight: "bold" },
-
   input: {
     borderWidth: 1,
     marginTop: 5,
     padding: 8,
     borderRadius: 6,
   },
-
   file: { color: "blue", marginTop: 5 },
-
   actions: {
     flexDirection: "row",
     justifyContent: "space-between",
     marginTop: 10,
   },
-
   uploadBtn: {
     backgroundColor: "#1677ff",
     padding: 8,
     borderRadius: 6,
   },
-
   deleteBtn: {
     backgroundColor: "red",
     padding: 8,
     borderRadius: 6,
   },
-
   btnText: { color: "#fff" },
-
   saved: {
     color: "green",
     marginTop: 5,
   },
-
   saveBtn: {
     position: "absolute",
     bottom: 20,
@@ -350,11 +335,15 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: "center",
   },
-
   saveText: {
     color: "#fff",
     fontWeight: "bold",
   },
-
+  progress: {
+    position: "absolute",
+    bottom: 74,
+    alignSelf: "center",
+    color: "#666",
+  },
   center: { textAlign: "center", marginTop: 20 },
 });

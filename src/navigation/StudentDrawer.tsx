@@ -18,9 +18,6 @@ export default function StudentDrawer() {
           backgroundColor: "#F4F7FB",
         },
         drawerType: "front",
-        sceneContainerStyle: {
-          backgroundColor: "#F4F7FB",
-        },
         drawerItemStyle: {
           borderRadius: 14,
           marginHorizontal: 8,

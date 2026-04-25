@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { DrawerActions } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import React from "react";
 import { Pressable, StyleSheet } from "react-native";
@@ -20,7 +21,6 @@ export default function StudentStack() {
         headerTitleAlign: "center",
         headerTitleStyle: styles.title,
         headerShadowVisible: false,
-        headerBackTitleVisible: false,
       }}
     >
       <Stack.Screen
@@ -30,7 +30,9 @@ export default function StudentStack() {
           headerTitle: "Dashboard",
           headerLeft: () => (
             <Pressable
-              onPress={() => navigation.getParent()?.openDrawer()}
+              onPress={() =>
+                navigation.getParent()?.dispatch(DrawerActions.openDrawer())
+              }
               style={styles.headerIconBtn}
             >
               <Ionicons name="menu" size={24} color="#fff" />

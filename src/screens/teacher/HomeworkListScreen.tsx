@@ -17,7 +17,7 @@ import { showToast } from "@/src/utils/toast";
 import {
   useDeleteHomeworkMutation,
   useGetTeacherHomeworkQuery,
-} from "../../api/student/student.api";
+} from "../../api/teacher/teacherApi";
 
 import HomeworkCard from "@/src/components/homework/HomeworkCard";
 
@@ -34,18 +34,18 @@ const HomeworkListScreen = () => {
   const handleDelete = (id: string) => {
     Alert.alert("Delete Homework", "Are you sure?", [
       { text: "Cancel", style: "cancel" },
-    {
-      text: "Delete",
-      style: "destructive",
-      onPress: async () => {
-        try {
-          await deleteHomework(id).unwrap(); // 🔥 important
-        } catch {
-          showToast.error("Unable to delete homework");
-        }
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await deleteHomework(id).unwrap();
+          } catch {
+            showToast.error("Unable to delete homework");
+          }
+        },
       },
-    },
-  ]);
+    ]);
   };
 
   /* ================= LOADING ================= */

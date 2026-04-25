@@ -10,10 +10,14 @@
     "newArchEnabled": true,
 
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.school.erp"
     },
 
     "android": {
+      "package": "com.school.erp",
+      "googleServicesFile": "./google-services.json",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -51,7 +55,7 @@
     },
 
     "extra": {
-      "apiUrl": "http://localhost:5000"
+      "apiUrl": "https://YOUR_BACKEND_DOMAIN"
     }
   }
 }

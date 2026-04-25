@@ -42,7 +42,7 @@ export default function ExamScreen() {
     ["#667eea", "#764ba2"],
     ["#00c9a7", "#92fe9d"],
     ["#f7971e", "#ffd200"],
-  ];
+  ] as const;
 
   /* ================= ITEM ================= */
 

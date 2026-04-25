@@ -21,9 +21,6 @@ const TeacherDrawer = () => {
           backgroundColor: "#F4F7FB",
         },
         drawerType: "front",
-        sceneContainerStyle: {
-          backgroundColor: "#F4F7FB",
-        },
         drawerActiveTintColor: "#6366F1",
         drawerInactiveTintColor: "#6B7280",
         drawerLabelStyle: {

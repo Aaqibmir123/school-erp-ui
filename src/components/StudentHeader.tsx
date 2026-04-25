@@ -1,20 +1,16 @@
-import { View, TextInput, TouchableOpacity, Text } from "react-native";
 import { useEffect, useState } from "react";
-
-let timer: any;
+import { Text, TextInput, TouchableOpacity, View } from "react-native";
 
 const StudentHeader = ({ onSearch, onAllPresent, onAllAbsent }: any) => {
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    clearTimeout(timer);
-
-    timer = setTimeout(() => {
+    const timer = setTimeout(() => {
       onSearch(search);
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [search]);
+  }, [onSearch, search]);
 
   return (
     <View style={{ marginBottom: 15 }}>

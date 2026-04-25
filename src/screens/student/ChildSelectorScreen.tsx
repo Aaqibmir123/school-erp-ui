@@ -108,7 +108,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 16,
     backgroundColor: "rgba(255,255,255,0.15)",
-    backdropFilter: "blur(10px)", // web only but ok fallback
   },
 
   avatar: {

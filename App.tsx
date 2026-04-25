@@ -1,7 +1,7 @@
 import { NavigationContainer } from "@react-navigation/native";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
-import { SafeAreaProvider } from "react-native-safe-area-context"; // ✅ ADD THIS
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import { Provider } from "react-redux";
 
@@ -43,8 +43,6 @@ export default function App() {
     <Provider store={store}>
       <AuthProvider>
         <SafeAreaProvider>
-          {" "}
-          {/* ✅ FIX HERE */}
           <AppBootstrap />
         </SafeAreaProvider>
       </AuthProvider>

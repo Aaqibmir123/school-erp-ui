@@ -12,13 +12,21 @@ const configuredApiUrl =
   process.env.NEXT_PUBLIC_API_URL ||
   Constants.expoConfig?.extra?.apiUrl;
 
+const isProductionRuntime = !__DEV__ || process.env.NODE_ENV === "production";
+
 const shouldInferExpoHost =
   !configuredApiUrl || /localhost|127\.0\.0\.1/i.test(configuredApiUrl);
 
 const rawApiUrl =
   shouldInferExpoHost && inferredExpoHost
     ? `http://${inferredExpoHost}:5000`
-    : configuredApiUrl || "http://localhost:5000";
+    : configuredApiUrl || (isProductionRuntime ? "" : "http://localhost:5000");
+
+if (isProductionRuntime && !rawApiUrl) {
+  throw new Error(
+    "EXPO_PUBLIC_API_URL must be set for production builds. It should point to your live backend host.",
+  );
+}
 
 const normalizedServerUrl = rawApiUrl.replace(/\/api\/?$/, "").replace(/\/$/, "");
 

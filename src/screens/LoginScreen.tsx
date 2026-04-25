@@ -10,12 +10,18 @@ import {
   Text,
   View,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { FirebaseRecaptchaVerifierModal } from "expo-firebase-recaptcha";
-import { signInWithPhoneNumber } from "firebase/auth";
+import {
+  PhoneAuthProvider,
+  signInWithCredential,
+} from "firebase/auth";
 
-import { useFirebaseLoginMutation } from "../api/auth.api";
+import {
+  useCheckUserMutation,
+  useFirebaseLoginMutation,
+} from "../api/auth.api";
 import { useAuth } from "../context/AuthContext";
 import { auth, firebaseConfig } from "../firebase/firebase";
 import { useNetwork } from "../hooks/useNetwork";
@@ -25,12 +31,24 @@ import AppInput from "../theme/Input";
 import { showToast } from "../utils/toast";
 
 const RESEND_TIME = 30;
+const ALLOWED_MOBILE_ROLES = new Set(["TEACHER", "PARENT", "STUDENT"]);
+const BLOCKED_MOBILE_ROLES = new Set(["SCHOOL_ADMIN", "SUPER_ADMIN"]);
+
+const formatE164Phone = (digits: string) => `+91${digits}`;
 
 const getFirebaseMessage = (error: any) => {
   const code = error?.code || "";
 
   if (code === "auth/invalid-phone-number") {
     return "Phone number format is invalid.";
+  }
+
+  if (code === "auth/invalid-verification-code") {
+    return "Invalid OTP. Please check the SMS code.";
+  }
+
+  if (code === "auth/too-many-requests") {
+    return "Too many attempts. Please wait and try again.";
   }
 
   if (
@@ -57,13 +75,13 @@ export default function LoginScreen() {
   const [step, setStep] = useState<"phone" | "otp">("phone");
   const [loading, setLoading] = useState(false);
   const [timer, setTimer] = useState(0);
-  const insets = useSafeAreaInsets();
+  const [verificationId, setVerificationId] = useState<string | null>(null);
 
   const recaptchaVerifier = useRef<any>(null);
-  const confirmationRef = useRef<any>(null);
 
   const { login } = useAuth();
   const isConnected = useNetwork();
+  const [checkUser] = useCheckUserMutation();
   const [firebaseLogin] = useFirebaseLoginMutation();
 
   useEffect(() => {
@@ -77,6 +95,10 @@ export default function LoginScreen() {
   }, [timer]);
 
   const normalizedPhone = useMemo(() => phone.replace(/[^0-9]/g, ""), [phone]);
+  const e164Phone = useMemo(
+    () => formatE164Phone(normalizedPhone),
+    [normalizedPhone],
+  );
 
   const sendOtp = async () => {
     if (!isConnected) {
@@ -85,19 +107,60 @@ export default function LoginScreen() {
     }
 
     try {
-      const confirmation = await signInWithPhoneNumber(
-        auth,
-        `+91${normalizedPhone}`,
+      if (!recaptchaVerifier.current) {
+        throw new Error("reCAPTCHA verifier is not ready.");
+      }
+
+      console.log("FIREBASE PROJECTID:", firebaseConfig.projectId);
+      console.log("FIREBASE APPID:", firebaseConfig.appId);
+      console.log("PHONE SENT:", e164Phone);
+
+      const phoneProvider = new PhoneAuthProvider(auth);
+
+      const nextVerificationId = await phoneProvider.verifyPhoneNumber(
+        e164Phone,
         recaptchaVerifier.current,
       );
 
-      confirmationRef.current = confirmation;
+      console.log("CONFIRMATION RESULT EXISTS:", Boolean(nextVerificationId));
+      console.log("CONFIRMATION RESULT:", nextVerificationId);
+
+      if (!nextVerificationId) {
+        throw new Error("Firebase did not return a verificationId.");
+      }
+
+      setVerificationId(nextVerificationId);
       setStep("otp");
       setTimer(RESEND_TIME);
-      showToast.success("OTP sent");
+      showToast.success("OTP request accepted by Firebase");
     } catch (error: any) {
+      console.log("ERROR CODE:", error?.code);
+      console.log("ERROR MSG:", error?.message);
+      console.log("FULL ERROR:", JSON.stringify(error, null, 2));
+
       showToast.error(getFirebaseMessage(error));
     }
+  };
+
+  const checkMobileUserRole = async () => {
+    const response = await checkUser(e164Phone).unwrap();
+    const role = String(response?.role || "").toUpperCase();
+
+    console.log("CHECK USER ROLE:", role);
+
+    if (!role) {
+      throw new Error("User not found");
+    }
+
+    if (BLOCKED_MOBILE_ROLES.has(role)) {
+      throw new Error("User not found. Please login from web panel.");
+    }
+
+    if (!ALLOWED_MOBILE_ROLES.has(role)) {
+      throw new Error("Login allowed only for teachers, parents, and students");
+    }
+
+    return role;
   };
 
   const handleSendOtp = async () => {
@@ -109,10 +172,20 @@ export default function LoginScreen() {
     setLoading(true);
 
     try {
-      // WHY: Backend login already auto-resolves parent accounts after Firebase
-      // verification, so blocking OTP behind `checkUser` was stopping valid
-      // Firebase numbers from even reaching the verification step.
+      await checkMobileUserRole();
       await sendOtp();
+    } catch (error: any) {
+      const message =
+        error?.data?.message ||
+        error?.message ||
+        "Unable to verify user before OTP";
+
+      if (message.includes("User not found")) {
+        showToast.error(message);
+        return;
+      }
+
+      showToast.error(message);
     } finally {
       setLoading(false);
     }
@@ -138,7 +211,7 @@ export default function LoginScreen() {
       return;
     }
 
-    if (!confirmationRef.current) {
+    if (!verificationId) {
       showToast.error("OTP session expired. Send a new OTP.");
       return;
     }
@@ -146,8 +219,18 @@ export default function LoginScreen() {
     try {
       setLoading(true);
 
-      const result = await confirmationRef.current.confirm(otp);
+      console.log("VERIFYING OTP FOR:", e164Phone);
+
+      if (!verificationId) {
+        throw new Error("Verification session expired.");
+      }
+
+      const credential = PhoneAuthProvider.credential(verificationId, otp);
+      const result = await signInWithCredential(auth, credential);
       const idToken = await result.user.getIdToken();
+
+      console.log("OTP VERIFY SUCCESS:", result);
+
       const response = await firebaseLogin({ idToken }).unwrap();
 
       await login({
@@ -156,6 +239,10 @@ export default function LoginScreen() {
         user: response.user,
       });
     } catch (error: any) {
+      console.log("ERROR CODE:", error?.code);
+      console.log("ERROR MSG:", error?.message);
+      console.log("FULL ERROR:", JSON.stringify(error, null, 2));
+
       showToast.error(
         error?.data?.message || error?.message || "OTP verification failed",
       );
@@ -165,11 +252,13 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.screen} edges={["top", "bottom"]}>
+    <SafeAreaView style={styles.safeArea}>
       <LinearGradient
         colors={["#0F172A", "#1D4ED8", "#38BDF8"]}
-        style={styles.gradient}
+        style={styles.screen}
       >
+        <View style={styles.glowTop} />
+        <View style={styles.glowBottom} />
         <FirebaseRecaptchaVerifierModal
           ref={recaptchaVerifier}
           firebaseConfig={firebaseConfig}
@@ -177,19 +266,16 @@ export default function LoginScreen() {
         />
 
         <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          keyboardVerticalOffset={insets.top}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 12 : 0}
           style={styles.keyboardView}
         >
           <ScrollView
-            contentContainerStyle={[
-              styles.scrollContent,
-              { paddingBottom: Math.max(insets.bottom, SPACING.lg) + 24 },
-            ]}
-            contentInsetAdjustmentBehavior="always"
-            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={styles.scrollContent}
             keyboardDismissMode="on-drag"
+            keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
+            automaticallyAdjustKeyboardInsets
           >
             <View style={styles.shell}>
               <View style={styles.hero}>
@@ -198,77 +284,84 @@ export default function LoginScreen() {
                   contentFit="contain"
                   style={styles.logo}
                 />
-                <Text style={styles.heroTitle}>School ERP</Text>
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>Secure mobile access</Text>
+                </View>
+                <Text style={styles.heroTitle}>Smart School ERP</Text>
                 <Text style={styles.heroSubtitle}>
                   {step === "phone"
-                    ? "Login with your registered phone number"
-                    : `Enter the 6-digit code sent to +91 ${normalizedPhone}`}
+                    ? "Teachers, parents, and students sign in with phone"
+                    : "Enter the 6-digit code from SMS"}
                 </Text>
+                <View style={styles.heroMetaRow}>
+                  <View style={styles.metaPill}>
+                    <Text style={styles.metaPillText}>OTP Login</Text>
+                  </View>
+                  <View style={styles.metaPill}>
+                    <Text style={styles.metaPillText}>Teacher • Parent</Text>
+                  </View>
+                </View>
               </View>
 
               <View style={styles.card}>
                 <Text style={styles.cardTitle}>
                   {step === "phone" ? "Login" : "Verify OTP"}
                 </Text>
+                <Text style={styles.cardSubtitle}>
+                  {step === "phone"
+                    ? "Enter your registered mobile number."
+                    : "Check the code sent to your phone."}
+                </Text>
 
                 <View style={styles.form}>
-                  <AppInput
-                    compact
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    keyboardType="phone-pad"
-                    label="Phone Number"
-                    leftIcon="call-outline"
-                    maxLength={10}
-                    onChangeText={(value) => {
-                      const sanitizedValue = value.replace(/[^0-9]/g, "");
-                      setPhone(sanitizedValue);
-
-                      if (step === "otp") {
-                        setOtp("");
-                        setStep("phone");
-                        confirmationRef.current = null;
-                      }
-                    }}
-                    onSubmitEditing={handleSendOtp}
-                    placeholder="10-digit mobile number"
-                    returnKeyType="done"
-                    textContentType="telephoneNumber"
-                    value={normalizedPhone}
-                  />
-
-                  {step === "otp" ? (
-                    <>
-                      <AppInput
-                        compact
-                        autoCorrect={false}
-                        keyboardType="number-pad"
-                        label="OTP"
-                        leftIcon="shield-checkmark-outline"
-                        maxLength={6}
-                        onChangeText={(value) =>
-                          setOtp(value.replace(/[^0-9]/g, ""))
-                        }
-                        onSubmitEditing={handleVerifyOtp}
-                        placeholder="6-digit OTP"
-                        returnKeyType="done"
-                        textContentType="oneTimeCode"
-                        value={otp}
-                      />
-
-                      <View style={styles.inlineRow}>
-                        <Text style={styles.helperText}>
-                          +91 {normalizedPhone}
+                  {step === "phone" ? (
+                    <AppInput
+                      label="Phone Number"
+                      keyboardType="phone-pad"
+                      leftIcon="call-outline"
+                      maxLength={10}
+                      onChangeText={(value) => {
+                        const sanitizedValue = value.replace(/[^0-9]/g, "");
+                        setPhone(sanitizedValue);
+                      }}
+                      placeholder="10-digit number"
+                      value={normalizedPhone}
+                    />
+                  ) : (
+                    <View style={styles.phoneSummary}>
+                      <Text style={styles.phoneSummaryLabel}>
+                        OTP requested for
+                      </Text>
+                      <View style={styles.phoneSummaryRow}>
+                        <Text style={styles.phoneSummaryValue}>
+                          +91 {normalizedPhone.slice(0, 2)}****{normalizedPhone.slice(-2)}
                         </Text>
                         <Pressable
                           onPress={() => {
                             setStep("phone");
                             setOtp("");
+                            setVerificationId(null);
                           }}
                         >
                           <Text style={styles.linkText}>Edit</Text>
                         </Pressable>
                       </View>
+                    </View>
+                  )}
+
+                  {step === "otp" ? (
+                    <>
+                      <AppInput
+                        label="OTP"
+                        keyboardType="number-pad"
+                        leftIcon="shield-checkmark-outline"
+                        maxLength={6}
+                        onChangeText={(value) =>
+                          setOtp(value.replace(/[^0-9]/g, ""))
+                        }
+                        placeholder="6-digit OTP"
+                        value={otp}
+                      />
 
                       <AppButton
                         title="Verify"
@@ -313,6 +406,40 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
+  badge: {
+    backgroundColor: "rgba(255,255,255,0.14)",
+    borderColor: "rgba(255,255,255,0.18)",
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: 6,
+  },
+  badgeText: {
+    color: COLORS.textInverse,
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 0.6,
+    textTransform: "uppercase",
+  },
+  glowBottom: {
+    backgroundColor: "rgba(56,189,248,0.22)",
+    borderRadius: 999,
+    bottom: -60,
+    height: 180,
+    position: "absolute",
+    right: -60,
+    width: 180,
+  },
+  glowTop: {
+    backgroundColor: "rgba(255,255,255,0.10)",
+    borderRadius: 999,
+    height: 220,
+    left: -90,
+    opacity: 0.6,
+    position: "absolute",
+    top: -80,
+    width: 220,
+  },
   card: {
     ...SHADOWS.card,
     backgroundColor: "rgba(255,255,255,0.95)",
@@ -320,21 +447,45 @@ const styles = StyleSheet.create({
     padding: SPACING.lg,
   },
   cardTitle: {
-    ...TYPOGRAPHY.sectionTitle,
+    ...TYPOGRAPHY.title,
     color: COLORS.textPrimary,
-    textAlign: "center",
+    textAlign: "left",
+  },
+  cardSubtitle: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textSecondary,
+    marginTop: 4,
   },
   form: {
     gap: SPACING.md,
-    marginTop: SPACING.lg,
+    marginTop: SPACING.md,
   },
-  helperText: {
+  phoneSummary: {
+    backgroundColor: "rgba(29,78,216,0.08)",
+    borderColor: "rgba(29,78,216,0.16)",
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+  },
+  phoneSummaryLabel: {
     ...TYPOGRAPHY.caption,
     color: COLORS.textSecondary,
+    marginBottom: 2,
+  },
+  phoneSummaryRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  phoneSummaryValue: {
+    ...TYPOGRAPHY.body,
+    color: COLORS.textPrimary,
+    fontWeight: "700",
   },
   hero: {
     alignItems: "center",
-    marginBottom: SPACING.lg,
+    marginBottom: SPACING.md,
   },
   heroSubtitle: {
     ...TYPOGRAPHY.body,
@@ -342,15 +493,16 @@ const styles = StyleSheet.create({
     marginTop: SPACING.xs,
     textAlign: "center",
   },
+  heroMetaRow: {
+    flexDirection: "row",
+    gap: SPACING.sm,
+    marginTop: SPACING.md,
+  },
   heroTitle: {
-    ...TYPOGRAPHY.title,
+    ...TYPOGRAPHY.headline,
     color: COLORS.textInverse,
     marginTop: SPACING.sm,
-  },
-  inlineRow: {
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "space-between",
+    textAlign: "center",
   },
   keyboardView: {
     flex: 1,
@@ -361,21 +513,35 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   logo: {
-    height: 88,
-    width: 88,
+    height: 92,
+    width: 92,
+  },
+  safeArea: {
+    backgroundColor: "#0F172A",
+    flex: 1,
   },
   screen: {
-    flex: 1,
-    backgroundColor: "#0F172A",
-  },
-  gradient: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: "center",
+    justifyContent: "flex-start",
+    paddingBottom: SPACING.xl * 1.5,
     paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.lg,
+    paddingTop: SPACING.xl * 1.1,
+  },
+  metaPill: {
+    backgroundColor: "rgba(255,255,255,0.10)",
+    borderColor: "rgba(255,255,255,0.18)",
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: 6,
+  },
+  metaPillText: {
+    color: COLORS.textInverse,
+    fontSize: 12,
+    fontWeight: "700",
   },
   secondaryAction: {
     alignItems: "center",
@@ -394,5 +560,6 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     maxWidth: 420,
     width: "100%",
+    paddingBottom: SPACING.xl,
   },
 });
