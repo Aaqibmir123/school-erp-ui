@@ -1,44 +1,74 @@
 "use client";
 
 import { UserOutlined } from "@ant-design/icons";
-import { Card, Col, Divider, Drawer, message, Row, Typography } from "antd";
+import { Card, Col, Divider, Drawer, Row, Typography } from "antd";
 import { useEffect, useRef } from "react";
 import { useCreateFeeMutation, useUpdateFeeMutation } from "../feeApi";
-import FeeForm from "./FeeForm";
+import { showToast } from "@/src/utils/toast";
+import FeeForm, {
+  type FeeFormHandle,
+  type FeeFormInitialValues,
+  type FeeFormSubmitValues,
+} from "./FeeForm";
 
 const { Title, Text } = Typography;
 
-export default function FeeDrawer({ open, onClose, student, editData }: any) {
+type FeeStudent = {
+  _id: string;
+  name?: string;
+  className?: string;
+  sectionName?: string;
+  classId?: string | { _id?: string };
+  sectionId?: string | { _id?: string };
+};
+
+type FeeDrawerProps = {
+  open: boolean;
+  onClose: () => void;
+  student: FeeStudent;
+  editData?: Partial<FeeFormInitialValues> & { _id: string };
+};
+
+export default function FeeDrawer({
+  open,
+  onClose,
+  student,
+  editData,
+}: FeeDrawerProps) {
   const [createFee, { isLoading }] = useCreateFeeMutation();
   const [updateFee] = useUpdateFeeMutation();
 
-  const formRef = useRef<any>(null);
+  const formRef = useRef<FeeFormHandle | null>(null);
 
   const isEdit = !!editData;
 
-  const handleSubmit = async (formData: any) => {
+  const handleSubmit = async (formData: FeeFormSubmitValues) => {
     try {
       const payload = {
         studentId: student._id,
-        classId: student.classId,
-        sectionId: student.sectionId,
+        classId: typeof student.classId === "string" ? student.classId : student.classId?._id,
+        sectionId:
+          typeof student.sectionId === "string"
+            ? student.sectionId
+            : student.sectionId?._id,
         ...formData,
       };
 
       if (isEdit) {
         await updateFee({ id: editData._id, ...payload }).unwrap();
-        message.success("Fee updated");
       } else {
         await createFee(payload).unwrap();
-        message.success("Fee added");
       }
+
+      showToast.success(isEdit ? "Fee updated" : "Fee added");
+      window.dispatchEvent(new Event("dashboard-updated"));
 
       // 🔥 RESET
       formRef.current?.reset();
 
       onClose();
-    } catch (err: any) {
-      message.error(err?.data?.message || "Error");
+    } catch (err: unknown) {
+      showToast.apiError(err, "Fee save failed");
     }
   };
 

@@ -1,45 +1,29 @@
 "use client";
 
-import { Button, Card, Col, Input, message, Row, Table, Tag } from "antd";
+import { Button, Card, Col, Input, Row, Table, Tag } from "antd";
 import { useEffect, useState } from "react";
-import {
-  createAcademicYear,
-  getAcademicYears,
-  setActiveYear,
-} from "./academicYear.api";
 
-/* =========================
-   TYPES
-========================= */
+import { showToast } from "@/src/utils/toast";
+import { createAcademicYear, getAcademicYears, setActiveYear } from "./academicYear.api";
 
 type AcademicYear = {
   _id: string;
-  name: string;
   isActive: boolean;
+  name: string;
 };
 
-/* =========================
-   COMPONENT
-========================= */
-
 const AcademicYearPage = () => {
-  const [year, setYear] = useState<string>("");
+  const [year, setYear] = useState("");
   const [data, setData] = useState<AcademicYear[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
-
-  /* =========================
-     FETCH
-  ========================= */
+  const [loading, setLoading] = useState(false);
 
   const fetchYears = async () => {
     try {
       setLoading(true);
-
-      const res = (await getAcademicYears()) as AcademicYear[];
-
-      setData(res);
-    } catch (err) {
-      message.error("Failed to fetch years");
+      const res = await getAcademicYears();
+      setData(Array.isArray(res) ? res : []);
+    } catch (error) {
+      showToast.apiError(error, "Failed to fetch years");
     } finally {
       setLoading(false);
     }
@@ -49,45 +33,31 @@ const AcademicYearPage = () => {
     fetchYears();
   }, []);
 
-  /* =========================
-     ADD
-  ========================= */
-
   const handleAdd = async () => {
-    if (!year) {
-      message.warning("Please enter year");
+    if (!year.trim()) {
+      showToast.warning("Please enter year");
       return;
     }
 
     try {
-      await createAcademicYear({ name: year });
-
-      message.success("Year added");
+      await createAcademicYear({ name: year.trim() });
+      showToast.success("Year added");
       setYear("");
       fetchYears();
-    } catch {
-      message.error("Error adding year");
+    } catch (error) {
+      showToast.apiError(error, "Error adding year");
     }
   };
-
-  /* =========================
-     SET ACTIVE
-  ========================= */
 
   const handleSetActive = async (record: AcademicYear) => {
     try {
       await setActiveYear(record._id);
-
-      message.success("Active year updated");
+      showToast.success("Active year updated");
       fetchYears();
-    } catch {
-      message.error("Error updating");
+    } catch (error) {
+      showToast.apiError(error, "Error updating");
     }
   };
-
-  /* =========================
-     TABLE
-  ========================= */
 
   const columns = [
     {
@@ -107,16 +77,10 @@ const AcademicYearPage = () => {
     },
   ];
 
-  /* =========================
-     UI
-  ========================= */
-
   return (
     <Row justify="center">
       <Col xs={24} md={16}>
-        <Card title="📅 Academic Year Setup">
-          {/* ADD */}
-
+        <Card variant="borderless" title="Academic Year Setup">
           <Row gutter={10} style={{ marginBottom: 20 }}>
             <Col flex="auto">
               <Input
@@ -132,8 +96,6 @@ const AcademicYearPage = () => {
               </Button>
             </Col>
           </Row>
-
-          {/* TABLE */}
 
           <Table
             rowKey="_id"

@@ -47,6 +47,7 @@ export const feeApi = baseApi.injectEndpoints({
       }),
 
       invalidatesTags: (result, error, body) => [
+        "Dashboard",
         { type: "Fee", id: body.studentId },
       ],
     }),
@@ -61,6 +62,7 @@ export const feeApi = baseApi.injectEndpoints({
       }),
 
       invalidatesTags: (result, error, body) => [
+        "Dashboard",
         { type: "Fee", id: body.studentId },
       ],
     }),
@@ -77,6 +79,7 @@ export const feeApi = baseApi.injectEndpoints({
       }),
 
       invalidatesTags: (result, error, arg) => [
+        "Dashboard",
         { type: "Fee", id: arg.studentId },
       ],
     }),
@@ -103,6 +106,7 @@ export const feeApi = baseApi.injectEndpoints({
 
       // 🔥 MOST IMPORTANT FIX
       invalidatesTags: (result, error, body) => [
+        "Dashboard",
         { type: "Fee", id: body.studentId },
       ],
     }),

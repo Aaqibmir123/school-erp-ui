@@ -1,7 +1,7 @@
 "use client";
 
 import ResponsiveTable from "@/src/components/ResponsiveTable";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 import { Avatar, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
@@ -12,18 +12,50 @@ import type { StudentPopulated } from "@/shared-types/student.types";
 
 import StudentRowActions from "./StudentRowActions";
 
-function StudentTable() {
+interface Props {
+  classId: string | null;
+  sectionId: string | null;
+  search: string;
+}
+
+function StudentTable({ classId, sectionId, search }: Props) {
   const [page, setPage] = useState(1);
 
+  useEffect(() => {
+    setPage(1);
+  }, [classId, sectionId, search]);
+
   const { data, isLoading } = useGetStudentsQuery(
-    { page, limit: 10 },
+    {
+      classId: classId || undefined,
+      page,
+      limit: 10,
+      search: search || undefined,
+      sectionId: sectionId || undefined,
+    },
     {
       refetchOnMountOrArgChange: true,
     },
   );
 
   const students = data?.data || [];
+  // Some student endpoints historically returned `students` instead of `data`,
+  // so we keep a fallback to avoid an empty table when the API shape changes.
+  const fallbackStudents = (data as { students?: StudentPopulated[] } | undefined)
+    ?.students;
   const total = data?.total || 0;
+
+  useEffect(() => {
+    const handleStudentsUpdated = () => {
+      setPage(1);
+    };
+
+    window.addEventListener("students-updated", handleStudentsUpdated);
+
+    return () => {
+      window.removeEventListener("students-updated", handleStudentsUpdated);
+    };
+  }, []);
 
   /* ================= COLUMNS ================= */
 
@@ -73,7 +105,7 @@ function StudentTable() {
     <ResponsiveTable
       rowKey="_id"
       columns={columns}
-      dataSource={students}
+      dataSource={students.length ? students : fallbackStudents || []}
       loading={isLoading}
       scroll={{ y: 400 }}
       pagination={{
@@ -87,4 +119,3 @@ function StudentTable() {
 }
 
 export default React.memo(StudentTable);
-

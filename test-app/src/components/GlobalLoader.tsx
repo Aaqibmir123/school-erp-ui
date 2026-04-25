@@ -1,10 +1,10 @@
 "use client";
 
-import { Spin } from "antd";
 import { useSelector } from "react-redux";
 
 import type { RootState } from "@/src/store/store";
 
+import BrandLoader from "./BrandLoader";
 import styles from "./GlobalLoader.module.css";
 
 export default function GlobalLoader() {
@@ -15,8 +15,7 @@ export default function GlobalLoader() {
   return (
     <div className={styles.overlay}>
       <div className={styles.box}>
-        <Spin size="large" />
-        <p className={styles.text}>Loading workspace...</p>
+        <BrandLoader />
       </div>
     </div>
   );

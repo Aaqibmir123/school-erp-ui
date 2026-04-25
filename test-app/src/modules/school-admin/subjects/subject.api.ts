@@ -35,7 +35,7 @@ export const subjectApi = baseApi.injectEndpoints({
         body: data,
       }),
       transformResponse: (res: { data: IClassSubjects }) => res.data,
-      invalidatesTags: ["Subjects"],
+      invalidatesTags: ["Subjects", "Dashboard"],
     }),
 
     /* DELETE */
@@ -44,7 +44,7 @@ export const subjectApi = baseApi.injectEndpoints({
         url: `/school-admin/subjects/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["Subjects"],
+      invalidatesTags: ["Subjects", "Dashboard"],
     }),
   }),
 });

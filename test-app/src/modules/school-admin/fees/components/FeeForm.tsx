@@ -7,7 +7,6 @@ import {
   Form,
   Input,
   InputNumber,
-  message,
   Row,
   Select,
   Typography,
@@ -15,12 +14,13 @@ import {
 
 import dayjs, { Dayjs } from "dayjs";
 import { forwardRef, useEffect, useImperativeHandle, useMemo } from "react";
+import { showToast } from "@/src/utils/toast";
 
 const { Text } = Typography;
 
 /* ================= TYPES ================= */
 
-interface FeeFormValues {
+export interface FeeFormValues {
   month: string;
   feeCategory: string;
   feeType: string;
@@ -30,9 +30,25 @@ interface FeeFormValues {
   paidDate?: Dayjs;
 }
 
+export interface FeeFormSubmitValues {
+  month: string;
+  feeCategory: string;
+  feeType: string;
+  totalAmount: number;
+  paidAmount?: number;
+  dueDate: string;
+  paidDate?: string;
+}
+
+export interface FeeFormInitialValues
+  extends Omit<FeeFormSubmitValues, "dueDate" | "paidDate"> {
+  dueDate?: Dayjs | string;
+  paidDate?: Dayjs | string;
+}
+
 interface Props {
-  initialValues?: Partial<FeeFormValues>;
-  onSubmit: (data: any) => void;
+  initialValues?: Partial<FeeFormInitialValues>;
+  onSubmit: (data: FeeFormSubmitValues) => void;
   loading?: boolean;
 }
 
@@ -55,13 +71,25 @@ const MONTHS = [
 
 /* ================= COMPONENT ================= */
 
-const FeeForm = forwardRef<any, Props>(
+export interface FeeFormHandle {
+  reset: () => void;
+  setFields: (data: Partial<FeeFormInitialValues>) => void;
+}
+
+const FeeForm = forwardRef<FeeFormHandle, Props>(
   ({ initialValues, onSubmit, loading }, ref) => {
     const [form] = Form.useForm<FeeFormValues>();
 
     /* 🔥 EXPOSE RESET */
     useImperativeHandle(ref, () => ({
       reset: () => form.resetFields(),
+      setFields: (data: Partial<FeeFormInitialValues>) => {
+        form.setFieldsValue({
+          ...data,
+          dueDate: data.dueDate ? dayjs(data.dueDate) : undefined,
+          paidDate: data.paidDate ? dayjs(data.paidDate) : undefined,
+        });
+      },
     }));
 
     /* ================= PREFILL ================= */
@@ -80,18 +108,7 @@ const FeeForm = forwardRef<any, Props>(
       } else {
         form.resetFields();
       }
-    }, [initialValues]);
-
-    useImperativeHandle(ref, () => ({
-      reset: () => form.resetFields(),
-      setFields: (data: any) => {
-        form.setFieldsValue({
-          ...data,
-          dueDate: data.dueDate ? dayjs(data.dueDate) : undefined,
-          paidDate: data.paidDate ? dayjs(data.paidDate) : undefined,
-        });
-      },
-    }));
+    }, [initialValues, form]);
     /* ================= WATCH ================= */
 
     const total = Form.useWatch("totalAmount", form) || 0;
@@ -115,13 +132,13 @@ const FeeForm = forwardRef<any, Props>(
       } else {
         form.setFieldValue("feeType", "");
       }
-    }, [category]);
+    }, [category, form]);
 
     /* ================= SUBMIT ================= */
 
     const onFinish = (values: FeeFormValues) => {
       if ((values.paidAmount || 0) > values.totalAmount) {
-        return message.error("Paid amount cannot exceed total");
+        return showToast.error("Paid amount cannot exceed total");
       }
 
       onSubmit({

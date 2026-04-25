@@ -42,7 +42,7 @@ export const sectionApi = baseApi.injectEndpoints({
         body,
       }),
       transformResponse: (res: { data: CreateSectionsResponse[] }) => res.data,
-      invalidatesTags: ["Sections"],
+      invalidatesTags: ["Sections", "Dashboard"],
     }),
 
     /* ================= DELETE ================= */
@@ -52,7 +52,7 @@ export const sectionApi = baseApi.injectEndpoints({
         url: `/school-admin/sections/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["Sections"],
+      invalidatesTags: ["Sections", "Dashboard"],
     }),
   }),
 

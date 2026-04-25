@@ -109,11 +109,13 @@ export default function FeeTable({
         }}
       />
 
-      <FeeDrawer
-        open={open}
-        onClose={() => setOpen(false)}
-        student={selectedStudent}
-      />
+      {selectedStudent ? (
+        <FeeDrawer
+          open={open}
+          onClose={() => setOpen(false)}
+          student={selectedStudent}
+        />
+      ) : null}
     </>
   );
 }

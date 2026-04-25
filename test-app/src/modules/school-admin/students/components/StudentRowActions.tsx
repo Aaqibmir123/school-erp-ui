@@ -1,7 +1,7 @@
 "use client";
 
 import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
-import { Button, Modal, Space, Tooltip } from "antd";
+import { Button, Popconfirm, Space, Tooltip } from "antd";
 import React, { useState } from "react";
 
 import { useDeleteStudentMutation } from "../studentApi";
@@ -19,24 +19,6 @@ const StudentRowActions: React.FC<Props> = ({ record }) => {
 
   const [deleteStudent, { isLoading }] = useDeleteStudentMutation();
 
-  /* ================= DELETE ================= */
-  const handleDelete = () => {
-    Modal.confirm({
-      title: "Delete Student?",
-      content: `Are you sure you want to delete ${record.firstName}?`,
-      okText: "Delete",
-      okType: "danger",
-
-      onOk: async () => {
-        try {
-          await deleteStudent(record._id).unwrap();
-        } catch (err) {
-          console.error(err);
-        }
-      },
-    });
-  };
-
   return (
     <>
       <Space size="small">
@@ -51,16 +33,24 @@ const StudentRowActions: React.FC<Props> = ({ record }) => {
         </Tooltip>
 
         {/* DELETE */}
-        <Tooltip title="Delete">
-          <Button
-            icon={<DeleteOutlined />}
-            size="small"
-            danger
-            type="text"
-            loading={isLoading}
-            onClick={handleDelete}
-          />
-        </Tooltip>
+        <Popconfirm
+          title="Delete Student?"
+          description={`Are you sure you want to delete ${record.firstName}?`}
+          okText="Delete"
+          okButtonProps={{ danger: true, loading: isLoading }}
+          onConfirm={async () => {
+            try {
+              await deleteStudent(record._id).unwrap();
+              window.dispatchEvent(new Event("students-updated"));
+            } catch (err) {
+              console.error(err);
+            }
+          }}
+        >
+          <Tooltip title="Delete">
+            <Button icon={<DeleteOutlined />} size="small" danger type="text" />
+          </Tooltip>
+        </Popconfirm>
       </Space>
 
       {/* 🔥 REUSE DRAWER */}

@@ -124,4 +124,7 @@ export interface StudentPopulated {
 
   rollNumber: number;
   parentPhone: string;
+
+  dateOfBirth: string;
+  admissionDate: string;
 }

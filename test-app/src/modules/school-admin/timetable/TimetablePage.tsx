@@ -1,7 +1,9 @@
 "use client";
 
-import { Card, Select, Spin } from "antd";
+import { Card, Select } from "antd";
 import { useEffect, useState } from "react";
+
+import BrandLoader from "@/src/components/BrandLoader";
 
 import DragTimetable from "./components/DragTimetable";
 
@@ -119,7 +121,7 @@ export default function TimetablePage() {
         </div>
       )}
 
-      {isLoading && <Spin />}
+      {isLoading && <BrandLoader compact />}
 
       {/* 🔥 TIMETABLE */}
       {classId && (!hasSections || sectionId) && !isLoading && (

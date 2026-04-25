@@ -53,7 +53,7 @@ export const teacherApi = baseApi.injectEndpoints({
         method: "POST",
         body: formData,
       }),
-      invalidatesTags: ["Teachers"],
+      invalidatesTags: ["Teachers", "Dashboard"],
     }),
 
     /* =========================
@@ -68,7 +68,7 @@ export const teacherApi = baseApi.injectEndpoints({
         method: "PUT",
         body: data,
       }),
-      invalidatesTags: ["Teachers"],
+      invalidatesTags: ["Teachers", "Dashboard"],
     }),
 
     /* =========================
@@ -79,7 +79,7 @@ export const teacherApi = baseApi.injectEndpoints({
         url: `/school-admin/teacher/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["Teachers"],
+      invalidatesTags: ["Teachers", "Dashboard"],
     }),
 
     /* =========================

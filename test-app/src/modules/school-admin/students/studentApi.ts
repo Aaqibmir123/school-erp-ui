@@ -26,29 +26,42 @@ export const studentApi = baseApi.injectEndpoints({
         url: "/school-admin/students",
         params,
       }),
-
-      // transformResponse: (res: any) => ({
-      //   success: res.success,
-      //   data: res || [],
-      //   total: res.total || 0,
-      // }),
+      transformResponse: (res: {
+        success?: boolean;
+        students?: StudentPopulated[];
+        total?: number;
+      }) => ({
+        success: Boolean(res?.success),
+        data: Array.isArray(res?.students) ? res.students : [],
+        total: Number(res?.total || 0),
+      }),
 
       providesTags: ["Students"],
     }),
 
+    /* ================= GET BY ID ================= */
+    getStudentById: builder.query<StudentPopulated, string>({
+      query: (id) => ({
+        url: `/school-admin/students/${id}`,
+      }),
+      transformResponse: (res: { data?: StudentPopulated }) =>
+        res.data as StudentPopulated,
+      providesTags: ["Students"],
+    }),
+
     /* ================= CREATE ================= */
-    createStudent: builder.mutation<any, CreateStudentDTO>({
+    createStudent: builder.mutation<unknown, CreateStudentDTO>({
       query: (body) => ({
         url: "/school-admin/students",
         method: "POST",
         body,
       }),
-      invalidatesTags: ["Students"],
+      invalidatesTags: ["Students", "Dashboard"],
     }),
 
     /* ================= UPDATE ================= */
     updateStudent: builder.mutation<
-      any,
+      unknown,
       { id: string; body: Partial<CreateStudentDTO> }
     >({
       query: ({ id, body }) => ({
@@ -56,16 +69,16 @@ export const studentApi = baseApi.injectEndpoints({
         method: "PUT",
         body,
       }),
-      invalidatesTags: ["Students"],
+      invalidatesTags: ["Students", "Dashboard"],
     }),
 
     /* ================= DELETE ================= */
-    deleteStudent: builder.mutation<any, string>({
+    deleteStudent: builder.mutation<unknown, string>({
       query: (id) => ({
         url: `/school-admin/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["Students"],
+      invalidatesTags: ["Students", "Dashboard"],
     }),
 
     /* ================= TEMPLATE ================= */
@@ -92,19 +105,23 @@ export const studentApi = baseApi.injectEndpoints({
     }),
 
     /* ================= IMPORT ================= */
-    importStudents: builder.mutation<BulkImportResponse, { students: any[] }>({
+    importStudents: builder.mutation<
+      BulkImportResponse,
+      { students: Record<string, unknown>[] }
+    >({
       query: (body) => ({
         url: "/school-admin/students/bulk-import",
         method: "POST",
         body,
       }),
-      invalidatesTags: ["Students"],
+      invalidatesTags: ["Students", "Dashboard"],
     }),
   }),
 });
 
 export const {
   useGetStudentsQuery,
+  useGetStudentByIdQuery,
   useCreateStudentMutation,
   useUpdateStudentMutation, // 💣 NEW
   useDeleteStudentMutation, // 💣 NEW

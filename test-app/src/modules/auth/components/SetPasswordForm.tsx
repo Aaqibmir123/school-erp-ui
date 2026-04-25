@@ -1,7 +1,9 @@
 "use client";
 
-import { Button, Form, Input, message } from "antd";
+import { Button, Form, Input } from "antd";
 import { useRouter, useSearchParams } from "next/navigation";
+
+import { showToast } from "@/src/utils/toast";
 import { useSetPassword } from "../hooks/useSetPassword";
 
 export default function SetPasswordForm() {
@@ -14,13 +16,13 @@ export default function SetPasswordForm() {
 
   const onFinish = async (values: { password: string }) => {
     if (!token) {
-      message.error("Invalid token");
+      showToast.error("Invalid token");
       return;
     }
 
     await submitPassword(token, values.password);
 
-    message.success("Password set successfully");
+    showToast.success("Password set successfully");
 
     router.push("/");
   };

@@ -22,7 +22,7 @@ export const classApi = baseApi.injectEndpoints({
         method: "POST",
         body,
       }),
-      invalidatesTags: ["Classes"],
+      invalidatesTags: ["Classes", "Dashboard"],
     }),
   }),
 });

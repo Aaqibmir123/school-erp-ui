@@ -20,13 +20,17 @@ import { showToast } from "../../../../utils/toast";
 import { useGetSectionsByClassQuery } from "../../sections/sectionApi";
 import {
   useCreateStudentMutation,
+  useGetStudentByIdQuery,
   useUpdateStudentMutation,
 } from "../studentApi";
 
 import { getClassesApi } from "../../classes/api/class.api";
 
 import type { Section } from "@/shared-types/section.types";
-import { CreateStudentDTO } from "@/shared-types/student.types";
+import type {
+  CreateStudentDTO,
+  StudentPopulated,
+} from "@/shared-types/student.types";
 
 interface ClassItem {
   _id: string;
@@ -36,14 +40,14 @@ interface ClassItem {
 interface Props {
   open: boolean;
   onClose: () => void;
-  initialData?: any;
+  initialData?: StudentPopulated;
 }
 
 export default function StudentDrawer({ open, onClose, initialData }: Props) {
   const [form] = Form.useForm();
+  const watchedClassId = Form.useWatch("classId", form) as string | undefined;
 
   const [classes, setClasses] = useState<ClassItem[]>([]);
-  const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
 
   const [createStudent, { isLoading: creating }] = useCreateStudentMutation();
   const [updateStudent, { isLoading: updating }] = useUpdateStudentMutation();
@@ -51,11 +55,15 @@ export default function StudentDrawer({ open, onClose, initialData }: Props) {
   const isLoading = creating || updating;
 
   const { data: sections = [], isLoading: sectionsLoading } =
-    useGetSectionsByClassQuery(selectedClassId!, {
-      skip: !selectedClassId,
+    useGetSectionsByClassQuery(watchedClassId || "", {
+      skip: !watchedClassId,
     });
 
   const hasSections = sections && sections.length > 0;
+  const studentId = initialData?._id ? String(initialData._id) : "";
+  const { data: fullStudent } = useGetStudentByIdQuery(studentId, {
+    skip: !open || !studentId,
+  });
 
   /* ================= LOAD CLASSES ================= */
   useEffect(() => {
@@ -65,7 +73,7 @@ export default function StudentDrawer({ open, onClose, initialData }: Props) {
       try {
         const res: ClassItem[] = await getClassesApi();
         if (mounted) setClasses(res);
-      } catch (err) {
+      } catch {
         showToast.error("Failed to load classes");
       }
     })();
@@ -78,36 +86,25 @@ export default function StudentDrawer({ open, onClose, initialData }: Props) {
   /* ================= RESET FORM ON CLOSE ================= */
   const handleClose = useCallback(() => {
     form.resetFields();
-    setSelectedClassId(null);
     onClose();
   }, [form, onClose]);
 
   /* ================= PREFILL (EDIT MODE) ================= */
   useEffect(() => {
-    if (!open || !initialData) return;
+    const student = fullStudent || initialData;
+    if (!open || !student) return;
 
-    const classId = initialData.classId?._id;
-    setSelectedClassId(classId);
+    const normalizeDate = (value?: string | Date | null) =>
+      value ? dayjs(value) : undefined;
 
     form.setFieldsValue({
-      ...initialData,
-      classId: classId,
-      sectionId: initialData.sectionId?._id,
-      dateOfBirth: initialData.dateOfBirth
-        ? dayjs(initialData.dateOfBirth)
-        : undefined,
-      admissionDate: initialData.admissionDate
-        ? dayjs(initialData.admissionDate)
-        : undefined,
+      ...student,
+      classId: student.classId?._id,
+      sectionId: student.sectionId?._id,
+      dateOfBirth: normalizeDate(student.dateOfBirth),
+      admissionDate: normalizeDate(student.admissionDate),
     });
-  }, [initialData, open, form]);
-
-  /* ================= RESET SECTION ================= */
-  useEffect(() => {
-    if (selectedClassId) {
-      form.setFieldValue("sectionId", undefined);
-    }
-  }, [selectedClassId, form]);
+  }, [fullStudent, initialData, open, form]);
 
   /* ================= SUBMIT ================= */
   const handleSubmit = useCallback(
@@ -120,6 +117,12 @@ export default function StudentDrawer({ open, onClose, initialData }: Props) {
 
         const payload = {
           ...values,
+          dateOfBirth: values.dateOfBirth
+            ? dayjs(values.dateOfBirth).format("YYYY-MM-DD")
+            : undefined,
+          admissionDate: values.admissionDate
+            ? dayjs(values.admissionDate).format("YYYY-MM-DD")
+            : undefined,
           sectionId: hasSections ? values.sectionId : undefined,
           rollNumber: Number(values.rollNumber),
         };
@@ -135,8 +138,10 @@ export default function StudentDrawer({ open, onClose, initialData }: Props) {
           showToast.success("Student created successfully");
         }
 
+        window.dispatchEvent(new Event("students-updated"));
+        window.dispatchEvent(new Event("dashboard-updated"));
         handleClose();
-      } catch (err: any) {
+      } catch (err: unknown) {
         showToast.apiError(err, "Operation failed");
       }
     },
@@ -189,7 +194,11 @@ export default function StudentDrawer({ open, onClose, initialData }: Props) {
           </Col>
 
           <Col xs={24} md={12}>
-            <Form.Item label="Date of Birth" name="dateOfBirth">
+            <Form.Item
+              label="Date of Birth"
+              name="dateOfBirth"
+              rules={[{ required: true, message: "Date of birth is required" }]}
+            >
               <DatePicker style={{ width: "100%" }} format="YYYY-MM-DD" />
             </Form.Item>
           </Col>
@@ -210,6 +219,7 @@ export default function StudentDrawer({ open, onClose, initialData }: Props) {
               label="Parent Phone"
               name="parentPhone"
               rules={[
+                { required: true, message: "Parent phone is required" },
                 { pattern: /^[0-9+\-\s()]*$/, message: "Invalid phone number" },
               ]}
             >
@@ -234,7 +244,9 @@ export default function StudentDrawer({ open, onClose, initialData }: Props) {
                   label: c.name,
                   value: c._id,
                 }))}
-                onChange={setSelectedClassId}
+                onChange={() => {
+                  form.setFieldValue("sectionId", undefined);
+                }}
               />
             </Form.Item>
           </Col>
@@ -271,7 +283,13 @@ export default function StudentDrawer({ open, onClose, initialData }: Props) {
           </Col>
 
           <Col xs={24} md={12}>
-            <Form.Item label="Admission Date" name="admissionDate">
+            <Form.Item
+              label="Admission Date"
+              name="admissionDate"
+              rules={[
+                { required: true, message: "Admission date is required" },
+              ]}
+            >
               <DatePicker style={{ width: "100%" }} format="YYYY-MM-DD" />
             </Form.Item>
           </Col>
@@ -294,4 +312,3 @@ export default function StudentDrawer({ open, onClose, initialData }: Props) {
     </Drawer>
   );
 }
-

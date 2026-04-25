@@ -1,8 +1,9 @@
 "use client";
 
-import { Button, Input, Space, message } from "antd";
+import { Button, Input, Space } from "antd";
 import { useState } from "react";
 
+import { showToast } from "@/src/utils/toast";
 import { useCreateSectionsMutation } from "../sectionApi";
 
 interface Props {
@@ -16,7 +17,7 @@ export default function SectionForm({ classId }: Props) {
 
   const handleCreate = async () => {
     if (!sections.trim()) {
-      message.error("Enter sections");
+      showToast.error("Enter sections");
       return;
     }
 
@@ -31,11 +32,11 @@ export default function SectionForm({ classId }: Props) {
         sections: list,
       }).unwrap();
 
-      message.success("Sections created");
+      showToast.success("Sections created");
 
       setSections("");
     } catch (err: any) {
-      message.error(err?.data?.message || "Create failed");
+      showToast.apiError(err, "Create failed");
     }
   };
 
