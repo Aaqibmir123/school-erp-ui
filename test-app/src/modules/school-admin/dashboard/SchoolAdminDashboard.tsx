@@ -8,6 +8,7 @@ import {
   CarOutlined,
   DollarOutlined,
   FallOutlined,
+  CarryOutOutlined,
   RiseOutlined,
   TeamOutlined,
   UserOutlined,
@@ -28,6 +29,7 @@ import {
   YAxis,
 } from "recharts";
 import {
+  Button,
   Card,
   Col,
   Empty,
@@ -39,10 +41,12 @@ import {
   Tag,
   Typography,
 } from "antd";
+import { useRouter } from "next/navigation";
 
 import { useGetAdminDashboardSummaryQuery } from "./dashboard.api";
 import { WEB_THEME } from "@/src/theme/tokens";
 import type { TransportRecord } from "@/shared-types/transport.types";
+import styles from "./SchoolAdminDashboard.module.css";
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -71,31 +75,19 @@ function MetricCard({
   tone = WEB_THEME.colors.primary,
 }: MetricCardProps) {
   return (
-    <Card
-      variant="borderless"
-      style={{
-        borderRadius: 20,
-        boxShadow: "0 14px 40px rgba(15, 23, 42, 0.08)",
-        height: "100%",
-      }}
-    >
+    <Card variant="borderless" className={styles.metricCard}>
       <Space align="start" size={16}>
         <div
+          className={styles.metricTone}
           style={{
-            alignItems: "center",
             background: `${tone}14`,
-            borderRadius: 16,
             color: tone,
-            display: "flex",
-            height: 52,
-            justifyContent: "center",
-            width: 52,
           }}
         >
           {icon}
         </div>
 
-        <div style={{ flex: 1 }}>
+        <div className={styles.metricMeta}>
           <Text type="secondary" style={{ fontSize: 13 }}>
             {title}
           </Text>
@@ -115,6 +107,7 @@ function MetricCard({
 }
 
 export default function SchoolAdminDashboard() {
+  const router = useRouter();
   const { data, isLoading, error, refetch } = useGetAdminDashboardSummaryQuery();
 
   useEffect(() => {
@@ -156,7 +149,7 @@ export default function SchoolAdminDashboard() {
 
   if (error || !data) {
     return (
-      <Card variant="borderless" style={{ borderRadius: 20 }}>
+      <Card variant="borderless" className={styles.sectionCard}>
         <Empty
           description="Dashboard summary is not available right now"
           image={Empty.PRESENTED_IMAGE_SIMPLE}
@@ -166,16 +159,39 @@ export default function SchoolAdminDashboard() {
   }
 
   return (
-    <div style={{ display: "grid", gap: 20 }}>
-      <div>
-        <Title level={2} style={{ marginBottom: 8 }}>
+    <div className={styles.page}>
+      <div className={styles.intro}>
+        <Title level={2} className={styles.introTitle}>
           School Admin Dashboard
         </Title>
-        <Paragraph style={{ marginBottom: 0, maxWidth: 760 }}>
+        <Paragraph className={styles.introText}>
           Live school overview with fee collection, teacher budget estimates,
           transport status, and operational counts pulled from the backend.
         </Paragraph>
       </div>
+
+      <Card variant="borderless" className={styles.attendanceCard}>
+        <Space align="start" size={16} className={styles.attendanceWrap}>
+          <div className={styles.attendanceTone}>
+            <CarryOutOutlined />
+          </div>
+          <div className={styles.attendanceMeta}>
+            <Text strong>Attendance full view</Text>
+            <div style={{ marginTop: 4 }}>
+              <Text type="secondary">
+                Inspect class attendance records, date ranges, and filters from
+                one responsive page.
+              </Text>
+            </div>
+          </div>
+        </Space>
+        <Button
+          type="primary"
+          onClick={() => router.push("/school-admin/attendance")}
+        >
+          Open attendance
+        </Button>
+      </Card>
 
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} xl={6}>
@@ -217,7 +233,11 @@ export default function SchoolAdminDashboard() {
 
       <Row gutter={[16, 16]}>
         <Col xs={24} xl={14}>
-          <Card variant="borderless" title="Monthly fee collection" style={{ borderRadius: 20 }}>
+          <Card
+            variant="borderless"
+            title="Monthly fee collection"
+            className={styles.sectionCard}
+          >
             {feeTrend.some((item) => item.collected > 0 || item.due > 0) ? (
               <ResponsiveContainer width="100%" height={320}>
                 <AreaChart data={feeTrend}>
@@ -251,7 +271,11 @@ export default function SchoolAdminDashboard() {
         </Col>
 
         <Col xs={24} xl={10}>
-          <Card variant="borderless" title="Revenue mix" style={{ borderRadius: 20 }}>
+          <Card
+            variant="borderless"
+            title="Revenue mix"
+            className={styles.sectionCard}
+          >
             {revenueMix.some((item) => item.value > 0) ? (
               <ResponsiveContainer width="100%" height={320}>
                 <PieChart>
@@ -282,7 +306,11 @@ export default function SchoolAdminDashboard() {
 
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={10}>
-          <Card variant="borderless" title="Transport salary status" style={{ borderRadius: 20 }}>
+          <Card
+            variant="borderless"
+            title="Transport salary status"
+            className={styles.sectionCard}
+          >
             {transportBreakdown.some((item) => item.value > 0) ? (
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={transportBreakdown}>
@@ -304,7 +332,11 @@ export default function SchoolAdminDashboard() {
         </Col>
 
         <Col xs={24} lg={14}>
-          <Card variant="borderless" title="Recent transport records" style={{ borderRadius: 20 }}>
+          <Card
+            variant="borderless"
+            title="Recent transport records"
+            className={styles.tableCard}
+          >
             <Table
               rowKey="_id"
               size="small"
@@ -373,8 +405,8 @@ export default function SchoolAdminDashboard() {
 
       <Row gutter={[16, 16]}>
         <Col xs={24} md={12} xl={8}>
-          <Card variant="borderless" style={{ borderRadius: 20 }}>
-            <Space align="center" style={{ marginBottom: 12 }}>
+          <Card variant="borderless" className={styles.sectionCard}>
+            <Space align="center" className={styles.sectionStack}>
               <ApartmentOutlined />
               <Text strong>Academic structure</Text>
             </Space>
@@ -386,8 +418,8 @@ export default function SchoolAdminDashboard() {
           </Card>
         </Col>
         <Col xs={24} md={12} xl={8}>
-          <Card variant="borderless" style={{ borderRadius: 20 }}>
-            <Space align="center" style={{ marginBottom: 12 }}>
+          <Card variant="borderless" className={styles.sectionCard}>
+            <Space align="center" className={styles.sectionStack}>
               <RiseOutlined />
               <Text strong>Budget planning</Text>
             </Space>
@@ -408,8 +440,8 @@ export default function SchoolAdminDashboard() {
           </Card>
         </Col>
         <Col xs={24} md={12} xl={8}>
-          <Card variant="borderless" style={{ borderRadius: 20 }}>
-            <Space align="center" style={{ marginBottom: 12 }}>
+          <Card variant="borderless" className={styles.sectionCard}>
+            <Space align="center" className={styles.sectionStack}>
               <FallOutlined />
               <Text strong>Fee status split</Text>
             </Space>

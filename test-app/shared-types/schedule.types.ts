@@ -17,6 +17,7 @@ export interface ISchedule {
 export interface ICreateSchedule {
   examId: string;
   classId: string;
+  sectionId?: string;
   subjectId: string;
   date: string;
   startTime: string;

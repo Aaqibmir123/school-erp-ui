@@ -20,4 +20,5 @@ export interface LoginResponse {
     role: "SUPER_ADMIN" | "SCHOOL_ADMIN" | "TEACHER" | "PARENT" | "STUDENT";
   };
   token: string;
+  refreshToken?: string;
 }

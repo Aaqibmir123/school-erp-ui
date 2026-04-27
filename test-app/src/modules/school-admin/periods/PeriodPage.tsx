@@ -1,10 +1,10 @@
 "use client";
 
+import { BankOutlined, ClockCircleOutlined } from "@ant-design/icons";
 import {
   Button,
   Card,
   Col,
-  message,
   Modal,
   Row,
   Select,
@@ -15,7 +15,8 @@ import {
 } from "antd";
 
 import dayjs from "dayjs";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { showToast } from "@/src/utils/toast";
 import {
@@ -24,10 +25,13 @@ import {
   useGetPeriodsQuery,
 } from "./periodApi";
 import { PeriodType } from "@/shared-types/period.types";
+import type { SchoolTimingSettings } from "../school/schoolSettings.types";
 
 const { Text } = Typography;
+const TIMING_STORAGE_KEY = "school-admin:timing-settings";
 
 export default function PeriodPage() {
+  const router = useRouter();
   const { data: periods = [] } = useGetPeriodsQuery();
 
   const [createPeriodApi, { isLoading }] = useCreatePeriodMutation();
@@ -36,40 +40,75 @@ export default function PeriodPage() {
   const [startTime, setStartTime] = useState<any>(null);
   const [endTime, setEndTime] = useState<any>(null);
   const [type, setType] = useState<PeriodType>(PeriodType.CLASS);
+  const [schoolTiming, setSchoolTiming] = useState<Partial<SchoolTimingSettings>>(
+    {},
+  );
+
+  const loadSchoolTiming = () => {
+    if (typeof window === "undefined") return {};
+
+    const raw = window.localStorage.getItem(TIMING_STORAGE_KEY);
+    if (!raw) return {};
+
+    try {
+      return JSON.parse(raw) as Partial<SchoolTimingSettings>;
+    } catch {
+      return {};
+    }
+  };
+
+  useEffect(() => {
+    const syncTiming = () => setSchoolTiming(loadSchoolTiming());
+
+    syncTiming();
+    window.addEventListener("school-timing-updated", syncTiming);
+
+    return () => window.removeEventListener("school-timing-updated", syncTiming);
+  }, []);
 
   /* 🔥 SORT BY TIME */
   const sortedPeriods = useMemo(() => {
     return [...periods].sort((a, b) => a.startTime.localeCompare(b.startTime));
   }, [periods]);
 
+  const schoolStart = schoolTiming.schoolStartTime || "08:00";
+  const schoolEnd = schoolTiming.schoolEndTime || "15:00";
+  const workingDays = schoolTiming.workingDays?.join(", ") || "Mon-Fri";
+
   /* 🔥 CREATE */
   const createPeriod = async () => {
     if (!startTime || !endTime) {
-      return message.warning("Select time");
+      return showToast.warning("Select time");
     }
 
     const start = startTime.format("HH:mm");
     const end = endTime.format("HH:mm");
 
     if (end <= start) {
-      return message.error("Invalid time range");
+      return showToast.error("Invalid time range");
+    }
+
+    if (start < schoolStart || end > schoolEnd) {
+      return showToast.error(
+        "Time slot must stay within School Time Management hours",
+      );
     }
 
     try {
       await createPeriodApi({
-        name: `${type} period`,
+        name: `${type} slot`,
         periodNumber: sortedPeriods.length + 1,
         startTime: start,
         endTime: end,
         type,
       }).unwrap();
 
-      message.success("Added");
+      showToast.success("Time slot added");
 
       setStartTime(null);
       setEndTime(null);
     } catch (err: any) {
-      message.error(err?.data?.message || "Error");
+      showToast.error(err?.data?.message || "Error");
     }
   };
 
@@ -113,6 +152,13 @@ export default function PeriodPage() {
 
   /* 🔥 FORMAT TIME */
   const formatTime = (time: string) => dayjs(time, "HH:mm").format("hh:mm A");
+  const labelType = (value: PeriodType) => {
+    if (value === PeriodType.BREAK) return "Break Slot";
+    if (value === PeriodType.LUNCH) return "Lunch Slot";
+    if (value === PeriodType.ACTIVITY) return "Activity Slot";
+
+    return "Class Slot";
+  };
 
   /* 🔥 TABLE */
   const columns = [
@@ -138,10 +184,10 @@ export default function PeriodPage() {
               ? "orange"
               : record.type === "lunch"
                 ? "red"
-                : "blue"
+            : "blue"
           }
         >
-          {record.type.toUpperCase()}
+          {labelType(record.type)}
         </Tag>
       ),
     },
@@ -156,11 +202,33 @@ export default function PeriodPage() {
   ];
 
   return (
-    <Card title="⏰ Period Time Slots" style={{ borderRadius: 12 }}>
-      {/* 🔥 INFO */}
+    <Card
+      title={
+        <span>
+          <ClockCircleOutlined style={{ marginRight: 8 }} />
+          School Time Slots
+        </span>
+      }
+      extra={
+        <Button
+          type="link"
+          icon={<BankOutlined />}
+          onClick={() => router.push("/school-admin/settings")}
+        >
+          Open Time Management
+        </Button>
+      }
+      style={{ borderRadius: 12 }}
+    >
       <Text type="secondary">
-        Define school time slots (Class / Break / Lunch)
+        Class slots are linked to School Time Management and working days.
       </Text>
+
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
+        <Tag color="blue">Start: {dayjs(schoolStart, "HH:mm").format("hh:mm A")}</Tag>
+        <Tag color="blue">End: {dayjs(schoolEnd, "HH:mm").format("hh:mm A")}</Tag>
+        <Tag color="blue">Days: {workingDays}</Tag>
+      </div>
 
       {/* 🔥 FORM */}
       <Row gutter={12} style={{ marginTop: 16 }}>
@@ -168,7 +236,7 @@ export default function PeriodPage() {
           <TimePicker
             use12Hours
             format="hh:mm A"
-            minuteStep={5}
+            minuteStep={1}
             style={{ width: "100%" }}
             value={startTime}
             onChange={setStartTime}
@@ -180,6 +248,7 @@ export default function PeriodPage() {
           <TimePicker
             use12Hours
             format="hh:mm A"
+            minuteStep={1}
             style={{ width: "100%" }}
             value={endTime}
             onChange={setEndTime}
@@ -193,9 +262,9 @@ export default function PeriodPage() {
             onChange={setType}
             style={{ width: "100%" }}
             options={[
-              { label: "Class", value: PeriodType.CLASS },
-              { label: "Break", value: PeriodType.BREAK },
-              { label: "Lunch", value: PeriodType.LUNCH },
+              { label: "Class Slot", value: PeriodType.CLASS },
+              { label: "Break Slot", value: PeriodType.BREAK },
+              { label: "Lunch Slot", value: PeriodType.LUNCH },
             ]}
           />
         </Col>

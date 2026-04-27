@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import StudentFilters from "./components/StudentFilters";
 import StudentTable from "./components/StudentTable";
+import styles from "./StudentPage.module.css";
 
 import useStudentDrawer from "./hooks/useStudentDrawer";
 
@@ -31,7 +32,6 @@ export default function StudentPage() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
-  // ✅ RTK mutation
   const [downloadTemplate, { isLoading: downloading }] =
     useDownloadTemplateMutation();
 
@@ -109,15 +109,8 @@ export default function StudentPage() {
   };
 
   return (
-    <Card title="Students">
-      <div
-        style={{
-          marginBottom: 16,
-          display: "flex",
-          gap: 10,
-          flexWrap: "wrap",
-        }}
-      >
+    <Card title="Students" className={styles.pageCard}>
+      <div className={styles.actionsRow}>
         <Button type="primary" onClick={drawer.openDrawer}>
           Add Student
         </Button>
@@ -149,10 +142,7 @@ export default function StudentPage() {
         search={debouncedSearch}
       />
 
-      <StudentDrawer
-        open={drawer.open}
-        onClose={drawer.closeDrawer}
-      />
+      <StudentDrawer open={drawer.open} onClose={drawer.closeDrawer} />
 
       <BulkUploadDrawer open={bulkOpen} onClose={() => setBulkOpen(false)} />
     </Card>

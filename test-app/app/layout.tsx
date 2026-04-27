@@ -3,6 +3,7 @@ import { App as AntdApp, ConfigProvider } from "antd";
 import type { Metadata } from "next";
 
 import GlobalLoader from "@/src/components/GlobalLoader";
+import CrashReporter from "@/src/components/CrashReporter";
 import ToastBridge from "@/src/components/ToastBridge";
 import Providers from "../src/providers";
 import { WEB_THEME } from "../src/theme/tokens";
@@ -28,6 +29,7 @@ export default function RootLayout({
       <body>
         <Providers>
           <GlobalLoader />
+          <CrashReporter />
           <AntdRegistry>
             <ConfigProvider
               theme={{

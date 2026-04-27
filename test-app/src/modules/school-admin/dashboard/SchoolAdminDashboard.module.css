@@ -1,0 +1,81 @@
+.page {
+  display: grid;
+  gap: 20px;
+}
+
+.intro {
+  max-width: 760px;
+}
+
+.introTitle {
+  margin-bottom: 8px;
+}
+
+.introText {
+  margin-bottom: 0;
+}
+
+.attendanceCard {
+  align-items: center;
+  border-radius: 20px;
+  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.attendanceWrap {
+  flex: 1;
+  min-width: 260px;
+}
+
+.attendanceTone {
+  align-items: center;
+  background: rgba(29, 78, 216, 0.12);
+  border-radius: 16px;
+  color: #1d4ed8;
+  display: flex;
+  height: 52px;
+  justify-content: center;
+  width: 52px;
+}
+
+.attendanceMeta {
+  flex: 1;
+}
+
+.metricCard {
+  border-radius: 20px;
+  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.08);
+  height: 100%;
+}
+
+.metricMeta {
+  flex: 1;
+}
+
+.metricTone {
+  align-items: center;
+  border-radius: 16px;
+  display: flex;
+  height: 52px;
+  justify-content: center;
+  width: 52px;
+}
+
+.sectionCard {
+  border-radius: 20px;
+}
+
+.sectionCard :global(.ant-card-head-title) {
+  font-weight: 700;
+}
+
+.sectionStack {
+  margin-bottom: 12px;
+}
+
+.tableCard {
+  border-radius: 20px;
+}

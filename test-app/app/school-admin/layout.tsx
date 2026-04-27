@@ -8,11 +8,12 @@ import {
   CarryOutOutlined,
   DashboardOutlined,
   DollarOutlined,
+  BankOutlined,
   EnvironmentOutlined,
   LogoutOutlined,
   MenuOutlined,
   ProfileOutlined,
-  SettingOutlined,
+  ClockCircleOutlined,
   TeamOutlined,
   UserOutlined,
 } from "@ant-design/icons";
@@ -31,6 +32,7 @@ import { useMemo, useState } from "react";
 
 import { useSchool } from "@/src/modules/school-admin/school/useSchool";
 import BrandLoader from "@/src/components/BrandLoader";
+import { logoutApi } from "@/src/modules/auth/api/auth.api";
 import { WEB_THEME } from "@/src/theme/tokens";
 
 const { Header, Sider, Content } = Layout;
@@ -39,6 +41,11 @@ const { Text } = Typography;
 
 const buildMenuItems = (): MenuProps["items"] => [
   { key: "/school-admin", icon: <DashboardOutlined />, label: "Dashboard" },
+  {
+    key: "/school-admin/attendance",
+    icon: <CarryOutOutlined />,
+    label: "Attendance",
+  },
   {
     key: "people",
     icon: <TeamOutlined />,
@@ -119,13 +126,18 @@ const buildMenuItems = (): MenuProps["items"] => [
   },
   {
     key: "school",
-    icon: <SettingOutlined />,
+    icon: <BankOutlined />,
     label: "School",
     children: [
       {
         key: "/school-admin/school",
-        icon: <SettingOutlined />,
-        label: "Profile",
+        icon: <BankOutlined />,
+        label: "School Profile",
+      },
+      {
+        key: "/school-admin/settings",
+        icon: <ClockCircleOutlined />,
+        label: "Time Management",
       },
       {
         key: "/school-admin/academic-year",
@@ -144,6 +156,9 @@ const getParentGroup = (pathname: string) => {
   ) {
     return "people";
   }
+  if (pathname.startsWith("/school-admin/attendance")) {
+    return undefined;
+  }
   if (
     pathname.startsWith("/school-admin/classes") ||
     pathname.startsWith("/school-admin/sections") ||
@@ -158,6 +173,7 @@ const getParentGroup = (pathname: string) => {
   if (pathname.startsWith("/school-admin/transport")) return "operations";
   if (
     pathname.startsWith("/school-admin/school") ||
+    pathname.startsWith("/school-admin/settings") ||
     pathname.startsWith("/school-admin/academic-year")
   ) {
     return "school";
@@ -219,14 +235,17 @@ export default function SchoolAdminLayout({
     return group ? [group] : [];
   }, [pathname]);
 
-  const handleNavigate = ({ key }: { key: string }) => {
+  const handleNavigate = async ({ key }: { key: string }) => {
     if (key === "logout") {
+      await logoutApi().catch(() => undefined);
       localStorage.removeItem("token");
       router.push("/");
+      setMobileOpen(false);
       return;
     }
 
     router.push(key);
+    setMobileOpen(false);
   };
 
   const menu = (
@@ -237,7 +256,9 @@ export default function SchoolAdminLayout({
       items={items}
       selectedKeys={selectedKeys}
       defaultOpenKeys={defaultOpenKeys}
-      onClick={(e) => handleNavigate({ key: e.key })}
+      onClick={(e) => {
+        void handleNavigate({ key: e.key });
+      }}
       style={{
         background: "transparent",
         borderInlineEnd: 0,

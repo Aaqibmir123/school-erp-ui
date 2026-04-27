@@ -115,8 +115,10 @@ export const examApi = baseApi.injectEndpoints({
     previewSchedule: builder.mutation<
       any[],
       {
+        examId: string;
         classId: string;
         subjectId: string;
+        sectionId?: string;
         date: string;
         startTime: string;
         endTime: string;

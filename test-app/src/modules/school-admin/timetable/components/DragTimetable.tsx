@@ -68,6 +68,12 @@ if (!pid) continue;
   );
 
   const formatTime = (t: string) => dayjs(t, "HH:mm").format("hh:mm A");
+  const toMinutes = (value?: string) => {
+    if (!value) return null;
+    const parsed = dayjs(value, "HH:mm");
+    if (!parsed.isValid()) return null;
+    return parsed.hour() * 60 + parsed.minute();
+  };
 
   /* ====================================== */
   /* 🔥 CHANGE (MEMOIZED) */
@@ -128,6 +134,27 @@ if (!pid) continue;
   const handleSave = async () => {
     try {
       const { create, update } = buildPayload();
+      const schoolStart = toMinutes(schoolTiming?.schoolStartTime);
+      const schoolEnd = toMinutes(schoolTiming?.schoolEndTime);
+
+      if (schoolStart !== null && schoolEnd !== null) {
+        const outOfRange = sortedPeriods.find((period: any) => {
+          if (period?.type !== "class") return false;
+
+          const start = toMinutes(period.startTime);
+          const end = toMinutes(period.endTime);
+          if (start === null || end === null) return false;
+
+          return start < schoolStart || end > schoolEnd;
+        });
+
+        if (outOfRange) {
+          message.error(
+            "Some timetable periods are outside the school timing window",
+          );
+          return;
+        }
+      }
 
       if (!create.length && !update.length) {
         message.warning("⚠️ Nothing to save");

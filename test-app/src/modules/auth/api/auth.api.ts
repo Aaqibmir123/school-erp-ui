@@ -24,6 +24,20 @@ export const loginApi = async (data: LoginDTO) => {
   return response.data.data;
 };
 
+export const refreshSessionApi = async () => {
+  const response = await api.post<ApiEnvelope<LoginResponse>>("/auth/refresh");
+
+  return response.data.data;
+};
+
+export const logoutApi = async () => {
+  const response = await api.post<ApiEnvelope<{ loggedOut: boolean }>>(
+    "/auth/logout",
+  );
+
+  return response.data.data;
+};
+
 export const setPassword = async (token: string, password: string) => {
   const response = await api.post<ApiEnvelope<unknown>>("/auth/set-password", {
     password,

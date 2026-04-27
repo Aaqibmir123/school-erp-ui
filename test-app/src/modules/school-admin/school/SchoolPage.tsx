@@ -1,14 +1,16 @@
 "use client";
 
-import { UploadOutlined } from "@ant-design/icons";
+import { Button, Card, Col, Form, Image, Input, Row, Upload } from "antd";
 import type { UploadFile } from "antd";
-import { Button, Card, Checkbox, Col, Form, Image, Input, Row, Upload } from "antd";
-import { useEffect, useState } from "react";
+import { UploadOutlined } from "@ant-design/icons";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { useSchool } from "./useSchool";
 import { showToast } from "@/src/utils/toast";
+
 import { createSchoolApi } from "./school.api";
+import { useSchool } from "./useSchool";
+import styles from "./SchoolPage.module.css";
 
 type SchoolFormValues = {
   address?: string;
@@ -18,27 +20,27 @@ type SchoolFormValues = {
   signature?: UploadFile[];
 };
 
+const normalizeUpload = (event: { fileList?: UploadFile[] }) =>
+  event?.fileList ?? [];
+
 const SchoolPage = () => {
   const [form] = Form.useForm<SchoolFormValues>();
   const router = useRouter();
   const { school } = useSchool();
 
-  const [logoPreview, setLogoPreview] = useState<string | null>(null);
-  const [signaturePreview, setSignaturePreview] = useState<string | null>(null);
-  const [sealPreview, setSealPreview] = useState<string | null>(null);
+  const [previewOverrides, setPreviewOverrides] = useState<{
+    logo?: string;
+    seal?: string;
+    signature?: string;
+  }>({});
   const [autoClean, setAutoClean] = useState(true);
 
-  const normalizeUpload = (event: { fileList?: UploadFile[] }) =>
-    event?.fileList ?? [];
-
   const handlePreview = (file: File, type: "logo" | "signature" | "seal") => {
-    // Create a lightweight preview URL so the admin can verify the image immediately
-    // before saving the school profile.
     const url = URL.createObjectURL(file);
-
-    if (type === "logo") setLogoPreview(url);
-    if (type === "signature") setSignaturePreview(url);
-    if (type === "seal") setSealPreview(url);
+    setPreviewOverrides((current) => ({
+      ...current,
+      [type]: url,
+    }));
   };
 
   useEffect(() => {
@@ -48,11 +50,20 @@ const SchoolPage = () => {
       address: school.address || "",
       name: school.name || school.schoolName || "",
     });
-
-    setLogoPreview(school.logo || null);
-    setSignaturePreview(school.signature || null);
-    setSealPreview(school.seal || null);
   }, [form, school]);
+
+  const logoPreview = useMemo(
+    () => previewOverrides.logo ?? school?.logo ?? null,
+    [previewOverrides.logo, school?.logo],
+  );
+  const signaturePreview = useMemo(
+    () => previewOverrides.signature ?? school?.signature ?? null,
+    [previewOverrides.signature, school?.signature],
+  );
+  const sealPreview = useMemo(
+    () => previewOverrides.seal ?? school?.seal ?? null,
+    [previewOverrides.seal, school?.seal],
+  );
 
   const onFinish = async (values: SchoolFormValues) => {
     try {
@@ -66,17 +77,9 @@ const SchoolPage = () => {
       const signatureFile = values.signature?.[0]?.originFileObj;
       const sealFile = values.seal?.[0]?.originFileObj;
 
-      if (logoFile) {
-        formData.append("logo", logoFile);
-      }
-
-      if (signatureFile) {
-        formData.append("signature", signatureFile);
-      }
-
-      if (sealFile) {
-        formData.append("seal", sealFile);
-      }
+      if (logoFile) formData.append("logo", logoFile);
+      if (signatureFile) formData.append("signature", signatureFile);
+      if (sealFile) formData.append("seal", sealFile);
 
       await createSchoolApi(formData);
 
@@ -91,28 +94,37 @@ const SchoolPage = () => {
 
   return (
     <Row justify="center">
-      <Col xs={24} md={18}>
-        <Card variant="borderless" title="School Setup">
+      <Col xs={24} lg={18}>
+        <Card
+          variant="borderless"
+          title="School Profile"
+          extra={
+            <Button type="link" onClick={() => router.push("/school-admin/settings")}>
+              Open Time Management
+            </Button>
+          }
+          className={styles.sectionCard}
+        >
           <Form layout="vertical" form={form} onFinish={onFinish}>
             <Form.Item
               name="name"
               label="School Name"
               rules={[{ required: true, message: "School name is required" }]}
             >
-              <Input placeholder="Green Valley School" />
+              <Input placeholder="Green Valley School" size="large" />
             </Form.Item>
 
             <Form.Item name="address" label="Address">
-              <Input placeholder="School address" />
+              <Input placeholder="School address" size="large" />
             </Form.Item>
 
             <Form.Item>
-              <Checkbox
-                checked={autoClean}
-                onChange={(e) => setAutoClean(e.target.checked)}
+              <Button
+                type={autoClean ? "primary" : "default"}
+                onClick={() => setAutoClean((value) => !value)}
               >
-                Auto remove background
-              </Checkbox>
+                Auto remove background {autoClean ? "On" : "Off"}
+              </Button>
             </Form.Item>
 
             <Row gutter={16}>
@@ -141,11 +153,7 @@ const SchoolPage = () => {
                     </Upload>
                   </Form.Item>
                   {logoPreview && (
-                    <Image
-                      alt="Logo preview"
-                      src={logoPreview}
-                      style={{ marginTop: 12 }}
-                    />
+                    <Image alt="Logo preview" src={logoPreview} style={{ marginTop: 12 }} />
                   )}
                 </Form.Item>
               </Col>
@@ -162,9 +170,7 @@ const SchoolPage = () => {
                       accept="image/*"
                       beforeUpload={(file) => {
                         if (file.size > 2 * 1024 * 1024) {
-                          showToast.warning(
-                            "Signature must be smaller than 2MB",
-                          );
+                          showToast.warning("Signature must be smaller than 2MB");
                           return Upload.LIST_IGNORE;
                         }
 
@@ -211,19 +217,17 @@ const SchoolPage = () => {
                     </Upload>
                   </Form.Item>
                   {sealPreview && (
-                    <Image
-                      alt="Seal preview"
-                      src={sealPreview}
-                      style={{ marginTop: 12 }}
-                    />
+                    <Image alt="Seal preview" src={sealPreview} style={{ marginTop: 12 }} />
                   )}
                 </Form.Item>
               </Col>
             </Row>
 
-            <Button type="primary" htmlType="submit" block>
-              Save
-            </Button>
+            <div className={styles.footerRow}>
+              <Button type="primary" htmlType="submit" className={styles.saveBtn}>
+                Save School Profile
+              </Button>
+            </div>
           </Form>
         </Card>
       </Col>

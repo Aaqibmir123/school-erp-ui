@@ -199,6 +199,18 @@ export default function ScheduleList({ examId }: any) {
       columns={columns}
       dataSource={schedules}
       pagination={false}
+      locale={{
+        emptyText: (
+          <div style={{ padding: "22px 0", color: "#94a3b8" }}>
+            No schedule added yet
+          </div>
+        ),
+      }}
+      style={{
+        marginTop: 8,
+        borderRadius: 16,
+        overflow: "hidden",
+      }}
     />
   );
 }

@@ -2,6 +2,7 @@
 
 import { BookOutlined, NumberOutlined } from "@ant-design/icons";
 import {
+  AutoComplete,
   Button,
   Col,
   DatePicker,
@@ -10,13 +11,14 @@ import {
   Input,
   Modal,
   Row,
-  Select,
+  Tag,
   Typography,
 } from "antd";
 import dayjs, { Dayjs } from "dayjs";
 import { useEffect, useState } from "react";
 
 import { showToast } from "@/src/utils/toast";
+import { getAcademicYears } from "../academic-year/academicYear.api";
 import { useCreateExamMutation, useUpdateExamMutation } from "./exam.api";
 
 const { Title, Text } = Typography;
@@ -43,9 +45,57 @@ export default function CreateExamScreen({
 }: Props) {
   const [form] = Form.useForm<FormValues>();
   const [loading, setLoading] = useState(false);
+  const [activeYearName, setActiveYearName] = useState("Active academic year");
+  const [examTypeOptions, setExamTypeOptions] = useState<string[]>([
+    "Mid Term",
+    "Final",
+    "Class Test",
+    "Unit Test",
+    "Quarterly",
+    "Half Yearly",
+  ]);
+
+  const EXAM_TYPE_STORAGE_KEY = "school-admin:exam-types";
 
   const [createExam] = useCreateExamMutation();
   const [updateExam] = useUpdateExamMutation();
+
+  const loadStoredExamTypes = () => {
+    if (typeof window === "undefined") return [];
+
+    const raw = window.localStorage.getItem(EXAM_TYPE_STORAGE_KEY);
+    if (!raw) return [];
+
+    try {
+      const parsed = JSON.parse(raw) as string[];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const saveExamType = (value: string) => {
+    if (typeof window === "undefined") return;
+
+    const normalized = value.trim();
+    if (!normalized) return;
+
+    const existing = loadStoredExamTypes();
+    const hasValue = existing.some(
+      (item) => item.toLowerCase() === normalized.toLowerCase(),
+    );
+
+    if (!hasValue) {
+      window.localStorage.setItem(
+        EXAM_TYPE_STORAGE_KEY,
+        JSON.stringify([...existing, normalized]),
+      );
+      setExamTypeOptions((current) => {
+        const merged = [...current, normalized];
+        return Array.from(new Set(merged));
+      });
+    }
+  };
 
   /* ================= PREFILL ================= */
   useEffect(() => {
@@ -62,6 +112,31 @@ export default function CreateExamScreen({
       form.resetFields();
     }
   }, [editData, open]);
+
+  useEffect(() => {
+    const syncExamTypes = () => {
+      const stored = loadStoredExamTypes();
+      setExamTypeOptions((current) => {
+        const merged = [...current, ...stored];
+        return Array.from(new Set(merged));
+      });
+    };
+
+    const syncActiveYear = async () => {
+      try {
+        const years = await getAcademicYears();
+        const active = years.find((item: any) => item.isActive);
+        if (active?.name) {
+          setActiveYearName(active.name);
+        }
+      } catch {
+        setActiveYearName("Active academic year");
+      }
+    };
+
+    syncActiveYear();
+    syncExamTypes();
+  }, [open]);
 
   /* ================= SUBMIT ================= */
   const onFinish = async (values: FormValues) => {
@@ -80,7 +155,7 @@ export default function CreateExamScreen({
 
       const payload = {
         name: values.name,
-        examType: values.examType,
+        examType: values.examType.trim(),
         totalMarks: Number(values.totalMarks),
         startDate: start.format("YYYY-MM-DD"),
         endDate: end.format("YYYY-MM-DD"),
@@ -97,6 +172,7 @@ export default function CreateExamScreen({
         res = await createExam(payload).unwrap();
       }
 
+      saveExamType(values.examType);
       showToast.apiResponse(res, "Exam saved");
 
       form.resetFields();
@@ -115,6 +191,9 @@ export default function CreateExamScreen({
         <BookOutlined style={{ fontSize: 28, color: "#1677ff" }} />
         <Title level={4}>{editData ? "Edit Exam" : "Create Exam"}</Title>
         <Text type="secondary">Define exam (schedule later)</Text>
+        <div style={{ marginTop: 8 }}>
+          <Tag color="blue">{activeYearName}</Tag>
+        </div>
       </div>
 
       <Divider />
@@ -128,7 +207,11 @@ export default function CreateExamScreen({
               label="Exam Name"
               rules={[{ required: true }]}
             >
-              <Input prefix={<BookOutlined />} size="large" />
+              <Input
+                prefix={<BookOutlined />}
+                placeholder="Enter exam name"
+                size="large"
+              />
             </Form.Item>
           </Col>
 
@@ -139,7 +222,12 @@ export default function CreateExamScreen({
               label="Total Marks"
               rules={[{ required: true }]}
             >
-              <Input type="number" prefix={<NumberOutlined />} size="large" />
+              <Input
+                type="number"
+                prefix={<NumberOutlined />}
+                placeholder="Enter total marks"
+                size="large"
+              />
             </Form.Item>
           </Col>
 
@@ -150,12 +238,18 @@ export default function CreateExamScreen({
               label="Exam Type"
               rules={[{ required: true }]}
             >
-              <Select
+              <AutoComplete
+                placeholder="Type or select exam type"
                 size="large"
-                options={[
-                  { label: "Mid Term", value: "mid_term" },
-                  { label: "Final", value: "final" },
-                ]}
+                options={examTypeOptions.map((type) => ({
+                  label: type,
+                  value: type,
+                }))}
+                filterOption={(inputValue, option) =>
+                  String(option?.value)
+                    .toLowerCase()
+                    .includes(inputValue.toLowerCase())
+                }
               />
             </Form.Item>
           </Col>
@@ -167,7 +261,10 @@ export default function CreateExamScreen({
               label="Exam Duration"
               rules={[{ required: true }]}
             >
-              <DatePicker.RangePicker style={{ width: "100%" }} />
+              <DatePicker.RangePicker
+                style={{ width: "100%" }}
+                placeholder={["Start date", "End date"]}
+              />
             </Form.Item>
           </Col>
 

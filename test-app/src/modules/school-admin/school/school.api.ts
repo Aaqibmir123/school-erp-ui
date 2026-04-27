@@ -1,8 +1,12 @@
 import api from "@/src/services/api"; // axios instance
 
 export const getSchoolApi = async () => {
-  const res = await api.get("/school");
-  return res.data;
+  try {
+    const res = await api.get("/school");
+    return res.data;
+  } catch {
+    return null;
+  }
 };
 
 export const createSchoolApi = async (data: FormData) => {

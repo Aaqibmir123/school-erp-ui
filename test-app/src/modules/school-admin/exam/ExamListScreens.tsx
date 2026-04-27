@@ -6,12 +6,14 @@ import {
   EditOutlined,
   UploadOutlined,
 } from "@ant-design/icons";
-import { Button, Popconfirm, Space, Table, Tag, message } from "antd";
+import { Button, Popconfirm, Space, Table, Tag } from "antd";
 import dayjs from "dayjs";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { IExam } from "@/shared-types/exam.types";
 import CreateExamScreen from "./CreateExamScreen";
+import { showToast } from "@/src/utils/toast";
+import { getAcademicYears } from "../academic-year/academicYear.api";
 
 import {
   useDeleteExamMutation,
@@ -30,6 +32,23 @@ const ExamListScreen = () => {
 
   const [open, setOpen] = useState(false);
   const [editData, setEditData] = useState<IExam | null>(null);
+  const [activeYearName, setActiveYearName] = useState("Active academic year");
+
+  useEffect(() => {
+    const sync = async () => {
+      try {
+        const years = await getAcademicYears();
+        const active = years.find((item: any) => item.isActive);
+        if (active?.name) {
+          setActiveYearName(active.name);
+        }
+      } catch {
+        setActiveYearName("Active academic year");
+      }
+    };
+
+    sync();
+  }, []);
 
   /* ================= ACTIONS ================= */
 
@@ -41,18 +60,18 @@ const ExamListScreen = () => {
   const handleDelete = async (id: string) => {
     try {
       await deleteExam(id).unwrap();
-      message.success("Exam deleted");
+      showToast.success("Exam deleted");
     } catch {
-      message.error("Delete failed");
+      showToast.error("Delete failed");
     }
   };
 
   const handlePublish = async (id: string) => {
     try {
       await publishExam(id).unwrap();
-      message.success("Exam published");
+      showToast.success("Exam published");
     } catch (err: any) {
-      message.error(err?.data?.message || "Publish failed");
+      showToast.error(err?.data?.message || "Publish failed");
     }
   };
 
@@ -133,6 +152,10 @@ const ExamListScreen = () => {
 
   return (
     <>
+      <div style={{ marginBottom: 12 }}>
+        <Tag color="blue">Academic Year: {activeYearName}</Tag>
+      </div>
+
       <Table
         rowKey="_id"
         columns={columns}

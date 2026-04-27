@@ -7,11 +7,18 @@ import { getSchoolApi } from "./school.api";
 
 type SchoolProfile = {
   address?: string;
+  checkInCloseTime?: string;
+  checkInOpenTime?: string;
+  checkOutCloseTime?: string;
   logo?: string;
   name?: string;
   schoolName?: string;
+  schoolEndTime?: string;
+  schoolStartTime?: string;
   seal?: string;
   signature?: string;
+  lateMarkAfterTime?: string;
+  workingDays?: string[];
 };
 
 const resolveAssetUrl = (value?: string) => {
@@ -40,10 +47,10 @@ export const useSchool = (refreshKey?: string) => {
               seal: resolveAssetUrl(data.seal),
               signature: resolveAssetUrl(data.signature),
             }
-          : null,
+        : null,
       );
     } catch (error) {
-      console.error("Error fetching school", error);
+      setSchool(null);
     } finally {
       setLoading(false);
     }
