@@ -281,7 +281,7 @@ export default function AttendancePage() {
             total: meta?.total || items.length,
             showSizeChanger: false,
             hideOnSinglePage: true,
-            onChange: (nextPage) => setPage(nextPage),
+            onChange: (nextPage: number) => setPage(nextPage),
           }}
           columns={[
             { title: "#", dataIndex: "index", width: 70 },
@@ -444,7 +444,7 @@ export default function AttendancePage() {
             total: teacherMeta?.total || teacherItems.length,
             showSizeChanger: false,
             hideOnSinglePage: true,
-            onChange: (nextPage) => setTeacherPage(nextPage),
+            onChange: (nextPage: number) => setTeacherPage(nextPage),
           }}
           columns={[
             { title: "#", dataIndex: "index", width: 70 },

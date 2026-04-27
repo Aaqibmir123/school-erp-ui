@@ -10,6 +10,7 @@ import SchoolTimingSection from "./components/SchoolTimingSection";
 import { createSchoolApi } from "./school.api";
 import { useSchool } from "./useSchool";
 import {
+  WEEKDAY_OPTIONS,
   SchoolTimingFormValues,
   SchoolTimingSettings,
   WeekdayValue,
@@ -34,6 +35,13 @@ const parseTimeValue = (value?: string) => {
 
 const formatTimeValue = (value?: Dayjs | null) =>
   value ? value.format("HH:mm") : "";
+
+const VALID_WEEKDAYS = new Set<WeekdayValue>(
+  WEEKDAY_OPTIONS.map((option) => option.value),
+);
+
+const normalizeWorkingDays = (value?: string[]) =>
+  value?.filter((day): day is WeekdayValue => VALID_WEEKDAYS.has(day as WeekdayValue));
 
 const parseStoredTimings = (): Partial<SchoolTimingSettings> => {
   if (typeof window === "undefined") return {};
@@ -94,8 +102,8 @@ export default function SchoolSettingsPage() {
         storedTimings.schoolStartTime ||
         timingDefaults.schoolStartTime,
       workingDays:
-        school?.workingDays ||
-        storedTimings.workingDays ||
+        normalizeWorkingDays(school?.workingDays) ||
+        normalizeWorkingDays(storedTimings.workingDays) ||
         timingDefaults.workingDays,
     };
 

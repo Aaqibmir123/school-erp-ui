@@ -34,7 +34,7 @@ export default function Error({
       error.digest ? `digest: ${error.digest}` : null,
       error.stack ? `stack: ${error.stack}` : null,
       typeof window !== "undefined" ? `path: ${window.location.pathname}` : null,
-      lastCrash ? `lastCrash: ${JSON.stringify(lastCrash)}` : null,
+      lastCrash !== null ? `lastCrash: ${JSON.stringify(lastCrash)}` : null,
     ]
       .filter(Boolean)
       .join("\n");
@@ -78,7 +78,7 @@ export default function Error({
               <Text strong>Digest:</Text> {error.digest}
             </Paragraph>
           )}
-          {lastCrash && (
+          {lastCrash !== null && (
             <Paragraph>
               <Text strong>Last captured crash:</Text>{" "}
               {JSON.stringify(lastCrash)}

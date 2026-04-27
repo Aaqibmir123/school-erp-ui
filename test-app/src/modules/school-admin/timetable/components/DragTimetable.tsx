@@ -8,6 +8,7 @@ import {
   useSaveTimetableMutation,
   useUpdateTimetableMutation,
 } from "../api/createTimetable";
+import type { SchoolTimingSettings } from "../../school/schoolSettings.types";
 
 import CellSelector from "./CellSelector";
 
@@ -18,6 +19,7 @@ export default function DragTimetable({
   teachers,
   periods,
   classId,
+  schoolTiming,
   sectionId,
   initialData = [],
   refetchTimetable,
