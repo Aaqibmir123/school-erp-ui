@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Drawer, message, Table, Tag, Upload } from "antd";
+import { App, Button, Drawer, Table, Tag, Upload } from "antd";
 
 import { useState } from "react";
 
@@ -20,6 +20,7 @@ interface Props {
 }
 
 export default function BulkUploadDrawer({ open, onClose }: Props) {
+  const { message } = App.useApp();
   const [file, setFile] = useState<File | null>(null);
 
   const [preview, setPreview] = useState<

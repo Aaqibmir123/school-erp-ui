@@ -1,25 +1,36 @@
 "use client";
 
 import { CalendarOutlined } from "@ant-design/icons";
-import { Card, Divider, Space, Tag, Typography } from "antd";
+import { Card, Divider, Empty, Space, Tag, Typography } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import AddScheduleForm from "./AddScheduleForm";
 import ScheduleList from "./ScheduleList";
 
 import { getAcademicYears } from "../academic-year/academicYear.api";
 import { useGetClassesWithSubjectsQuery, useGetExamsQuery } from "./exam.api";
+import { useSchool } from "../school/useSchool";
+import type { WeekdayValue } from "../school/schoolSettings.types";
 
 const { Title } = Typography;
 
 const SchedulePage = ({ examId }: { examId: string }) => {
   const { data: res } = useGetClassesWithSubjectsQuery();
   const { data: exams = [] } = useGetExamsQuery();
+  const { school } = useSchool();
   const [activeYearName, setActiveYearName] = useState("Active academic year");
 
   const classes = res || [];
   const currentExam = useMemo(
     () => exams.find((item) => item._id === examId),
     [exams, examId],
+  );
+  const schoolTiming = useMemo(
+    () => ({
+      schoolStartTime: school?.schoolStartTime,
+      schoolEndTime: school?.schoolEndTime,
+      workingDays: school?.workingDays as WeekdayValue[] | undefined,
+    }),
+    [school],
   );
 
   useEffect(() => {
@@ -37,6 +48,14 @@ const SchedulePage = ({ examId }: { examId: string }) => {
 
     sync();
   }, []);
+
+  if (!currentExam && exams.length > 0) {
+    return (
+      <Card>
+        <Empty description="Exam not found. Please return to the exams list." />
+      </Card>
+    );
+  }
 
   return (
     <div style={{ padding: 16 }}>
@@ -89,6 +108,7 @@ const SchedulePage = ({ examId }: { examId: string }) => {
           examId={examId}
           examType={currentExam?.examType}
           classes={classes}
+          schoolTiming={schoolTiming}
         />
 
         <Divider />

@@ -3,14 +3,14 @@
 import { Button, Form, Input, Modal, Select } from "antd";
 import { useState } from "react";
 
-/* APIs */
+import { ISubject } from "@/shared-types/subject.types";
+import { showToast } from "@/src/utils/toast";
 import { useGetSubjectsByClassQuery } from "@/src/modules/school-admin/subjects/subject.api";
 import { useGetClassesQuery } from "../classes/classes";
-import { useAssignSubjectMutation } from "./teacherAssignment.api";
-
-/* GLOBAL TYPES */
-import { showToast } from "@/src/utils/toast";
-import { ISubject } from "@/shared-types/subject.types";
+import {
+  useAssignSubjectMutation,
+  useGetAcademicYearsQuery,
+} from "./teacherAssignment.api";
 
 interface Props {
   open: boolean;
@@ -26,31 +26,21 @@ export default function AssignSubjectModal({ open, onClose, teacher }: Props) {
   const [form] = Form.useForm();
   const [selectedClass, setSelectedClass] = useState<string>("");
 
-  /* CLASSES */
   const { data: classes = [] } = useGetClassesQuery();
-
-  /* SUBJECTS */
+  const { data: academicYears = [] } = useGetAcademicYearsQuery();
   const { data: subjectsData } = useGetSubjectsByClassQuery(selectedClass, {
     skip: !selectedClass,
   });
 
-  /* ✅ CORRECT DATA */
   const subjects: ISubject[] = subjectsData || [];
-
-  /* MUTATION */
   const [assignSubject, { isLoading }] = useAssignSubjectMutation();
-
-  /* ========================= */
 
   const handleClassChange = (classId: string) => {
     setSelectedClass(classId);
-
     form.setFieldsValue({
       subjectId: undefined,
     });
   };
-
-  /* ========================= */
 
   const handleSubmit = async (values: {
     classId: string;
@@ -65,21 +55,14 @@ export default function AssignSubjectModal({ open, onClose, teacher }: Props) {
         academicYearId: values.academicYearId,
       }).unwrap();
 
-      // ✅ correct usage
       showToast.apiResponse(res, "Subject assigned successfully");
-
       form.resetFields();
       setSelectedClass("");
       onClose();
     } catch (err: any) {
-      console.error(err);
-
-      // ✅ proper error handling
       showToast.apiError(err, "Failed to assign subject");
     }
   };
-
-  /* ========================= */
 
   return (
     <Modal
@@ -91,29 +74,27 @@ export default function AssignSubjectModal({ open, onClose, teacher }: Props) {
       destroyOnHidden
     >
       <Form layout="vertical" form={form} onFinish={handleSubmit}>
-        {/* TEACHER */}
         <Form.Item label="Teacher">
           <Input
-            value={`${teacher?.firstName || ""} ${teacher?.lastName || ""}`}
+            value={`${teacher?.firstName || ""} ${teacher?.lastName || ""}`.trim()}
             disabled
           />
         </Form.Item>
 
-        {/* ACADEMIC YEAR */}
         <Form.Item
           label="Academic Year"
           name="academicYearId"
           rules={[{ required: true, message: "Select academic year" }]}
         >
           <Select
-            options={[
-              { label: "2024-25", value: "2024" },
-              { label: "2025-26", value: "2025" },
-            ]}
+            placeholder="Select academic year"
+            options={academicYears.map((year) => ({
+              label: year.name,
+              value: year._id,
+            }))}
           />
         </Form.Item>
 
-        {/* CLASS */}
         <Form.Item
           label="Class"
           name="classId"
@@ -129,7 +110,6 @@ export default function AssignSubjectModal({ open, onClose, teacher }: Props) {
           />
         </Form.Item>
 
-        {/* SUBJECT */}
         <Form.Item
           label="Subject"
           name="subjectId"
@@ -145,7 +125,6 @@ export default function AssignSubjectModal({ open, onClose, teacher }: Props) {
           />
         </Form.Item>
 
-        {/* SUBMIT */}
         <Button type="primary" htmlType="submit" loading={isLoading} block>
           Assign Subject
         </Button>
@@ -153,4 +132,3 @@ export default function AssignSubjectModal({ open, onClose, teacher }: Props) {
     </Modal>
   );
 }
-

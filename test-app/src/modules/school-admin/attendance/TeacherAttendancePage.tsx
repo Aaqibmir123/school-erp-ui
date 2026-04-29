@@ -1,7 +1,20 @@
 "use client";
 
-import { ReloadOutlined, CarryOutOutlined } from "@ant-design/icons";
-import { Button, Card, Col, Empty, Row, Statistic, Tag, Typography } from "antd";
+import { CarryOutOutlined, ReloadOutlined } from "@ant-design/icons";
+import {
+  Button,
+  Card,
+  Col,
+  DatePicker,
+  Empty,
+  Input,
+  Row,
+  Select,
+  Statistic,
+  Tag,
+  Typography,
+} from "antd";
+import dayjs from "dayjs";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -9,15 +22,23 @@ import ResponsiveTable from "@/src/components/ResponsiveTable";
 import { useGetTeacherAttendanceHistoryQuery } from "./attendance.api";
 import styles from "./AttendancePage.module.css";
 
+const { RangePicker } = DatePicker;
 const { Title, Paragraph, Text } = Typography;
 
 export default function TeacherAttendancePage() {
   const router = useRouter();
   const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState<string>();
+  const [dateRange, setDateRange] = useState<any>(null);
   const limit = 20;
 
   const { data, isLoading, isFetching, refetch } =
     useGetTeacherAttendanceHistoryQuery({
+      search: search || undefined,
+      status,
+      from: dateRange?.[0] ? dayjs(dateRange[0]).format("YYYY-MM-DD") : undefined,
+      to: dateRange?.[1] ? dayjs(dateRange[1]).format("YYYY-MM-DD") : undefined,
       page,
       limit,
     });
@@ -35,7 +56,7 @@ export default function TeacherAttendancePage() {
     () =>
       items.map((item, index) => ({
         key: item._id,
-        index: index + 1,
+        index: (page - 1) * limit + index + 1,
         name: `${item.teacherId?.firstName || "Teacher"} ${item.teacherId?.lastName || ""}`.trim(),
         employeeId: item.teacherId?.employeeId || "N/A",
         phone: item.teacherId?.phone || "",
@@ -45,7 +66,7 @@ export default function TeacherAttendancePage() {
         status: String(item.status || "").toUpperCase(),
         note: item.note || "",
       })),
-    [items],
+    [items, page],
   );
 
   return (
@@ -53,17 +74,59 @@ export default function TeacherAttendancePage() {
       <div className={styles.hero}>
         <div>
           <Title level={2} className={styles.title}>
-            Teacher attendance
+            Teacher Attendance
           </Title>
           <Paragraph className={styles.subtitle}>
-            View teacher check-in, check-out, leave, and half-day records with
-            pagination only.
+            Review teacher check-in, check-out, leave, and half-day records with
+            filters for search, status, and date.
           </Paragraph>
         </div>
         <Button icon={<ReloadOutlined />} onClick={() => refetch()}>
           Refresh
         </Button>
       </div>
+
+      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+        <Col xs={24} md={8}>
+          <Input.Search
+            allowClear
+            placeholder="Search teacher name, phone, or employee ID"
+            value={search}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setPage(1);
+            }}
+          />
+        </Col>
+        <Col xs={24} md={8}>
+          <Select
+            allowClear
+            placeholder="Filter status"
+            value={status}
+            style={{ width: "100%" }}
+            options={[
+              { label: "Present", value: "PRESENT" },
+              { label: "Checked Out", value: "CHECKED_OUT" },
+              { label: "Late", value: "LATE" },
+              { label: "Leave", value: "LEAVE" },
+            ]}
+            onChange={(value) => {
+              setStatus(value);
+              setPage(1);
+            }}
+          />
+        </Col>
+        <Col xs={24} md={8}>
+          <RangePicker
+            style={{ width: "100%" }}
+            value={dateRange}
+            onChange={(value) => {
+              setDateRange(value);
+              setPage(1);
+            }}
+          />
+        </Col>
+      </Row>
 
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={8}>
@@ -93,7 +156,7 @@ export default function TeacherAttendancePage() {
           <CarryOutOutlined /> Teacher attendance history
         </Tag>
         <Text type="secondary">
-          Backend-backed teacher records with page-based navigation.
+          Use filters to review attendance exceptions before taking action.
         </Text>
       </div>
 
@@ -119,9 +182,7 @@ export default function TeacherAttendancePage() {
                 <div>
                   <strong>{value}</strong>
                   <div>
-                    <Text type="secondary">
-                      Emp #{record.employeeId || "N/A"}
-                    </Text>
+                    <Text type="secondary">Emp #{record.employeeId || "N/A"}</Text>
                   </div>
                 </div>
               ),
@@ -167,7 +228,7 @@ export default function TeacherAttendancePage() {
             emptyText: (
               <Empty
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="No teacher attendance records found"
+                description="No teacher attendance records match the current filters"
               />
             ),
           }}

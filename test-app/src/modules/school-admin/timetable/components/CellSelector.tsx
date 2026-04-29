@@ -1,12 +1,14 @@
 "use client";
 
-import { Select, Tag } from "antd";
+import { Button, Select, Tag } from "antd";
 
 interface Props {
   value: any;
   subjects: any[];
   teachers: any[];
   onChange: (field: string, value: any) => void;
+  onClear?: () => void;
+  showClearAction?: boolean;
 }
 
 export default function CellSelector({
@@ -14,7 +16,23 @@ export default function CellSelector({
   subjects = [],
   teachers = [],
   onChange,
+  onClear,
+  showClearAction = false,
 }: Props) {
+  const handleSubjectChange = (nextSubjectId?: string) => {
+    const normalized = nextSubjectId || undefined;
+
+    onChange("subjectId", normalized);
+
+    if (!normalized || String(normalized) !== String(value.subjectId)) {
+      onChange("teacherId", undefined);
+    }
+  };
+
+  const handleTeacherChange = (nextTeacherId?: string) => {
+    onChange("teacherId", nextTeacherId || undefined);
+  };
+
   /* =========================
      🔥 MERGE + FALLBACK
   ========================= */
@@ -71,9 +89,10 @@ export default function CellSelector({
     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
       {/* SUBJECT */}
       <Select
-        placeholder="Subject"
+        placeholder="Select subject"
         value={value.subjectId ? String(value.subjectId) : undefined}
-        onChange={(val) => onChange("subjectId", val)}
+        allowClear
+        onChange={handleSubjectChange}
         size="small"
         style={{ width: "100%" }}
         options={subjects.map((s: any) => ({
@@ -84,9 +103,10 @@ export default function CellSelector({
 
       {/* TEACHER */}
       <Select
-        placeholder="Teacher"
+        placeholder="Select teacher"
         value={value.teacherId ? String(value.teacherId) : undefined}
-        onChange={(val) => onChange("teacherId", val)}
+        allowClear
+        onChange={handleTeacherChange}
         size="small"
         disabled={!value.subjectId}
         style={{ width: "100%" }}
@@ -102,6 +122,18 @@ export default function CellSelector({
           Teacher not assigned to this subject
         </Tag>
       )}
+
+      {showClearAction && onClear ? (
+        <Button
+          size="small"
+          type="link"
+          onClick={onClear}
+          style={{ alignSelf: "flex-end", paddingInline: 0, height: "auto" }}
+        >
+          Clear this slot
+        </Button>
+      ) : null}
+
     </div>
   );
 }

@@ -36,11 +36,12 @@ export default function FeeDrawer({
   editData,
 }: FeeDrawerProps) {
   const [createFee, { isLoading }] = useCreateFeeMutation();
-  const [updateFee] = useUpdateFeeMutation();
+  const [updateFee, updateState] = useUpdateFeeMutation();
 
   const formRef = useRef<FeeFormHandle | null>(null);
 
   const isEdit = !!editData;
+  const loadingState = isLoading || updateState.isLoading;
 
   const handleSubmit = async (formData: FeeFormSubmitValues) => {
     try {
@@ -122,7 +123,7 @@ export default function FeeDrawer({
         ref={formRef}
         initialValues={editData}
         onSubmit={handleSubmit}
-        loading={isLoading}
+        loading={loadingState}
       />
     </Drawer>
   );

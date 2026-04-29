@@ -1,21 +1,25 @@
 "use client";
 
-import { Card } from "antd";
-import { useParams } from "next/navigation";
+import { Button, Card, Empty, Space, Typography } from "antd";
+import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 
-import TeacherAssignmentsTable from "@/src/modules/school-admin/teacher-assignments/components/TeacherAssignmentsTable";
 import { TeacherAssignment } from "@/shared-types/teacherAssignment.types";
+import { useGetTeachersQuery } from "@/src/modules/school-admin/api/teacherApi";
+import TeacherAssignmentsTable from "@/src/modules/school-admin/teacher-assignments/components/TeacherAssignmentsTable";
 import { useGetTeacherAssignmentsQuery } from "../../../../src/modules/school-admin/teacher-assignments/teacherAssignment.api";
 
+const { Text, Title } = Typography;
+
 export default function TeacherAssignmentsPage() {
+  const router = useRouter();
   const params = useParams();
   const teacherId = params.teacherId as string;
-
-  /* ✅ pagination state (only this needed) */
   const [page, setPage] = useState(1);
 
-  /* ✅ RTK Query */
+  const { data: teachers = [] } = useGetTeachersQuery();
+  const teacher = teachers.find((item) => item._id === teacherId);
+
   const { data, isLoading, isFetching } = useGetTeacherAssignmentsQuery(
     {
       teacherId,
@@ -23,7 +27,8 @@ export default function TeacherAssignmentsPage() {
       limit: 10,
     },
     {
-      skip: !teacherId, // important
+      skip: !teacherId,
+      refetchOnMountOrArgChange: true,
     },
   );
 
@@ -31,14 +36,33 @@ export default function TeacherAssignmentsPage() {
   const total = data?.total || 0;
 
   return (
-    <Card title="Teacher Subject Assignments">
-      <TeacherAssignmentsTable
-        data={assignments}
-        loading={isLoading || isFetching}
-        page={page}
-        total={total}
-        onPageChange={setPage}
-      />
+    <Card
+      title="Teacher Subject Assignments"
+      extra={
+        <Button onClick={() => router.push("/school-admin/teachers")}>
+          Back To Teachers
+        </Button>
+      }
+    >
+      <Space orientation="vertical" size={4} style={{ marginBottom: 16 }}>
+        <Title level={5} style={{ margin: 0 }}>
+          {teacher
+            ? `${teacher.firstName || ""} ${teacher.lastName || ""}`.trim()
+            : "Selected Teacher"}
+        </Title>
+      </Space>
+
+      {!isLoading && !isFetching && assignments.length === 0 ? (
+        <Empty description="No subject assignments are saved for this teacher yet" />
+      ) : (
+        <TeacherAssignmentsTable
+          data={assignments}
+          loading={isLoading || isFetching}
+          page={page}
+          total={total}
+          onPageChange={setPage}
+        />
+      )}
     </Card>
   );
 }

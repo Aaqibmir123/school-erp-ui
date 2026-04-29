@@ -1,103 +1,71 @@
 "use client";
 
-import { Button, Card, Input, Select, Space, Table, Tag, message } from "antd";
-import { useEffect, useState } from "react";
+import { Button, Card, Empty, Input, Select, Space, Table, Tag, message } from "antd";
+import { useMemo, useState } from "react";
 
-/* OLD API (temporary) */
-import { getClassesApi } from "@/src/modules/school-admin/classes/api/class.api";
-
-/* RTK */
+import { IClassSubjects, ISubject } from "@/shared-types/subject.types";
+import { useGetClassesQuery } from "@/src/modules/school-admin/classes/classes";
 import {
   useCreateSubjectsMutation,
   useDeleteSubjectMutation,
   useGetSubjectsQuery,
 } from "@/src/modules/school-admin/subjects/subject.api";
 
-/* GLOBAL TYPES */
-import {
-  IClassSubjects,
-  ISubject,
-} from "@/shared-types/subject.types";
-
-interface ClassItem {
-  _id: string;
-  name: string;
-}
-
 export default function SubjectsPage() {
-  const [classes, setClasses] = useState<ClassItem[]>([]);
   const [classId, setClassId] = useState<string>("");
   const [subjectInput, setSubjectInput] = useState("");
 
-  /* =========================
-     RTK QUERY
-  ========================= */
-
+  const {
+    data: classes = [],
+    isLoading: classesLoading,
+  } = useGetClassesQuery();
   const { data: subjectsData = [], isLoading } = useGetSubjectsQuery();
 
-  /* =========================
-     MUTATIONS
-  ========================= */
-
   const [createSubjects, { isLoading: creating }] = useCreateSubjectsMutation();
-  const [deleteSubject] = useDeleteSubjectMutation();
+  const [deleteSubject, { isLoading: deleting }] = useDeleteSubjectMutation();
 
-  /* =========================
-     LOAD CLASSES
-  ========================= */
-
-  useEffect(() => {
-    const loadClasses = async () => {
-      const res = await getClassesApi();
-      setClasses(res);
-    };
-
-    loadClasses();
-  }, []);
-
-  /* =========================
-     ADD
-  ========================= */
+  const classOptions = useMemo(
+    () =>
+      classes.map((cls) => ({
+        value: cls._id,
+        label: cls.name,
+      })),
+    [classes],
+  );
 
   const handleAddSubjects = async () => {
-    if (!classId || !subjectInput) {
-      return message.warning("Select class and enter subjects");
+    if (!classId || !subjectInput.trim()) {
+      message.warning("Select a class and enter at least one subject");
+      return;
     }
 
     try {
       const subjects = subjectInput
         .split(",")
-        .map((s) => s.trim())
+        .map((item) => item.trim())
         .filter(Boolean);
 
-      await createSubjects({
-        classId,
-        subjects,
-      }).unwrap();
+      if (!subjects.length) {
+        message.warning("Enter at least one subject name");
+        return;
+      }
 
-      message.success("Subjects added");
+      await createSubjects({ classId, subjects }).unwrap();
+      message.success("Subjects added successfully");
       setSubjectInput("");
     } catch (error: any) {
       message.error(error?.data?.message || "Failed to add subjects");
     }
   };
 
-  /* =========================
-     DELETE
-  ========================= */
-
   const handleDelete = async (id: string) => {
     try {
       await deleteSubject(id).unwrap();
-      message.success("Subject deleted");
+      message.success("Subject deleted successfully");
     } catch (error: any) {
-      message.error(error?.data?.message || "Failed to delete");
+      message.error(error?.data?.message || "Failed to delete subject");
     }
   };
-
-  /* =========================
-     TABLE
-  ========================= */
 
   const columns = [
     {
@@ -113,10 +81,10 @@ export default function SubjectsPage() {
             <Tag
               key={subject._id}
               color="blue"
-              closable
-              onClose={(e) => {
-                e.preventDefault();
-                handleDelete(subject._id);
+              closable={!deleting}
+              onClose={(event) => {
+                event.preventDefault();
+                void handleDelete(subject._id);
               }}
             >
               {subject.name}
@@ -129,46 +97,49 @@ export default function SubjectsPage() {
 
   return (
     <Card title="Subjects" style={{ borderRadius: 10 }}>
-      {/* CONTROLS */}
+      {classes.length === 0 && !classesLoading ? (
+        <Empty description="No classes available yet. Create classes first." />
+      ) : (
+        <>
+          <div style={{ display: "flex", gap: 12, marginBottom: 25 }}>
+            <Select
+              placeholder="Select class"
+              style={{ width: 220 }}
+              loading={classesLoading}
+              value={classId || undefined}
+              onChange={(value) => setClassId(value)}
+              options={classOptions}
+            />
 
-      <div style={{ display: "flex", gap: 12, marginBottom: 25 }}>
-        <Select
-          placeholder="Select Class"
-          style={{ width: 200 }}
-          onChange={(value) => setClassId(value)}
-          options={classes.map((cls) => ({
-            value: cls._id,
-            label: cls.name,
-          }))}
-        />
+            <Input
+              placeholder="Math, English, Science"
+              value={subjectInput}
+              onChange={(event) => setSubjectInput(event.target.value)}
+            />
 
-        <Input
-          placeholder="Math, English, Science"
-          value={subjectInput}
-          onChange={(e) => setSubjectInput(e.target.value)}
-        />
+            <Button
+              type="primary"
+              size="large"
+              onClick={handleAddSubjects}
+              loading={creating}
+            >
+              Add Subjects
+            </Button>
+          </div>
 
-        <Button
-          type="primary"
-          size="large"
-          onClick={handleAddSubjects}
-          loading={creating}
-        >
-          Add Subjects
-        </Button>
-      </div>
-
-      {/* TABLE */}
-
-      <Table<IClassSubjects>
-        rowKey="classId"
-        columns={columns}
-        dataSource={subjectsData}
-        loading={isLoading}
-        pagination={false}
-        bordered
-      />
+          <Table<IClassSubjects>
+            rowKey="classId"
+            columns={columns}
+            dataSource={subjectsData}
+            loading={isLoading}
+            pagination={false}
+            bordered
+            locale={{
+              emptyText: "No subjects have been created yet",
+            }}
+          />
+        </>
+      )}
     </Card>
   );
 }
-

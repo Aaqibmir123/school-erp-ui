@@ -22,7 +22,7 @@ type SchoolProfile = {
 };
 
 const resolveAssetUrl = (value?: string) => {
-  if (!value) return "";
+  if (!value) return undefined;
 
   if (/^https?:\/\//i.test(value) || value.startsWith("data:")) {
     return value;

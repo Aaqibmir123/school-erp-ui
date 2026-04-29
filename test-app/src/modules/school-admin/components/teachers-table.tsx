@@ -20,6 +20,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
 
 import ResponsiveTable from "@/src/components/ResponsiveTable";
+import { APP_ENV } from "@/src/config/env";
 import { showToast } from "@/src/utils/toast";
 import AssignSubjectModal from "../assign-subject/AssignSubjectModal";
 interface Teacher {
@@ -81,7 +82,11 @@ export default function TeachersTable({
 
   const getImageUrl = useCallback((fileName?: string) => {
     if (!fileName) return undefined;
-    return `${process.env.NEXT_PUBLIC_API_URL}/uploads/teacher/${fileName}`;
+    if (/^https?:\/\//i.test(fileName) || fileName.startsWith("data:")) {
+      return fileName;
+    }
+
+    return `${APP_ENV.SERVER_URL}${fileName.startsWith("/") ? "" : "/"}${fileName}`;
   }, []);
 
   const handleDelete = useCallback(async () => {
@@ -96,6 +101,39 @@ export default function TeachersTable({
       setDeleting(false);
     }
   }, [deleteConfirm.teacher, onDelete, deleting]);
+
+  const handleActionClick = useCallback(
+    (action: string, teacher: Teacher) => {
+      switch (action) {
+        case "view":
+          setViewModal({ open: true, teacher });
+          break;
+        case "assign":
+          setAssignModal({ open: true, teacher });
+          break;
+        case "assignments":
+          router.push(`/school-admin/teacher-assignments/${teacher._id}`);
+          break;
+        case "edit":
+          if (onEdit) {
+            onEdit(teacher);
+          } else {
+            showToast.error("Edit function not configured");
+          }
+          break;
+        case "delete":
+          if (onDelete) {
+            setDeleteConfirm({ open: true, teacher });
+          } else {
+            showToast.error("Delete function not configured");
+          }
+          break;
+        default:
+          break;
+      }
+    },
+    [onDelete, onEdit, router],
+  );
 
   const columns = useMemo(
     () => [
@@ -181,51 +219,36 @@ export default function TeachersTable({
               key: "view",
               icon: <EyeOutlined />,
               label: "View Profile",
-              onClick: () => setViewModal({ open: true, teacher }),
             },
             {
               key: "assign",
               icon: <EditOutlined style={{ color: "#722ed1" }} />,
               label: "Assign Subject",
-              onClick: () => setAssignModal({ open: true, teacher }),
             },
             {
               key: "assignments",
               icon: <EyeOutlined />,
               label: "View Assignments",
-              onClick: () =>
-                router.push(`/school-admin/teacher-assignments/${teacher._id}`),
             },
             { type: "divider" as const },
             {
               key: "edit",
               icon: <EditOutlined style={{ color: "#fa8c16" }} />,
               label: "Edit",
-              onClick: () => {
-                if (onEdit) {
-                  onEdit(teacher);
-                } else {
-                  showToast.error("Edit function not configured");
-                }
-              },
             },
             {
               key: "delete",
               icon: <DeleteOutlined style={{ color: "#ff4d4f" }} />,
               label: <span style={{ color: "#ff4d4f" }}>Delete</span>,
-              onClick: () => {
-                if (onDelete) {
-                  setDeleteConfirm({ open: true, teacher });
-                } else {
-                  showToast.error("Delete function not configured");
-                }
-              },
             },
           ];
 
           return (
             <Dropdown
-              menu={{ items }}
+              menu={{
+                items,
+                onClick: ({ key }) => handleActionClick(String(key), teacher),
+              }}
               placement="bottomRight"
               trigger={["click"]}
               arrow
@@ -240,7 +263,7 @@ export default function TeachersTable({
         },
       },
     ],
-    [getImageUrl, onEdit, onDelete, router],
+    [getImageUrl, handleActionClick],
   );
 
   const renderViewModal = () => {

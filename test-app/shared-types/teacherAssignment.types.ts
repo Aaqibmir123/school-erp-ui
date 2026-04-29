@@ -18,6 +18,11 @@ export interface TeacherAssignment {
   };
 
   academicYearId: string;
+  academicYear?: {
+    _id: string;
+    name: string;
+    isActive?: boolean;
+  } | null;
 }
 export interface AssignSubjectPayload {
   teacherId: string;

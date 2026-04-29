@@ -13,7 +13,7 @@ import {
 } from "antd";
 
 import dayjs from "dayjs";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect } from "react";
 
 import { showToast } from "../../../../utils/toast";
 
@@ -23,19 +23,13 @@ import {
   useGetStudentByIdQuery,
   useUpdateStudentMutation,
 } from "../studentApi";
-
-import { getClassesApi } from "../../classes/api/class.api";
+import { useGetClassesQuery } from "../../classes/classes";
 
 import type { Section } from "@/shared-types/section.types";
 import type {
   CreateStudentDTO,
   StudentPopulated,
 } from "@/shared-types/student.types";
-
-interface ClassItem {
-  _id: string;
-  name: string;
-}
 
 interface Props {
   open: boolean;
@@ -47,12 +41,11 @@ export default function StudentDrawer({ open, onClose, initialData }: Props) {
   const [form] = Form.useForm();
   const watchedClassId = Form.useWatch("classId", form) as string | undefined;
 
-  const [classes, setClasses] = useState<ClassItem[]>([]);
-
   const [createStudent, { isLoading: creating }] = useCreateStudentMutation();
   const [updateStudent, { isLoading: updating }] = useUpdateStudentMutation();
 
   const isLoading = creating || updating;
+  const { data: classes = [] } = useGetClassesQuery();
 
   const { data: sections = [], isLoading: sectionsLoading } =
     useGetSectionsByClassQuery(watchedClassId || "", {
@@ -64,24 +57,6 @@ export default function StudentDrawer({ open, onClose, initialData }: Props) {
   const { data: fullStudent } = useGetStudentByIdQuery(studentId, {
     skip: !open || !studentId,
   });
-
-  /* ================= LOAD CLASSES ================= */
-  useEffect(() => {
-    let mounted = true;
-
-    (async () => {
-      try {
-        const res: ClassItem[] = await getClassesApi();
-        if (mounted) setClasses(res);
-      } catch {
-        showToast.error("Failed to load classes");
-      }
-    })();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
 
   /* ================= RESET FORM ON CLOSE ================= */
   const handleClose = useCallback(() => {

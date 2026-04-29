@@ -2,15 +2,14 @@
 
 import dayjs, { type Dayjs } from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
-import { Button, Col, Form, Row, Typography } from "antd";
-import { useEffect, useMemo } from "react";
+import { Button, Col, Form, Row, Spin, Typography } from "antd";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import SchoolTimingSection from "./components/SchoolTimingSection";
 import { createSchoolApi } from "./school.api";
 import { useSchool } from "./useSchool";
 import {
-  WEEKDAY_OPTIONS,
   SchoolTimingFormValues,
   SchoolTimingSettings,
   WeekdayValue,
@@ -19,47 +18,27 @@ import styles from "./SchoolPage.module.css";
 import { showToast } from "@/src/utils/toast";
 
 const { Title } = Typography;
-const TIMING_STORAGE_KEY = "school-admin:timing-settings";
 
 dayjs.extend(customParseFormat);
 
 const DEFAULT_WORKING_DAYS: WeekdayValue[] = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+const normalizeWorkingDays = (value?: string[]) =>
+  (Array.isArray(value) ? value : DEFAULT_WORKING_DAYS) as WeekdayValue[];
 
 const isValidTime = (value?: string) => /^([01]\d|2[0-3]):([0-5]\d)$/.test(value || "");
 
 const parseTimeValue = (value?: string) => {
   if (!value || !isValidTime(value)) return null;
-
   return dayjs(value, "HH:mm");
 };
 
-const formatTimeValue = (value?: Dayjs | null) =>
-  value ? value.format("HH:mm") : "";
-
-const VALID_WEEKDAYS = new Set<WeekdayValue>(
-  WEEKDAY_OPTIONS.map((option) => option.value),
-);
-
-const normalizeWorkingDays = (value?: string[]) =>
-  value?.filter((day): day is WeekdayValue => VALID_WEEKDAYS.has(day as WeekdayValue));
-
-const parseStoredTimings = (): Partial<SchoolTimingSettings> => {
-  if (typeof window === "undefined") return {};
-
-  const raw = window.localStorage.getItem(TIMING_STORAGE_KEY);
-  if (!raw) return {};
-
-  try {
-    return JSON.parse(raw) as Partial<SchoolTimingSettings>;
-  } catch {
-    return {};
-  }
-};
+const formatTimeValue = (value?: Dayjs | null) => (value ? value.format("HH:mm") : "");
 
 export default function SchoolSettingsPage() {
   const [form] = Form.useForm<SchoolTimingFormValues>();
   const router = useRouter();
-  const { school } = useSchool();
+  const { school, loading } = useSchool();
+  const [saving, setSaving] = useState(false);
 
   const timingDefaults = useMemo<Partial<SchoolTimingSettings>>(
     () => ({
@@ -75,36 +54,18 @@ export default function SchoolSettingsPage() {
   );
 
   useEffect(() => {
-    const storedTimings = parseStoredTimings();
+    if (loading) return;
+
     const sourceTimings = {
-      checkInCloseTime:
-        school?.checkInCloseTime ||
-        storedTimings.checkInCloseTime ||
-        timingDefaults.checkInCloseTime,
-      checkInOpenTime:
-        school?.checkInOpenTime ||
-        storedTimings.checkInOpenTime ||
-        timingDefaults.checkInOpenTime,
+      checkInCloseTime: school?.checkInCloseTime || timingDefaults.checkInCloseTime,
+      checkInOpenTime: school?.checkInOpenTime || timingDefaults.checkInOpenTime,
       checkOutCloseTime:
-        school?.checkOutCloseTime ||
-        storedTimings.checkOutCloseTime ||
-        timingDefaults.checkOutCloseTime,
+        school?.checkOutCloseTime || timingDefaults.checkOutCloseTime,
       lateMarkAfterTime:
-        school?.lateMarkAfterTime ||
-        storedTimings.lateMarkAfterTime ||
-        timingDefaults.lateMarkAfterTime,
-      schoolEndTime:
-        school?.schoolEndTime ||
-        storedTimings.schoolEndTime ||
-        timingDefaults.schoolEndTime,
-      schoolStartTime:
-        school?.schoolStartTime ||
-        storedTimings.schoolStartTime ||
-        timingDefaults.schoolStartTime,
-      workingDays:
-        normalizeWorkingDays(school?.workingDays) ||
-        normalizeWorkingDays(storedTimings.workingDays) ||
-        timingDefaults.workingDays,
+        school?.lateMarkAfterTime || timingDefaults.lateMarkAfterTime,
+      schoolEndTime: school?.schoolEndTime || timingDefaults.schoolEndTime,
+      schoolStartTime: school?.schoolStartTime || timingDefaults.schoolStartTime,
+      workingDays: normalizeWorkingDays(school?.workingDays),
     };
 
     form.setFieldsValue({
@@ -116,7 +77,7 @@ export default function SchoolSettingsPage() {
       schoolStartTime: parseTimeValue(sourceTimings.schoolStartTime),
       workingDays: sourceTimings.workingDays,
     });
-  }, [form, timingDefaults, school]);
+  }, [form, loading, school, timingDefaults]);
 
   const onFinish = async (values: SchoolTimingFormValues) => {
     const payload: SchoolTimingSettings = {
@@ -174,25 +135,27 @@ export default function SchoolSettingsPage() {
       return;
     }
 
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(TIMING_STORAGE_KEY, JSON.stringify(payload));
-      window.dispatchEvent(new Event("school-timing-updated"));
+    try {
+      setSaving(true);
+      const formData = new FormData();
+      formData.append("name", school?.name || school?.schoolName || "School");
+      formData.append("address", school?.address || "");
+      formData.append("checkInOpenTime", payload.checkInOpenTime || "");
+      formData.append("schoolStartTime", payload.schoolStartTime || "");
+      formData.append("lateMarkAfterTime", payload.lateMarkAfterTime || "");
+      formData.append("checkInCloseTime", payload.checkInCloseTime || "");
+      formData.append("schoolEndTime", payload.schoolEndTime || "");
+      formData.append("checkOutCloseTime", payload.checkOutCloseTime || "");
+      formData.append("workingDays", JSON.stringify(payload.workingDays || []));
+
+      await createSchoolApi(formData);
+      window.dispatchEvent(new Event("school-profile-updated"));
+      showToast.success("School settings updated");
+    } catch (error) {
+      showToast.apiError(error, "Unable to save school settings");
+    } finally {
+      setSaving(false);
     }
-
-    const formData = new FormData();
-    formData.append("name", school?.name || school?.schoolName || "School");
-    formData.append("address", school?.address || "");
-    formData.append("checkInOpenTime", payload.checkInOpenTime || "");
-    formData.append("schoolStartTime", payload.schoolStartTime || "");
-    formData.append("lateMarkAfterTime", payload.lateMarkAfterTime || "");
-    formData.append("checkInCloseTime", payload.checkInCloseTime || "");
-    formData.append("schoolEndTime", payload.schoolEndTime || "");
-    formData.append("checkOutCloseTime", payload.checkOutCloseTime || "");
-    formData.append("workingDays", JSON.stringify(payload.workingDays || []));
-
-    await createSchoolApi(formData);
-
-    showToast.success("School settings updated");
   };
 
   return (
@@ -212,10 +175,16 @@ export default function SchoolSettingsPage() {
             </Col>
           </Row>
 
-          <SchoolTimingSection />
+          {loading ? <Spin /> : <SchoolTimingSection />}
 
           <div className={styles.footerRow}>
-            <Button type="primary" htmlType="submit" className={styles.saveBtn}>
+            <Button
+              type="primary"
+              htmlType="submit"
+              className={styles.saveBtn}
+              loading={saving}
+              disabled={loading}
+            >
               Save School Settings
             </Button>
           </div>

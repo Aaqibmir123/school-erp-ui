@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Card, Table, message } from "antd";
+import { App, Button, Card, Table } from "antd";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -8,7 +8,6 @@ import {
   useSaveTimetableMutation,
   useUpdateTimetableMutation,
 } from "../api/createTimetable";
-import type { SchoolTimingSettings } from "../../school/schoolSettings.types";
 
 import CellSelector from "./CellSelector";
 
@@ -19,13 +18,14 @@ export default function DragTimetable({
   teachers,
   periods,
   classId,
-  schoolTiming,
   sectionId,
+  schoolTiming,
   initialData = [],
   refetchTimetable,
 }: any) {
   const [grid, setGrid] = useState<any>({});
   const [loading, setLoading] = useState(false);
+  const { message } = App.useApp();
 
   const [saveTimetable] = useSaveTimetableMutation();
   const [updateTimetable] = useUpdateTimetableMutation();
@@ -69,7 +69,7 @@ if (!pid) continue;
     [periods],
   );
 
-  const formatTime = (t: string) => dayjs(t, "HH:mm").format("hh:mm A");
+  const formatTime = (t: string) => dayjs(t, "HH:mm").format("h:mm A");
   const toMinutes = (value?: string) => {
     if (!value) return null;
     const parsed = dayjs(value, "HH:mm");
@@ -85,14 +85,24 @@ if (!pid) continue;
     (day: string, periodId: string, field: string, value: string) => {
       const key = `${day}-${periodId}`;
 
-      setGrid((prev: any) => ({
-        ...prev,
-        [key]: {
+      setGrid((prev: any) => {
+        const nextCell = {
           ...prev[key],
           [field]: value,
           isEdit: prev[key]?.isEdit || false,
-        },
-      }));
+        };
+
+        if (!nextCell.subjectId && !nextCell.teacherId) {
+          const nextGrid = { ...prev };
+          delete nextGrid[key];
+          return nextGrid;
+        }
+
+        return {
+          ...prev,
+          [key]: nextCell,
+        };
+      });
     },
     [],
   );
@@ -136,30 +146,9 @@ if (!pid) continue;
   const handleSave = async () => {
     try {
       const { create, update } = buildPayload();
-      const schoolStart = toMinutes(schoolTiming?.schoolStartTime);
-      const schoolEnd = toMinutes(schoolTiming?.schoolEndTime);
-
-      if (schoolStart !== null && schoolEnd !== null) {
-        const outOfRange = sortedPeriods.find((period: any) => {
-          if (period?.type !== "class") return false;
-
-          const start = toMinutes(period.startTime);
-          const end = toMinutes(period.endTime);
-          if (start === null || end === null) return false;
-
-          return start < schoolStart || end > schoolEnd;
-        });
-
-        if (outOfRange) {
-          message.error(
-            "Some timetable periods are outside the school timing window",
-          );
-          return;
-        }
-      }
 
       if (!create.length && !update.length) {
-        message.warning("⚠️ Nothing to save");
+        message.warning("Nothing to save");
         return;
       }
 
@@ -177,7 +166,7 @@ if (!pid) continue;
         await updateTimetable(item).unwrap(); // 💣 yahan error aaye → loop break
       }
 
-      message.success("✅ Timetable Updated successfully");
+      message.success("Timetable saved successfully");
 
       refetchTimetable?.();
     } catch (err: any) {
@@ -200,7 +189,7 @@ if (!pid) continue;
   const columns = useMemo<any[]>(
     () => [
       {
-        title: "⏰ Time",
+        title: "Time",
         width: 140,
         render: (_: any, record: any) => (
           <div>
@@ -234,7 +223,7 @@ if (!pid) continue;
                   color: "#d48806",
                 }}
               >
-                {record.type === "break" ? "☕ Break" : "🍽 Lunch"}
+                {record.type === "break" ? "Break" : "Lunch"}
               </div>
             );
           }
@@ -252,6 +241,11 @@ if (!pid) continue;
                 value={value}
                 subjects={subjects}
                 teachers={teachers}
+                showClearAction={!value?.isEdit && !!(value?.subjectId || value?.teacherId)}
+                onClear={() => {
+                  handleCellChange(day, record._id, "subjectId", undefined as any);
+                  handleCellChange(day, record._id, "teacherId", undefined as any);
+                }}
                 onChange={(field: string, val: string) =>
                   handleCellChange(day, record._id, field, val)
                 }
@@ -260,12 +254,15 @@ if (!pid) continue;
               {value?.isEdit && (
                 <div
                   style={{
-                    fontSize: 11,
+                    fontSize: 10,
                     color: "#52c41a",
-                    textAlign: "center",
+                    textAlign: "right",
+                    marginTop: 4,
+                    fontWeight: 600,
+                    opacity: 0.8,
                   }}
                 >
-                  ✏️ Editing
+                  Edited
                 </div>
               )}
             </div>
@@ -281,7 +278,7 @@ if (!pid) continue;
   /* ====================================== */
 
   return (
-    <Card title="📅 Assign Timetable">
+    <Card title="Assign Timetable">
       <Table
         rowKey="_id"
         dataSource={sortedPeriods}

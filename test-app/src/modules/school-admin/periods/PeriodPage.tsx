@@ -2,6 +2,7 @@
 
 import { BankOutlined, ClockCircleOutlined } from "@ant-design/icons";
 import {
+  App,
   Button,
   Card,
   Col,
@@ -15,7 +16,7 @@ import {
 } from "antd";
 
 import dayjs from "dayjs";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { showToast } from "@/src/utils/toast";
@@ -23,109 +24,136 @@ import {
   useCreatePeriodMutation,
   useDeletePeriodMutation,
   useGetPeriodsQuery,
+  useUpdatePeriodMutation,
 } from "./periodApi";
 import { PeriodType } from "@/shared-types/period.types";
-import type { SchoolTimingSettings } from "../school/schoolSettings.types";
+import { useSchool } from "../school/useSchool";
+import type {
+  SchoolTimingSettings,
+  WeekdayValue,
+} from "../school/schoolSettings.types";
 
 const { Text } = Typography;
-const TIMING_STORAGE_KEY = "school-admin:timing-settings";
 
 export default function PeriodPage() {
   const router = useRouter();
+  const { modal } = App.useApp();
   const { data: periods = [] } = useGetPeriodsQuery();
+  const { school, loading: schoolLoading } = useSchool();
 
   const [createPeriodApi, { isLoading }] = useCreatePeriodMutation();
+  const [updatePeriodApi, { isLoading: isUpdating }] =
+    useUpdatePeriodMutation();
   const [deletePeriodApi] = useDeletePeriodMutation();
 
   const [startTime, setStartTime] = useState<any>(null);
   const [endTime, setEndTime] = useState<any>(null);
   const [type, setType] = useState<PeriodType>(PeriodType.CLASS);
-  const [schoolTiming, setSchoolTiming] = useState<Partial<SchoolTimingSettings>>(
-    {},
+  const [editingPeriodId, setEditingPeriodId] = useState<string | null>(null);
+
+  const schoolTiming: Partial<SchoolTimingSettings> = useMemo(
+    () => ({
+      schoolStartTime: school?.schoolStartTime,
+      schoolEndTime: school?.schoolEndTime,
+      workingDays: school?.workingDays as WeekdayValue[] | undefined,
+    }),
+    [school],
   );
 
-  const loadSchoolTiming = () => {
-    if (typeof window === "undefined") return {};
-
-    const raw = window.localStorage.getItem(TIMING_STORAGE_KEY);
-    if (!raw) return {};
-
-    try {
-      return JSON.parse(raw) as Partial<SchoolTimingSettings>;
-    } catch {
-      return {};
-    }
-  };
-
-  useEffect(() => {
-    const syncTiming = () => setSchoolTiming(loadSchoolTiming());
-
-    syncTiming();
-    window.addEventListener("school-timing-updated", syncTiming);
-
-    return () => window.removeEventListener("school-timing-updated", syncTiming);
-  }, []);
-
-  /* 🔥 SORT BY TIME */
-  const sortedPeriods = useMemo(() => {
-    return [...periods].sort((a, b) => a.startTime.localeCompare(b.startTime));
-  }, [periods]);
+  const sortedPeriods = useMemo(
+    () => [...periods].sort((a, b) => a.startTime.localeCompare(b.startTime)),
+    [periods],
+  );
 
   const schoolStart = schoolTiming.schoolStartTime || "08:00";
   const schoolEnd = schoolTiming.schoolEndTime || "15:00";
   const workingDays = schoolTiming.workingDays?.join(", ") || "Mon-Fri";
 
-  /* 🔥 CREATE */
+  const resetForm = () => {
+    setStartTime(null);
+    setEndTime(null);
+    setType(PeriodType.CLASS);
+    setEditingPeriodId(null);
+  };
+
   const createPeriod = async () => {
     if (!startTime || !endTime) {
-      return showToast.warning("Select time");
+      showToast.warning("Select start and end time");
+      return;
     }
 
     const start = startTime.format("HH:mm");
     const end = endTime.format("HH:mm");
 
     if (end <= start) {
-      return showToast.error("Invalid time range");
-    }
-
-    if (start < schoolStart || end > schoolEnd) {
-      return showToast.error(
-        "Time slot must stay within School Time Management hours",
-      );
+      showToast.error("End time must be after start time");
+      return;
     }
 
     try {
-      await createPeriodApi({
-        name: `${type} slot`,
-        periodNumber: sortedPeriods.length + 1,
-        startTime: start,
-        endTime: end,
-        type,
-      }).unwrap();
+      if (editingPeriodId) {
+        await updatePeriodApi({
+          id: editingPeriodId,
+          data: {
+            name: `${type} slot`,
+            periodNumber: sortedPeriods.length + 1,
+            startTime: start,
+            endTime: end,
+            type,
+          },
+        }).unwrap();
 
-      showToast.success("Time slot added");
+        showToast.success("Time slot updated successfully");
+      } else {
+        await createPeriodApi({
+          name: `${type} slot`,
+          periodNumber: sortedPeriods.length + 1,
+          startTime: start,
+          endTime: end,
+          type,
+        }).unwrap();
 
-      setStartTime(null);
-      setEndTime(null);
+        showToast.success("Time slot added successfully");
+      }
+
+      resetForm();
     } catch (err: any) {
-      showToast.error(err?.data?.message || "Error");
+      showToast.apiError(
+        err,
+        editingPeriodId ? "Unable to update time slot" : "Unable to create time slot",
+      );
     }
+  };
+
+  const startEdit = (record: any) => {
+    setEditingPeriodId(record._id);
+    setStartTime(dayjs(record.startTime, "HH:mm"));
+    setEndTime(dayjs(record.endTime, "HH:mm"));
+    setType(record.type);
+  };
+
+  const convertEditingSlotToAm = () => {
+    if (!startTime || !endTime) return;
+
+    const nextStart = startTime.hour() >= 12 ? startTime.subtract(12, "hour") : startTime;
+    const nextEnd = endTime.hour() >= 12 ? endTime.subtract(12, "hour") : endTime;
+
+    setStartTime(nextStart);
+    setEndTime(nextEnd);
   };
 
   const remove = async (id: string) => {
     try {
       const res = await deletePeriodApi({ id }).unwrap();
 
-      // 💣 LINKED CASE
       if (res?.isLinked) {
-        Modal.confirm({
-          title: "⚠️ Period is in use",
+        modal.confirm({
+          title: "Period is in use",
           content:
-            "This period is used in timetable. Delete it along with related timetable entries?",
-          okText: "Delete",
+            "This period is already used in the timetable. Delete it and remove linked timetable entries as well?",
+          okText: "Delete Period",
           okType: "danger",
           cancelText: "Cancel",
-
           onOk: async () => {
             try {
               const finalRes = await deletePeriodApi({
@@ -133,34 +161,29 @@ export default function PeriodPage() {
                 forceDelete: true,
               }).unwrap();
 
-              showToast.apiResponse(finalRes, "Delete failed");
+              showToast.apiResponse(finalRes, "Unable to delete period");
             } catch (err) {
-              showToast.apiError(err);
+              showToast.apiError(err, "Unable to delete linked period");
             }
           },
         });
-
         return;
       }
 
-      // ✅ NORMAL DELETE
-      showToast.apiResponse(res, "Delete failed");
+      showToast.apiResponse(res, "Unable to delete period");
     } catch (err) {
-      showToast.apiError(err);
+      showToast.apiError(err, "Unable to delete period");
     }
   };
 
-  /* 🔥 FORMAT TIME */
-  const formatTime = (time: string) => dayjs(time, "HH:mm").format("hh:mm A");
+  const formatTime = (time: string) => dayjs(time, "HH:mm").format("h:mm A");
   const labelType = (value: PeriodType) => {
     if (value === PeriodType.BREAK) return "Break Slot";
     if (value === PeriodType.LUNCH) return "Lunch Slot";
     if (value === PeriodType.ACTIVITY) return "Activity Slot";
-
     return "Class Slot";
   };
 
-  /* 🔥 TABLE */
   const columns = [
     {
       title: "#",
@@ -170,7 +193,7 @@ export default function PeriodPage() {
       title: "Time",
       render: (_: any, record: any) => (
         <Text strong>
-          {formatTime(record.startTime)} – {formatTime(record.endTime)}
+          {formatTime(record.startTime)} - {formatTime(record.endTime)}
         </Text>
       ),
     },
@@ -184,7 +207,7 @@ export default function PeriodPage() {
               ? "orange"
               : record.type === "lunch"
                 ? "red"
-            : "blue"
+                : "blue"
           }
         >
           {labelType(record.type)}
@@ -194,9 +217,12 @@ export default function PeriodPage() {
     {
       title: "Action",
       render: (_: any, record: any) => (
-        <Button danger type="primary" ghost onClick={() => remove(record._id)}>
-          Delete
-        </Button>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <Button onClick={() => startEdit(record)}>Edit</Button>
+          <Button danger type="primary" ghost onClick={() => remove(record._id)}>
+            Delete
+          </Button>
+        </div>
       ),
     },
   ];
@@ -221,21 +247,21 @@ export default function PeriodPage() {
       style={{ borderRadius: 12 }}
     >
       <Text type="secondary">
-        Class slots are linked to School Time Management and working days.
+        School admin can create and edit time slots freely. School timings are
+        shown here only as a reference.
       </Text>
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
-        <Tag color="blue">Start: {dayjs(schoolStart, "HH:mm").format("hh:mm A")}</Tag>
-        <Tag color="blue">End: {dayjs(schoolEnd, "HH:mm").format("hh:mm A")}</Tag>
+        <Tag color="blue">Start: {dayjs(schoolStart, "HH:mm").format("h:mm A")}</Tag>
+        <Tag color="blue">End: {dayjs(schoolEnd, "HH:mm").format("h:mm A")}</Tag>
         <Tag color="blue">Days: {workingDays}</Tag>
       </div>
 
-      {/* 🔥 FORM */}
       <Row gutter={12} style={{ marginTop: 16 }}>
         <Col xs={24} md={6}>
           <TimePicker
             use12Hours
-            format="hh:mm A"
+            format="h:mm A"
             minuteStep={1}
             style={{ width: "100%" }}
             value={startTime}
@@ -247,7 +273,7 @@ export default function PeriodPage() {
         <Col xs={24} md={6}>
           <TimePicker
             use12Hours
-            format="hh:mm A"
+            format="h:mm A"
             minuteStep={1}
             style={{ width: "100%" }}
             value={endTime}
@@ -273,23 +299,35 @@ export default function PeriodPage() {
           <Button
             type="primary"
             block
-            loading={isLoading}
+            loading={isLoading || isUpdating}
             onClick={createPeriod}
           >
-            + Add Slot
+            {editingPeriodId ? "Update Slot" : "Add Slot"}
           </Button>
         </Col>
       </Row>
 
-      {/* 🔥 TABLE */}
+      {editingPeriodId ? (
+        <div style={{ marginTop: 12 }}>
+          <Button onClick={convertEditingSlotToAm} style={{ marginRight: 8 }}>
+            Switch to AM
+          </Button>
+          <Button type="link" onClick={resetForm}>
+            Cancel editing
+          </Button>
+        </div>
+      ) : null}
+
       <Table
         dataSource={sortedPeriods}
         columns={columns}
         rowKey="_id"
         pagination={false}
         style={{ marginTop: 24 }}
+        locale={{
+          emptyText: "No time slots created yet",
+        }}
       />
     </Card>
   );
 }
-

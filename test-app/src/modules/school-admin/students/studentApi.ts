@@ -13,6 +13,7 @@ export interface StudentsApiResponse {
   success: boolean;
   data: StudentPopulated[];
   total: number;
+  message?: string;
 }
 
 export const studentApi = baseApi.injectEndpoints({
@@ -28,12 +29,19 @@ export const studentApi = baseApi.injectEndpoints({
       }),
       transformResponse: (res: {
         success?: boolean;
+        data?: StudentPopulated[];
         students?: StudentPopulated[];
         total?: number;
+        message?: string;
       }) => ({
         success: Boolean(res?.success),
-        data: Array.isArray(res?.students) ? res.students : [],
+        data: Array.isArray(res?.students)
+          ? res.students
+          : Array.isArray(res?.data)
+            ? res.data
+            : [],
         total: Number(res?.total || 0),
+        message: res?.message,
       }),
 
       providesTags: ["Students"],
@@ -75,7 +83,7 @@ export const studentApi = baseApi.injectEndpoints({
     /* ================= DELETE ================= */
     deleteStudent: builder.mutation<unknown, string>({
       query: (id) => ({
-        url: `/school-admin/${id}`,
+        url: `/school-admin/students/${id}`,
         method: "DELETE",
       }),
       invalidatesTags: ["Students", "Dashboard"],

@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Input, List, Popconfirm, message } from "antd";
+import { App, Button, Input, List, Popconfirm } from "antd";
 import { useState } from "react";
 
 import {
@@ -16,6 +16,7 @@ interface Props {
 }
 
 export default function SubjectsList({ classId }: Props) {
+  const { message } = App.useApp();
   const [name, setName] = useState("");
 
   /* ✅ RTK Queries */

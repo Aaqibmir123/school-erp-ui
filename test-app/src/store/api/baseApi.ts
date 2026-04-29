@@ -18,6 +18,7 @@ export const baseApi = createApi({
     "Periods",
     "Teachers",
     "AcademicYears",
+    "Notices",
     "Schedule",
     "Fee",
     "Transport",

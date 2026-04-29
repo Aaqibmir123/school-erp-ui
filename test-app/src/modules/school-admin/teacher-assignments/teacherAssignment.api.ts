@@ -24,6 +24,11 @@ export interface TeacherAssignment {
   };
 
   academicYearId: string;
+  academicYear?: {
+    _id: string;
+    name: string;
+    isActive?: boolean;
+  } | null;
 }
 
 interface GetTeacherAssignmentsResponse {
@@ -49,7 +54,7 @@ export const teacherAssignmentApi = baseApi.injectEndpoints({
       { teacherId: string; page?: number; limit?: number }
     >({
       query: ({ teacherId, page = 1, limit = 10 }) => ({
-        url: `/school-admin/teacher/${teacherId}`,
+        url: `/school-admin/teachers/${teacherId}/assignments`,
         params: { page, limit },
       }),
       providesTags: ["TeacherAssignments"],

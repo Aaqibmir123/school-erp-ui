@@ -1,17 +1,18 @@
 "use client";
 
 import {
+  BookOutlined,
   LockOutlined,
   LoginOutlined,
-  ReadOutlined,
+  SafetyCertificateOutlined,
   UserOutlined,
 } from "@ant-design/icons";
 import { Button, Card, Form, Input } from "antd";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { showToast } from "@/src/utils/toast";
 import { LoginDTO } from "@/shared-types/auth.types";
+import { showToast } from "@/src/utils/toast";
 import { useLogin } from "../hooks/useLogin";
 import styles from "./LoginForm.module.css";
 
@@ -46,33 +47,65 @@ export default function LoginForm() {
   return (
     <main className={styles.container}>
       <section className={styles.brandPanel} aria-label="Platform summary">
+        <div className={styles.brandScrim} />
         <div className={styles.brandOverlay}>
-          <p className={styles.brandEyebrow}>School ERP SaaS</p>
+          <div className={styles.brandBadge}>
+            <BookOutlined />
+            <span>Smart School ERP</span>
+          </div>
+
           <h1 className={styles.brandTitle}>
-            One control room for academics, operations, and growth.
+            Run academics, people, fees, and operations from one admin workspace.
           </h1>
+
           <p className={styles.brandDesc}>
-            Manage attendance, fees, exams, timetables, and teacher workflows
-            from one secure admin workspace.
+            Built for school teams that need fast daily control without juggling
+            separate tools.
           </p>
 
-          <div className={styles.highlightRow}>
-            <span className={styles.highlightChip}>Realtime dashboards</span>
-            <span className={styles.highlightChip}>Role-based access</span>
-            <span className={styles.highlightChip}>Performance-ready</span>
+          <div className={styles.featureGrid}>
+            <div className={styles.featureCard}>
+              <span className={styles.featureIcon}>
+                <SafetyCertificateOutlined />
+              </span>
+              <div>
+                <strong>Secure access</strong>
+                <p>Role-based admin control</p>
+              </div>
+            </div>
+
+            <div className={styles.featureCard}>
+              <span className={styles.featureIcon}>
+                <LoginOutlined />
+              </span>
+              <div>
+                <strong>Daily workflows</strong>
+                <p>Attendance, fees, timetable, exams</p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       <section className={styles.formPanel} aria-label="Login form">
         <Card className={styles.card} variant="borderless">
+          <div className={styles.mobileBrand}>
+            <span className={styles.mobileBrandIcon}>
+              <BookOutlined />
+            </span>
+            <div>
+              <p className={styles.mobileBrandLabel}>Smart School ERP</p>
+              <span className={styles.mobileBrandSub}>Admin Sign In</span>
+            </div>
+          </div>
+
           <div className={styles.header}>
-            <ReadOutlined
-              style={{ color: "var(--color-primary)", fontSize: 28 }}
-            />
+            <div className={styles.headerIcon}>
+              <BookOutlined />
+            </div>
             <h2 className={styles.title}>Welcome back</h2>
             <p className={styles.subtitle}>
-              Sign in to continue managing your school operations securely.
+              Sign in to continue managing your school workspace.
             </p>
           </div>
 
@@ -125,4 +158,3 @@ export default function LoginForm() {
     </main>
   );
 }
-

@@ -34,7 +34,6 @@ import {
   Col,
   Empty,
   Row,
-  Skeleton,
   Space,
   Statistic,
   Table,
@@ -43,6 +42,7 @@ import {
 } from "antd";
 import { useRouter } from "next/navigation";
 
+import BrandLoader from "@/src/components/BrandLoader";
 import { useGetAdminDashboardSummaryQuery } from "./dashboard.api";
 import { WEB_THEME } from "@/src/theme/tokens";
 import type { TransportRecord } from "@/shared-types/transport.types";
@@ -144,7 +144,7 @@ export default function SchoolAdminDashboard() {
   );
 
   if (isLoading) {
-    return <Skeleton active paragraph={{ rows: 10 }} />;
+    return <BrandLoader />;
   }
 
   if (error || !data) {
@@ -160,13 +160,13 @@ export default function SchoolAdminDashboard() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.intro}>
-        <Title level={2} className={styles.introTitle}>
+      <div className={styles.hero}>
+        <div className={styles.heroBadge}>School overview</div>
+        <Title level={2} className={styles.heroTitle}>
           School Admin Dashboard
         </Title>
-        <Paragraph className={styles.introText}>
-          Live school overview with fee collection, teacher budget estimates,
-          transport status, and operational counts pulled from the backend.
+        <Paragraph className={styles.heroText}>
+          Live school operations, fee collection, transport status, and counts.
         </Paragraph>
       </div>
 
@@ -176,21 +176,23 @@ export default function SchoolAdminDashboard() {
             <CarryOutOutlined />
           </div>
           <div className={styles.attendanceMeta}>
-            <Text strong>Attendance full view</Text>
+            <Text strong>Attendance records</Text>
             <div style={{ marginTop: 4 }}>
               <Text type="secondary">
-                Inspect class attendance records, date ranges, and filters from
-                one responsive page.
+                Open class attendance filters, date ranges, and records.
               </Text>
             </div>
           </div>
         </Space>
-        <Button
-          type="primary"
-          onClick={() => router.push("/school-admin/attendance")}
-        >
-          Open attendance
-        </Button>
+        <div className={styles.attendanceActionWrap}>
+          <Button
+            type="primary"
+            className={styles.attendanceAction}
+            onClick={() => router.push("/school-admin/attendance")}
+          >
+            Open attendance
+          </Button>
+        </div>
       </Card>
 
       <Row gutter={[16, 16]}>
@@ -235,7 +237,7 @@ export default function SchoolAdminDashboard() {
         <Col xs={24} xl={14}>
           <Card
             variant="borderless"
-            title="Monthly fee collection"
+            title="Fee collection"
             className={styles.sectionCard}
           >
             {feeTrend.some((item) => item.collected > 0 || item.due > 0) ? (
@@ -308,7 +310,7 @@ export default function SchoolAdminDashboard() {
         <Col xs={24} lg={10}>
           <Card
             variant="borderless"
-            title="Transport salary status"
+            title="Transport salaries"
             className={styles.sectionCard}
           >
             {transportBreakdown.some((item) => item.value > 0) ? (

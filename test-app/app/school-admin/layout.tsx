@@ -3,6 +3,7 @@
 import {
   ApartmentOutlined,
   AppstoreOutlined,
+  BarChartOutlined,
   BookOutlined,
   CarOutlined,
   CarryOutOutlined,
@@ -12,6 +13,7 @@ import {
   EnvironmentOutlined,
   LogoutOutlined,
   MenuOutlined,
+  NotificationOutlined,
   ProfileOutlined,
   ClockCircleOutlined,
   TeamOutlined,
@@ -98,6 +100,11 @@ const buildMenuItems = (): MenuProps["items"] => [
         icon: <CarryOutOutlined />,
         label: "Exams",
       },
+      {
+        key: "/school-admin/results",
+        icon: <ProfileOutlined />,
+        label: "Results",
+      },
     ],
   },
   {
@@ -144,7 +151,17 @@ const buildMenuItems = (): MenuProps["items"] => [
         icon: <ProfileOutlined />,
         label: "Academic Year",
       },
+      {
+        key: "/school-admin/notices",
+        icon: <NotificationOutlined />,
+        label: "Notices",
+      },
     ],
+  },
+  {
+    key: "/school-admin/reports",
+    icon: <BarChartOutlined />,
+    label: "Reports",
   },
   { key: "logout", icon: <LogoutOutlined />, label: "Logout", danger: true },
 ];
@@ -165,7 +182,8 @@ const getParentGroup = (pathname: string) => {
     pathname.startsWith("/school-admin/subjects") ||
     pathname.startsWith("/school-admin/periods") ||
     pathname.startsWith("/school-admin/timetable") ||
-    pathname.startsWith("/school-admin/exams")
+    pathname.startsWith("/school-admin/exams") ||
+    pathname.startsWith("/school-admin/results")
   ) {
     return "academic";
   }
@@ -174,7 +192,8 @@ const getParentGroup = (pathname: string) => {
   if (
     pathname.startsWith("/school-admin/school") ||
     pathname.startsWith("/school-admin/settings") ||
-    pathname.startsWith("/school-admin/academic-year")
+    pathname.startsWith("/school-admin/academic-year") ||
+    pathname.startsWith("/school-admin/notices")
   ) {
     return "school";
   }
@@ -302,7 +321,7 @@ export default function SchoolAdminLayout({
               }}
             >
               <Avatar
-                src={school?.logo}
+                src={school?.logo || undefined}
                 size={58}
                 style={{
                   background:
@@ -362,14 +381,14 @@ export default function SchoolAdminLayout({
           style={{
             alignItems: "center",
             background:
-              "linear-gradient(180deg, rgba(255,255,255,0.86) 0%, rgba(248,250,252,0.72) 100%)",
-            backdropFilter: "blur(18px)",
-            borderBottom: "1px solid rgba(148, 163, 184, 0.22)",
-            boxShadow: "0 10px 28px rgba(15, 23, 42, 0.06)",
+              "linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(242,246,255,0.78) 100%)",
+            backdropFilter: "blur(20px)",
+            borderBottom: "1px solid rgba(148, 163, 184, 0.16)",
+            boxShadow: "0 12px 30px rgba(15, 23, 42, 0.05)",
             display: "flex",
-            height: isMobile ? 72 : 84,
+            height: isMobile ? 68 : 76,
             justifyContent: "space-between",
-            padding: isMobile ? "0 14px" : "0 24px",
+            padding: isMobile ? "0 12px" : "0 20px",
             position: "sticky",
             top: 0,
             zIndex: 20,
@@ -399,8 +418,8 @@ export default function SchoolAdminLayout({
             ) : school ? (
               <>
                 <Avatar
-                  size={isMobile ? 34 : 40}
-                  src={school.logo}
+                  size={isMobile ? 32 : 38}
+                  src={school.logo || undefined}
                   style={{
                     background:
                       "linear-gradient(135deg, #DBEAFE 0%, #EFF6FF 100%)",
@@ -423,7 +442,7 @@ export default function SchoolAdminLayout({
                   <div
                     style={{
                       color: WEB_THEME.colors.textPrimary,
-                      fontSize: isMobile ? 15 : 16,
+                      fontSize: isMobile ? 14 : 15,
                       fontWeight: 800,
                       lineHeight: 1.1,
                       overflow: "hidden",
@@ -436,8 +455,8 @@ export default function SchoolAdminLayout({
                   <div
                     style={{
                       color: WEB_THEME.colors.textMuted,
-                      fontSize: isMobile ? 11 : 12,
-                      lineHeight: 1.2,
+                      fontSize: isMobile ? 10 : 11,
+                      lineHeight: 1.15,
                       marginTop: 1,
                       overflow: "hidden",
                       textOverflow: "ellipsis",
@@ -475,14 +494,14 @@ export default function SchoolAdminLayout({
           </Drawer>
         )}
 
-        <Content
+          <Content
           style={{
-            background: "#fff",
+            background: "linear-gradient(180deg, #ffffff 0%, #f8fbff 100%)",
             borderRadius: 24,
             boxShadow: "0 16px 40px rgba(15, 23, 42, 0.06)",
-            margin: isMobile ? 12 : 20,
-            minHeight: `calc(100vh - ${isMobile ? 64 : 72}px - ${isMobile ? 24 : 40}px)`,
-            padding: isMobile ? 14 : 20,
+            margin: isMobile ? 10 : 18,
+            minHeight: `calc(100vh - ${isMobile ? 60 : 68}px - ${isMobile ? 20 : 36}px)`,
+            padding: isMobile ? 14 : 18,
           }}
         >
           {children}

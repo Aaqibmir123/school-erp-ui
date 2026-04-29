@@ -17,16 +17,14 @@ export default function GlobalError({
     console.error("Global crash captured:", error);
   }, [error]);
 
-  const [lastCrash, setLastCrash] = useState<unknown>(null);
-
-  useEffect(() => {
+  const [lastCrash] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
     try {
-      const raw = sessionStorage.getItem(LAST_CRASH_KEY);
-      setLastCrash(raw ? JSON.parse(raw) : null);
+      return sessionStorage.getItem(LAST_CRASH_KEY);
     } catch {
-      setLastCrash(null);
+      return null;
     }
-  }, []);
+  });
 
   const copyError = async () => {
     const payload = [
@@ -34,7 +32,7 @@ export default function GlobalError({
       error.digest ? `digest: ${error.digest}` : null,
       error.stack ? `stack: ${error.stack}` : null,
       typeof window !== "undefined" ? `path: ${window.location.pathname}` : null,
-      lastCrash !== null ? `lastCrash: ${JSON.stringify(lastCrash)}` : null,
+      lastCrash ? `lastCrash: ${lastCrash}` : null,
     ]
       .filter(Boolean)
       .join("\n");
@@ -80,10 +78,10 @@ export default function GlobalError({
                   <Text strong>Digest:</Text> {error.digest}
                 </Paragraph>
               )}
-              {lastCrash !== null && (
+              {lastCrash && (
                 <Paragraph>
                   <Text strong>Last captured crash:</Text>{" "}
-                  {JSON.stringify(lastCrash)}
+                  {lastCrash}
                 </Paragraph>
               )}
             </div>

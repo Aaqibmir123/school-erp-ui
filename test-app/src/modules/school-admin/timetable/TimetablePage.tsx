@@ -1,73 +1,56 @@
 "use client";
 
-import { Card, Select, Space, Tag } from "antd";
+import { Card, Empty, Select } from "antd";
+import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 
 import BrandLoader from "@/src/components/BrandLoader";
-
-import DragTimetable from "./components/DragTimetable";
-
-import { getClassesApi } from "../classes/api/class.api";
-import { useGetTimetableQuery } from "./api/createTimetable";
-
 import { useGetTeachersByClassQuery } from "../api/teacherApi";
+import { useGetClassesQuery } from "../classes/classes";
 import { useGetPeriodsQuery } from "../periods/periodApi";
+import type {
+  SchoolTimingSettings,
+  WeekdayValue,
+} from "../school/schoolSettings.types";
+import { useSchool } from "../school/useSchool";
 import { useGetSectionsByClassQuery } from "../sections/sectionApi";
 import { useGetSubjectsByClassQuery } from "../subjects/subject.api";
-import type { SchoolTimingSettings } from "../school/schoolSettings.types";
-
-const TIMING_STORAGE_KEY = "school-admin:timing-settings";
-
-const parseSchoolTimings = (): Partial<SchoolTimingSettings> => {
-  if (typeof window === "undefined") return {};
-
-  const raw = window.localStorage.getItem(TIMING_STORAGE_KEY);
-  if (!raw) return {};
-
-  try {
-    return JSON.parse(raw) as Partial<SchoolTimingSettings>;
-  } catch {
-    return {};
-  }
-};
+import { useGetTimetableQuery } from "./api/createTimetable";
+import DragTimetable from "./components/DragTimetable";
 
 export default function TimetablePage() {
-  const [classes, setClasses] = useState<any[]>([]);
   const [classId, setClassId] = useState("");
   const [sectionId, setSectionId] = useState("");
-  const [schoolTiming, setSchoolTiming] = useState<Partial<SchoolTimingSettings>>(
-    {},
+
+  const { data: classes = [], isLoading: classesLoading } =
+    useGetClassesQuery();
+  const { school } = useSchool();
+
+  const schoolTiming: Partial<SchoolTimingSettings> = useMemo(
+    () => ({
+      schoolStartTime: school?.schoolStartTime,
+      schoolEndTime: school?.schoolEndTime,
+      workingDays: school?.workingDays as WeekdayValue[] | undefined,
+    }),
+    [school],
   );
 
-  /* ================= SUBJECTS ================= */
   const { data: subjects = [], isLoading: sLoad } = useGetSubjectsByClassQuery(
     classId,
-    {
-      skip: !classId,
-    },
+    { skip: !classId },
   );
-
-  /* ================= TEACHERS ================= */
   const { data: teachers = [], isLoading: tLoad } = useGetTeachersByClassQuery(
     classId,
-    {
-      skip: !classId,
-    },
+    { skip: !classId },
   );
-
-  /* ================= PERIODS ================= */
   const { data: periods = [], isLoading: pLoad } = useGetPeriodsQuery();
-
-  /* ================= SECTIONS ================= */
   const { data: sections = [], isLoading: secLoad } =
     useGetSectionsByClassQuery(classId, {
       skip: !classId,
     });
 
-  /* ================= CHECK ================= */
-  const hasSections = sections && sections.length > 0;
+  const hasSections = sections.length > 0;
 
-  /* ================= TIMETABLE ================= */
   const {
     data: timetableRes,
     isLoading: loadingTT,
@@ -75,109 +58,200 @@ export default function TimetablePage() {
   } = useGetTimetableQuery(
     {
       classId,
-      sectionId: hasSections ? sectionId : undefined, // 💣 FIX
+      sectionId: hasSections ? sectionId : undefined,
     },
     {
-      skip: !classId || (hasSections && !sectionId), // 💣 FIX
+      skip: !classId || (hasSections && !sectionId),
     },
   );
 
   const timetableData = timetableRes?.data || [];
-
   const isLoading = sLoad || tLoad || pLoad || secLoad || loadingTT;
 
   const timingSummary = useMemo(() => {
-    const start = schoolTiming.schoolStartTime || "08:00";
-    const end = schoolTiming.schoolEndTime || "15:00";
-    const days = schoolTiming.workingDays?.join(", ") || "Mon-Fri";
+    const formatDisplayTime = (value?: string, fallback?: string) =>
+      dayjs(value || fallback, "HH:mm").format("h:mm A");
 
+    const start = formatDisplayTime(schoolTiming.schoolStartTime, "08:00");
+    const end = formatDisplayTime(schoolTiming.schoolEndTime, "15:00");
+    const days = schoolTiming.workingDays?.join(", ") || "Mon-Fri";
     return { days, end, start };
   }, [schoolTiming]);
 
-  /* ================= LOAD CLASSES ================= */
-  useEffect(() => {
-    (async () => {
-      const res = await getClassesApi();
-      setClasses(res || []);
-    })();
-  }, []);
-
-  /* ================= LOAD SCHOOL TIMING ================= */
-  useEffect(() => {
-    const syncTiming = () => setSchoolTiming(parseSchoolTimings());
-
-    syncTiming();
-    window.addEventListener("school-timing-updated", syncTiming);
-
-    return () => window.removeEventListener("school-timing-updated", syncTiming);
-  }, []);
-
-  /* ================= RESET SECTION ================= */
   useEffect(() => {
     setSectionId("");
   }, [classId]);
 
-  /* ================= AUTO HANDLE NO SECTION ================= */
   useEffect(() => {
     if (!hasSections) {
-      setSectionId(""); // no section case
+      setSectionId("");
     }
   }, [hasSections]);
 
   return (
-    <Card title="📅 Class Timetable">
-      <Space wrap size={[8, 8]} style={{ marginBottom: 16 }}>
-        <Tag color="blue">School: {timingSummary.start}</Tag>
-        <Tag color="blue">Ends: {timingSummary.end}</Tag>
-        <Tag color="blue">Days: {timingSummary.days}</Tag>
-      </Space>
+    <Card
+      title="Class Timetable"
+      styles={{
+        header: { borderBottom: "1px solid #eef2ff", paddingInline: 24 },
+        body: { padding: 24 },
+      }}
+    >
+      <div
+        style={{
+          display: "grid",
+          gap: 16,
+          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+          alignItems: "start",
+          marginBottom: 20,
+        }}
+      >
+        <div
+          style={{
+            border: "1px solid #dbe7ff",
+            background:
+              "linear-gradient(135deg, rgba(239,246,255,0.95) 0%, rgba(248,250,255,0.98) 100%)",
+            borderRadius: 18,
+            padding: 16,
+            display: "grid",
+            gap: 12,
+          }}
+        >
+          <div style={{ fontSize: 13, fontWeight: 600, color: "#1d4ed8" }}>
+            School Schedule
+          </div>
 
-      {/* 🔥 CLASS */}
-      <Select
-        placeholder="Select Class"
-        style={{ width: 220, marginBottom: 20 }}
-        onChange={setClassId}
-        value={classId || undefined}
-        options={classes.map((c) => ({
-          label: c.name,
-          value: c._id,
-        }))}
-      />
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+              gap: 12,
+            }}
+          >
+            <div
+              style={{
+                background: "#ffffff",
+                border: "1px solid #dbe7ff",
+                borderRadius: 14,
+                padding: "12px 14px",
+              }}
+            >
+              <div style={{ fontSize: 12, color: "#64748b", marginBottom: 4 }}>
+                Start
+              </div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: "#0f172a" }}>
+                {timingSummary.start}
+              </div>
+            </div>
 
-      {/* 🔥 SECTION (ONLY IF EXISTS) */}
-      {hasSections && (
-        <Select
-          placeholder="Select Section"
-          style={{ width: 220, marginBottom: 20, marginLeft: 10 }}
-          onChange={setSectionId}
-          value={sectionId || undefined}
-          options={sections.map((s) => ({
-            label: s.name,
-            value: s._id,
-          }))}
-        />
-      )}
+            <div
+              style={{
+                background: "#ffffff",
+                border: "1px solid #dbe7ff",
+                borderRadius: 14,
+                padding: "12px 14px",
+              }}
+            >
+              <div style={{ fontSize: 12, color: "#64748b", marginBottom: 4 }}>
+                End
+              </div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: "#0f172a" }}>
+                {timingSummary.end}
+              </div>
+            </div>
 
-      {!hasSections && classId && (
-        <div style={{ marginBottom: 10, color: "#999" }}>
-          ⚠️ No sections for this class — using default timetable
+            <div
+              style={{
+                background: "#ffffff",
+                border: "1px solid #dbe7ff",
+                borderRadius: 14,
+                padding: "12px 14px",
+              }}
+            >
+              <div style={{ fontSize: 12, color: "#64748b", marginBottom: 4 }}>
+                Working Days
+              </div>
+              <div
+                style={{
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: "#0f172a",
+                  lineHeight: 1.4,
+                }}
+              >
+                {timingSummary.days}
+              </div>
+            </div>
+          </div>
         </div>
-      )}
 
-      {isLoading && <BrandLoader compact />}
+        <div
+          style={{
+            border: "1px solid #e5e7eb",
+            background: "#ffffff",
+            borderRadius: 18,
+            padding: 16,
+            display: "grid",
+            gap: 12,
+            alignContent: "start",
+            alignSelf: "start",
+          }}
+        >
+          <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>
+            Timetable Scope
+          </div>
 
-      {/* 🔥 TIMETABLE */}
-      {classId && (!hasSections || sectionId) && !isLoading && (
-        <DragTimetable
-          subjects={subjects}
-          teachers={teachers}
-          periods={periods}
-          classId={classId}
-          schoolTiming={schoolTiming}
-          sectionId={hasSections ? sectionId : null} // 💣 IMPORTANT
-          initialData={timetableData}
-          refetchTimetable={refetch}
-        />
+          <Select
+            placeholder="Select class"
+            loading={classesLoading}
+            size="large"
+            style={{ width: "100%" }}
+            onChange={setClassId}
+            value={classId || undefined}
+            options={classes.map((item) => ({
+              label: item.name,
+              value: item._id,
+            }))}
+          />
+
+          {hasSections ? (
+            <Select
+              placeholder="Select section"
+              size="large"
+              style={{ width: "100%" }}
+              onChange={setSectionId}
+              value={sectionId || undefined}
+              options={sections.map((item) => ({
+                label: item.name,
+                value: item._id,
+              }))}
+            />
+          ) : null}
+        </div>
+      </div>
+
+      {classes.length === 0 && !classesLoading ? (
+        <Empty description="No classes available yet. Create classes first." />
+      ) : (
+        <>
+          {!hasSections && classId ? null : null}
+
+          {isLoading ? <BrandLoader compact /> : null}
+
+          {classId &&
+          (!hasSections || sectionId) &&
+          !isLoading ? (
+            <DragTimetable
+              subjects={subjects}
+              teachers={teachers}
+              periods={periods}
+              classId={classId}
+              schoolTiming={schoolTiming}
+              sectionId={hasSections ? sectionId : null}
+              initialData={timetableData}
+              refetchTimetable={refetch}
+            />
+          ) : null}
+        </>
       )}
     </Card>
   );

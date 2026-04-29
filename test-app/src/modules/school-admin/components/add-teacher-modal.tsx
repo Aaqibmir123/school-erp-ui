@@ -6,7 +6,6 @@ import {
   DatePicker,
   Form,
   Input,
-  message,
   Modal,
   Row,
   Select,
@@ -135,7 +134,7 @@ export default function AddTeacherModal({ open, onClose, teacher }: Props) {
       form.resetFields();
       onClose();
     } catch (err: any) {
-      message.error(err?.data?.message || "Failed");
+      showToast.apiError(err, isEdit ? "Failed to update teacher" : "Failed to create teacher");
     }
   };
 
@@ -151,6 +150,7 @@ export default function AddTeacherModal({ open, onClose, teacher }: Props) {
       footer={null}
       width={720}
       forceRender
+      destroyOnHidden
       styles={{
         body: {
           maxHeight: "70vh",
@@ -200,13 +200,30 @@ export default function AddTeacherModal({ open, onClose, teacher }: Props) {
 
         <Row gutter={16}>
           <Col span={12}>
-            <Form.Item name="email" label="Email" rules={[{ required: true }]}>
+            <Form.Item
+              name="email"
+              label="Email"
+              rules={[
+                { required: true, message: "Email is required" },
+                { type: "email", message: "Enter a valid email address" },
+              ]}
+            >
               <Input placeholder="Email" />
             </Form.Item>
           </Col>
 
           <Col span={12}>
-            <Form.Item name="phone" label="Phone" rules={[{ required: true }]}>
+            <Form.Item
+              name="phone"
+              label="Phone"
+              rules={[
+                { required: true, message: "Phone is required" },
+                {
+                  pattern: /^[0-9+\-\s()]{7,20}$/,
+                  message: "Enter a valid phone number",
+                },
+              ]}
+            >
               <Input placeholder="Phone number" />
             </Form.Item>
           </Col>

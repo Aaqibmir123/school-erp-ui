@@ -52,13 +52,15 @@ export default function FeeTable({
     {
       title: "Father Name",
       dataIndex: "fatherName",
+      width: 170,
       render: (text) => <Text>{text || "-"}</Text>,
     },
 
     {
       title: "Class",
+      width: 140,
       render: (_, row: FeeStudent) => (
-        <Tag color="blue">
+        <Tag color="blue" style={{ borderRadius: 999, paddingInline: 10 }}>
           {row.className} - {row.sectionName}
         </Tag>
       ),
@@ -67,18 +69,22 @@ export default function FeeTable({
     {
       title: "Phone",
       dataIndex: "parentPhone",
+      width: 150,
       render: (text) => <Text type="secondary">{text || "-"}</Text>,
     },
 
     {
       title: "Action",
       align: "right",
+      width: 150,
       render: (_, row) => (
         <Button
           type="primary"
           size={isMobile ? "middle" : "large"}
+          block={isMobile}
           style={{
-            borderRadius: 6,
+            borderRadius: 12,
+            boxShadow: "0 8px 18px rgba(37, 99, 235, 0.2)",
             paddingInline: isMobile ? 12 : 18,
           }}
           onClick={() => {
@@ -96,16 +102,21 @@ export default function FeeTable({
 
   return (
     <>
+      <div style={{ marginTop: 6, marginBottom: 12 }}>
+        <Text type="secondary">
+          Tap a student row to open fee history. Use the colored action button to add a new fee.
+        </Text>
+      </div>
       <ResponsiveTable
         rowKey="_id"
-        dataSource={students}
-        columns={columns}
-        loading={loading}
-        pagination={{ pageSize: 8 }}
-        expandable={{
-          expandedRowRender: (record: FeeStudent) => (
-            <FeeHistoryTable student={record} />
-          ),
+      dataSource={students}
+      columns={columns}
+      loading={loading}
+      pagination={{ pageSize: 8 }}
+      expandable={{
+        expandedRowRender: (record: FeeStudent) => (
+          <FeeHistoryTable student={record} />
+        ),
         }}
       />
 

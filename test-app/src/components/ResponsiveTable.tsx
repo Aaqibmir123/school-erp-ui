@@ -9,10 +9,12 @@ export default function ResponsiveTable(props: any) {
   const isMobile = !screens.md;
 
   return (
-    <div style={{ overflowX: "auto" }}>
+    <div style={{ overflow: "hidden", borderRadius: 18 }}>
       <Table
         {...props}
-        scroll={{ x: isMobile ? 900 : "max-content" }}
+        scroll={{ x: isMobile ? 980 : "max-content" }}
+        size={isMobile ? "small" : "middle"}
+        tableLayout="fixed"
         pagination={{
           ...props.pagination,
           size: isMobile ? "small" : "default",

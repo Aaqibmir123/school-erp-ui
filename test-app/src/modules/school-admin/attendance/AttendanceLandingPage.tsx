@@ -35,7 +35,7 @@ export default function AttendanceLandingPage() {
               Student attendance
             </Title>
             <Text className={styles.navSubtitle}>
-              Browse class-wise attendance records with pagination only.
+              Review class attendance with filters for class, section, date, and search.
             </Text>
             <div className={styles.navActions}>
               <Space wrap>
@@ -59,7 +59,7 @@ export default function AttendanceLandingPage() {
               Teacher attendance
             </Title>
             <Text className={styles.navSubtitle}>
-              Review teacher check-in, check-out, leave, and half-day history.
+              Review teacher check-in, check-out, leave, and late records with filters.
             </Text>
             <div className={styles.navActions}>
               <Space wrap>
@@ -78,7 +78,7 @@ export default function AttendanceLandingPage() {
       <Card variant="borderless" className={styles.tableCard}>
         <div className={styles.helperRow}>
           <Text type="secondary">
-            Both pages use backend data and pagination, with no heavy filters.
+            Both views use backend data and are designed for day-to-day school review.
           </Text>
         </div>
       </Card>

@@ -6,7 +6,7 @@ import {
   EditOutlined,
   UploadOutlined,
 } from "@ant-design/icons";
-import { Button, Popconfirm, Space, Table, Tag } from "antd";
+import { Button, Empty, Popconfirm, Space, Table, Tag } from "antd";
 import dayjs from "dayjs";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -161,6 +161,14 @@ const ExamListScreen = () => {
         columns={columns}
         dataSource={data}
         loading={isLoading}
+        locale={{
+          emptyText: (
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description="No exams created yet"
+            />
+          ),
+        }}
       />
 
       <CreateExamScreen

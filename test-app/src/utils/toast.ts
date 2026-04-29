@@ -1,4 +1,3 @@
-import { message } from "antd";
 import type { MessageInstance } from "antd/es/message/interface";
 
 let toastApi: MessageInstance | null = null;
@@ -37,7 +36,14 @@ export const setToastApi = (api: MessageInstance | null) => {
   toastApi = api;
 };
 
-const getToastApi = () => toastApi || message;
+const fallbackToast = {
+  success: (msg: string) => console.info(msg),
+  error: (msg: string) => console.error(msg),
+  warning: (msg: string) => console.warn(msg),
+  info: (msg: string) => console.info(msg),
+} as Pick<MessageInstance, "success" | "error" | "warning" | "info">;
+
+const getToastApi = () => toastApi || fallbackToast;
 
 export const showToast = {
   success: (msg: string) => getToastApi().success(msg),

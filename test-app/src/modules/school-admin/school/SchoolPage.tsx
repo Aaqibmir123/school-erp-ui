@@ -27,6 +27,7 @@ const SchoolPage = () => {
   const [form] = Form.useForm<SchoolFormValues>();
   const router = useRouter();
   const { school } = useSchool();
+  const [saving, setSaving] = useState(false);
 
   const [previewOverrides, setPreviewOverrides] = useState<{
     logo?: string;
@@ -67,6 +68,7 @@ const SchoolPage = () => {
 
   const onFinish = async (values: SchoolFormValues) => {
     try {
+      setSaving(true);
       const formData = new FormData();
 
       formData.append("name", values.name);
@@ -89,6 +91,8 @@ const SchoolPage = () => {
       router.refresh();
     } catch (error) {
       showToast.apiError(error, "Failed to save school");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -224,7 +228,12 @@ const SchoolPage = () => {
             </Row>
 
             <div className={styles.footerRow}>
-              <Button type="primary" htmlType="submit" className={styles.saveBtn}>
+              <Button
+                type="primary"
+                htmlType="submit"
+                className={styles.saveBtn}
+                loading={saving}
+              >
                 Save School Profile
               </Button>
             </div>

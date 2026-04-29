@@ -5,6 +5,7 @@ import type { AssignSubjectPayload } from "@/shared-types/teacherAssignment.type
 
 interface AcademicYear {
   _id: string;
+  isActive?: boolean;
   name: string;
 }
 
@@ -19,7 +20,7 @@ export const teacherAssignmentApi = baseApi.injectEndpoints({
         method: "POST",
         body,
       }),
-      invalidatesTags: ["Teachers", "Subjects"],
+      invalidatesTags: ["Teachers", "Subjects", "TeacherAssignments"],
     }),
 
     /* SET TEACHER PASSWORD */
@@ -37,7 +38,7 @@ export const teacherAssignmentApi = baseApi.injectEndpoints({
     /* GET ACADEMIC YEARS */
     getAcademicYears: builder.query<AcademicYear[], void>({
       query: () => ({
-        url: "/academic-years",
+        url: "/school-admin/academic-years",
       }),
       transformResponse: (res: { data: AcademicYear[] }) => res.data,
       providesTags: ["AcademicYears"],

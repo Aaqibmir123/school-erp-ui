@@ -3,7 +3,7 @@
 import ResponsiveTable from "@/src/components/ResponsiveTable";
 import React, { useEffect, useMemo, useState } from "react";
 
-import { Avatar, Tag } from "antd";
+import { Avatar, Empty, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 
 import { useGetStudentsQuery } from "../studentApi";
@@ -113,6 +113,14 @@ function StudentTable({ classId, sectionId, search }: Props) {
         current: page,
         pageSize: 10,
         onChange: setPage,
+      }}
+      locale={{
+        emptyText: (
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description="No students found for the selected filters"
+          />
+        ),
       }}
     />
   );

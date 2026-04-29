@@ -24,6 +24,15 @@ export const periodApi = baseApi.injectEndpoints({
       invalidatesTags: ["Periods"],
     }),
 
+    updatePeriod: builder.mutation<any, { id: string; data: CreatePeriodDTO }>({
+      query: ({ id, data }) => ({
+        url: `/school-admin/periods/${id}`,
+        method: "PUT",
+        body: data,
+      }),
+      invalidatesTags: ["Periods"],
+    }),
+
     /* DELETE PERIOD */
     deletePeriod: builder.mutation<any, { id: string; forceDelete?: boolean }>({
       query: ({ id, forceDelete }) => ({
@@ -41,6 +50,7 @@ export const periodApi = baseApi.injectEndpoints({
 export const {
   useGetPeriodsQuery,
   useCreatePeriodMutation,
+  useUpdatePeriodMutation,
   useDeletePeriodMutation,
 } = periodApi;
 

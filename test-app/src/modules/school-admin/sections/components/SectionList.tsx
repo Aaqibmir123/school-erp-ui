@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Space, Table, Tag, message } from "antd";
+import { App, Button, Space, Table, Tag } from "antd";
 import { useMemo } from "react";
 
 import { useDeleteSectionMutation, useGetSectionsQuery } from "../sectionApi";
@@ -13,8 +13,11 @@ interface SectionGroup {
   sections: Section[];
 }
 
-export default function SectionList() {
-  const { data, isLoading } = useGetSectionsQuery({});
+export default function SectionList({ classId }: { classId?: string }) {
+  const { message } = App.useApp();
+  const { data, isLoading } = useGetSectionsQuery(
+    classId ? { classId } : {},
+  );
 
   const [deleteSection, { isLoading: deleting }] = useDeleteSectionMutation();
 

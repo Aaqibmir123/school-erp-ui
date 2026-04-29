@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Modal, Space, Table, Tag, message } from "antd";
+import { App, Button, Modal, Space, Table, Tag } from "antd";
 import { ColumnsType } from "antd/es/table";
 import { useState } from "react";
 
@@ -22,12 +22,10 @@ export default function TeacherAssignmentsTable({
   total,
   onPageChange,
 }: Props) {
+  const { message, modal } = App.useApp();
   const [deleteAssignment] = useDeleteTeacherAssignmentMutation();
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  /* =========================
-     DELETE HANDLER (FINAL)
-  ========================= */
   const handleDelete = async (rawId: any, forceDelete: boolean = false) => {
     if (deletingId) return;
 
@@ -35,20 +33,17 @@ export default function TeacherAssignmentsTable({
 
     try {
       setDeletingId(id);
-
       await deleteAssignment({ id, forceDelete }).unwrap();
-
       message.success("Assignment deleted successfully");
       onPageChange(page);
     } catch (error: any) {
       const err = error?.data || error;
 
-      // 🔥 ONLY CONFIRMATION HANDLING HERE
       if (err?.requiresConfirmation) {
-        Modal.destroyAll(); // extra safety
+        Modal.destroyAll();
 
-        return Modal.confirm({
-          title: "⚠️ Warning",
+        return modal.confirm({
+          title: "Warning",
           content:
             err.message || "This subject is used in timetable. Delete anyway?",
           okText: "Yes, Delete",
@@ -61,61 +56,51 @@ export default function TeacherAssignmentsTable({
                 forceDelete: true,
               }).unwrap();
 
-              message.success("Deleted successfully (forced)");
+              message.success("Deleted successfully");
               onPageChange(page);
             } catch {
-              // ❌ no message here (global handle karega)
+              // The shared API layer already handles the error toast.
             }
           },
         });
       }
-
-      // ❌ yaha message.error mat daal
-      // already global baseQuery handle kar raha hai
     } finally {
       setDeletingId(null);
     }
   };
 
-  /* =========================
-     COLUMNS
-  ========================= */
   const columns: ColumnsType<TeacherAssignment> = [
     {
       title: "#",
       width: 60,
       render: (_, __, index) => (page - 1) * 10 + index + 1,
     },
-
     {
       title: "Teacher",
       render: (_, row) => {
         const teacher = row.teacherId;
 
-        if (!teacher) {
+        if (!teacher?._id) {
           return <Tag color="red">Unknown</Tag>;
         }
 
-        return `${teacher.firstName || ""} ${teacher.lastName || ""}`;
+        return `${teacher.firstName || ""} ${teacher.lastName || ""}`.trim();
       },
     },
-
     {
       title: "Subject",
       render: (_, row) =>
         row.subjectId?.name || <Tag color="orange">No Subject</Tag>,
     },
-
     {
       title: "Class",
       render: (_, row) => row.classId?.name || <Tag>—</Tag>,
     },
-
     {
       title: "Academic Year",
-      render: (_, row) => row.academicYearId || <Tag>—</Tag>,
+      render: (_, row) =>
+        row.academicYear?.name || row.academicYearId || <Tag>—</Tag>,
     },
-
     {
       title: "Action",
       width: 140,
@@ -128,7 +113,7 @@ export default function TeacherAssignmentsTable({
               danger
               size="small"
               loading={deletingId === id}
-              onClick={() => handleDelete(id)} // ❌ no pre-confirm
+              onClick={() => handleDelete(id)}
             >
               Delete
             </Button>
@@ -138,9 +123,6 @@ export default function TeacherAssignmentsTable({
     },
   ];
 
-  /* =========================
-     RENDER
-  ========================= */
   return (
     <Table<TeacherAssignment>
       rowKey="_id"
@@ -155,11 +137,10 @@ export default function TeacherAssignmentsTable({
       pagination={{
         current: page,
         pageSize: 10,
-        total: total,
+        total: total || data.length,
         showSizeChanger: false,
-        onChange: (p) => onPageChange(p),
+        onChange: (nextPage) => onPageChange(nextPage),
       }}
     />
   );
 }
-

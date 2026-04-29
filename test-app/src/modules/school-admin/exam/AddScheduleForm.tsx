@@ -15,13 +15,12 @@ import { useEffect, useMemo, useState } from "react";
 
 import { showToast } from "@/src/utils/toast";
 import { useGetSectionsByClassQuery } from "../sections/sectionApi";
+import type { SchoolTimingSettings } from "../school/schoolSettings.types";
 import {
   useCreateScheduleMutation,
   usePreviewScheduleMutation,
   useSuggestTimeSlotsMutation,
 } from "./exam.api";
-
-/* ================= TYPES ================= */
 
 interface FormValues {
   classId: string;
@@ -44,32 +43,10 @@ interface TimeSlot {
   endTime: string;
 }
 
-type SchoolTimingSettings = {
-  schoolStartTime?: string;
-  schoolEndTime?: string;
-};
-
-const TIMING_STORAGE_KEY = "school-admin:timing-settings";
-
-const parseSchoolTimings = (): Partial<SchoolTimingSettings> => {
-  if (typeof window === "undefined") return {};
-
-  const raw = window.localStorage.getItem(TIMING_STORAGE_KEY);
-  if (!raw) return {};
-
-  try {
-    return JSON.parse(raw) as Partial<SchoolTimingSettings>;
-  } catch {
-    return {};
-  }
-};
-
 const toMinutes = (value?: string) => {
   if (!value) return null;
-
   const parsed = dayjs(value, "HH:mm");
   if (!parsed.isValid()) return null;
-
   return parsed.hour() * 60 + parsed.minute();
 };
 
@@ -78,31 +55,28 @@ const normalizeExamType = (value?: string) =>
 
 const isSectionBasedExam = (value?: string) => {
   const normalized = normalizeExamType(value);
-
-  return (
-    normalized.includes("classtest") || normalized.includes("unittest")
-  );
+  return normalized.includes("classtest") || normalized.includes("unittest");
 };
-
-/* ================= COMPONENT ================= */
 
 export default function AddScheduleForm({
   examId,
   examType,
   onSuccess,
   classes,
-}: any) {
+  schoolTiming,
+}: {
+  examId: string;
+  examType?: string;
+  onSuccess?: () => void;
+  classes: any[];
+  schoolTiming: Partial<SchoolTimingSettings>;
+}) {
   const [form] = Form.useForm<FormValues>();
-
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [previewData, setPreviewData] = useState<PreviewItem[]>([]);
   const [suggestions, setSuggestions] = useState<TimeSlot[]>([]);
-  const [schoolTiming, setSchoolTiming] = useState<Partial<SchoolTimingSettings>>(
-    {},
-  );
 
   const showSectionField = isSectionBasedExam(examType);
-
   const { data: classSections = [] } = useGetSectionsByClassQuery(
     selectedClass || "",
     {
@@ -116,29 +90,14 @@ export default function AddScheduleForm({
   const [createSchedule, { isLoading }] = useCreateScheduleMutation();
 
   useEffect(() => {
-    const syncTiming = () => setSchoolTiming(parseSchoolTimings());
-
-    syncTiming();
-    window.addEventListener("school-timing-updated", syncTiming);
-
-    return () => window.removeEventListener("school-timing-updated", syncTiming);
-  }, []);
-
-  useEffect(() => {
     if (!showSectionField) {
       form.setFieldsValue({ sectionId: undefined });
     }
   }, [form, showSectionField]);
 
-  /* ================= SUBJECTS ================= */
-
   const subjects = useMemo(() => {
     if (!selectedClass) return [];
-
-    const cls = classes.find(
-      (c: any) => (c.classId || c._id) === selectedClass,
-    );
-
+    const cls = classes.find((item: any) => (item.classId || item._id) === selectedClass);
     return cls?.subjects || [];
   }, [selectedClass, classes]);
 
@@ -153,11 +112,8 @@ export default function AddScheduleForm({
 
     if (start === null || end === null) return false;
     if (schoolStartMinutes === null || schoolEndMinutes === null) return true;
-
     return start >= schoolStartMinutes && end <= schoolEndMinutes;
   };
-
-  /* ================= VALIDATION WATCH ================= */
 
   const watched = Form.useWatch([], form);
 
@@ -169,10 +125,7 @@ export default function AddScheduleForm({
     watched?.endTime &&
     (!showSectionField || watched?.sectionId);
 
-  const isSuggestReady =
-    watched?.classId && watched?.subjectId && watched?.date;
-
-  /* ================= PREVIEW ================= */
+  const isSuggestReady = watched?.classId && watched?.subjectId && watched?.date;
 
   const handlePreview = async () => {
     try {
@@ -180,10 +133,14 @@ export default function AddScheduleForm({
       const startTime = values.startTime.format("HH:mm");
       const endTime = values.endTime.format("HH:mm");
 
+      if (endTime <= startTime) {
+        showToast.error("End time must be after start time");
+        return;
+      }
+
       if (!isWithinSchoolTime(startTime, endTime)) {
-        return showToast.error(
-          "Schedule time must stay within School Time Management hours",
-        );
+        showToast.error("Schedule time must stay within school hours");
+        return;
       }
 
       const res: any = await previewSchedule({
@@ -197,23 +154,15 @@ export default function AddScheduleForm({
       }).unwrap();
 
       const data = Array.isArray(res) ? res : res?.data || [];
-
       setPreviewData(data);
     } catch (err: any) {
-      showToast.error(err?.data?.message || "Preview failed");
+      showToast.apiError(err, "Unable to preview schedule");
     }
   };
 
-  /* ================= SUGGEST ================= */
-
   const handleSuggest = async () => {
     try {
-      const values = await form.validateFields([
-        "classId",
-        "subjectId",
-        "date",
-      ]);
-
+      const values = await form.validateFields(["classId", "subjectId", "date"]);
       const res: any = await suggestTimeSlots({
         classId: values.classId,
         subjectId: values.subjectId,
@@ -225,28 +174,30 @@ export default function AddScheduleForm({
       );
 
       setSuggestions(data);
-    } catch {
-      showToast.error("Suggestion failed");
+    } catch (err: any) {
+      showToast.apiError(err, "Unable to suggest time slots");
     }
   };
 
-  /* ================= SUBMIT ================= */
-
   const onFinish = async (values: FormValues) => {
     try {
-      const hasIssue = previewData.some((p) => p.conflict || !p.hasTeacher);
-
+      const hasIssue = previewData.some((item) => item.conflict || !item.hasTeacher);
       if (hasIssue) {
-        return showToast.error("Fix issues before saving");
+        showToast.error("Resolve the preview issues before saving");
+        return;
       }
 
       const startTime = values.startTime.format("HH:mm");
       const endTime = values.endTime.format("HH:mm");
 
+      if (endTime <= startTime) {
+        showToast.error("End time must be after start time");
+        return;
+      }
+
       if (!isWithinSchoolTime(startTime, endTime)) {
-        return showToast.error(
-          "Schedule time must stay within School Time Management hours",
-        );
+        showToast.error("Schedule time must stay within school hours");
+        return;
       }
 
       await createSchedule({
@@ -259,20 +210,16 @@ export default function AddScheduleForm({
         endTime,
       }).unwrap();
 
-      showToast.success("Schedule added");
-
+      showToast.success("Schedule added successfully");
       form.resetFields();
       setPreviewData([]);
       setSuggestions([]);
       setSelectedClass(null);
-
       onSuccess?.();
     } catch (err: any) {
-      showToast.error(err?.data?.message || "Failed");
+      showToast.apiError(err, "Unable to save schedule");
     }
   };
-
-  /* ================= PREVIEW TABLE ================= */
 
   const previewColumns = [
     {
@@ -281,19 +228,17 @@ export default function AddScheduleForm({
     },
     {
       title: "Teacher",
-      render: (_: any, r: PreviewItem) =>
-        r.hasTeacher ? (
-          <Tag color="green" style={{ borderRadius: 20 }}>
-            👨‍🏫 {r.teacherName}
-          </Tag>
+      render: (_: any, row: PreviewItem) =>
+        row.hasTeacher ? (
+          <Tag color="green">{row.teacherName}</Tag>
         ) : (
           <Tag color="red">No Teacher</Tag>
         ),
     },
     {
       title: "Status",
-      render: (_: any, r: PreviewItem) =>
-        r.conflict ? <Tag color="red">❌ Conflict</Tag> : <Tag color="blue">✅ OK</Tag>,
+      render: (_: any, row: PreviewItem) =>
+        row.conflict ? <Tag color="red">Conflict</Tag> : <Tag color="blue">OK</Tag>,
     },
   ];
 
@@ -305,44 +250,36 @@ export default function AddScheduleForm({
         layout="inline"
         style={{ gap: 10, rowGap: 10 }}
       >
-        <Form.Item
-          name="classId"
-          rules={[{ required: true }]}
-          style={{ marginBottom: 0 }}
-        >
+        <Form.Item name="classId" rules={[{ required: true }]} style={{ marginBottom: 0 }}>
           <Select
             placeholder="Select class"
             style={{ width: 180 }}
-            onChange={(v) => {
-              setSelectedClass(v);
+            onChange={(value) => {
+              setSelectedClass(value);
               form.setFieldsValue({ subjectId: undefined, sectionId: undefined });
               setPreviewData([]);
               setSuggestions([]);
             }}
-            options={classes.map((c: any) => ({
-              label: c.name || c.className,
-              value: c._id || c.classId,
+            options={classes.map((item: any) => ({
+              label: item.name || item.className,
+              value: item._id || item.classId,
             }))}
           />
         </Form.Item>
 
-        <Form.Item
-          name="subjectId"
-          rules={[{ required: true }]}
-          style={{ marginBottom: 0 }}
-        >
+        <Form.Item name="subjectId" rules={[{ required: true }]} style={{ marginBottom: 0 }}>
           <Select
             placeholder="Select subject"
             style={{ width: 180 }}
             disabled={!selectedClass}
-            options={subjects.map((s: any) => ({
-              label: s.name,
-              value: s._id,
+            options={subjects.map((subject: any) => ({
+              label: subject.name,
+              value: subject._id,
             }))}
           />
         </Form.Item>
 
-        {showSectionField && (
+        {showSectionField ? (
           <Form.Item
             name="sectionId"
             rules={[{ required: true, message: "Select section" }]}
@@ -358,21 +295,13 @@ export default function AddScheduleForm({
               }))}
             />
           </Form.Item>
-        )}
+        ) : null}
 
-        <Form.Item
-          name="date"
-          rules={[{ required: true }]}
-          style={{ marginBottom: 0 }}
-        >
+        <Form.Item name="date" rules={[{ required: true }]} style={{ marginBottom: 0 }}>
           <DatePicker placeholder="Select exam date" style={{ width: 180 }} />
         </Form.Item>
 
-        <Form.Item
-          name="startTime"
-          rules={[{ required: true }]}
-          style={{ marginBottom: 0 }}
-        >
+        <Form.Item name="startTime" rules={[{ required: true }]} style={{ marginBottom: 0 }}>
           <TimePicker
             use12Hours
             format="h:mm A"
@@ -382,11 +311,7 @@ export default function AddScheduleForm({
           />
         </Form.Item>
 
-        <Form.Item
-          name="endTime"
-          rules={[{ required: true }]}
-          style={{ marginBottom: 0 }}
-        >
+        <Form.Item name="endTime" rules={[{ required: true }]} style={{ marginBottom: 0 }}>
           <TimePicker
             use12Hours
             format="h:mm A"
@@ -411,10 +336,10 @@ export default function AddScheduleForm({
             loading={isLoading}
             disabled={
               !isPreviewReady ||
-              previewData.some((p) => p.conflict || !p.hasTeacher)
+              previewData.some((item) => item.conflict || !item.hasTeacher)
             }
           >
-            Save
+            Save Schedule
           </Button>
         </Space>
       </Form>
@@ -433,17 +358,17 @@ export default function AddScheduleForm({
         }}
       >
         <Tag color="blue" style={{ margin: 0 }}>
-          School: {dayjs(schoolStart, "HH:mm").format("h:mm A")}
+          School starts: {dayjs(schoolStart, "HH:mm").format("h:mm A")}
         </Tag>
         <Tag color="blue" style={{ margin: 0 }}>
-          Ends: {dayjs(schoolEnd, "HH:mm").format("h:mm A")}
+          School ends: {dayjs(schoolEnd, "HH:mm").format("h:mm A")}
         </Tag>
         <span style={{ color: "#64748b", fontSize: 13 }}>
-          Schedule slots are filtered within school hours.
+          Schedule slots follow school-wide timing settings.
         </span>
       </div>
 
-      {previewData.length > 0 && (
+      {previewData.length > 0 ? (
         <Table
           rowKey="section"
           columns={previewColumns}
@@ -451,9 +376,9 @@ export default function AddScheduleForm({
           pagination={false}
           style={{ marginTop: 16 }}
         />
-      )}
+      ) : null}
 
-      {suggestions.length > 0 && (
+      {suggestions.length > 0 ? (
         <div
           style={{
             marginTop: 16,
@@ -462,13 +387,13 @@ export default function AddScheduleForm({
             flexWrap: "wrap",
           }}
         >
-          {suggestions.map((s) => {
-            const start = dayjs(s.startTime, "HH:mm").format("h:mm A");
-            const end = dayjs(s.endTime, "HH:mm").format("h:mm A");
+          {suggestions.map((slot) => {
+            const start = dayjs(slot.startTime, "HH:mm").format("h:mm A");
+            const end = dayjs(slot.endTime, "HH:mm").format("h:mm A");
 
             return (
               <Tag
-                key={s.startTime}
+                key={`${slot.startTime}-${slot.endTime}`}
                 color="blue"
                 style={{
                   padding: "6px 12px",
@@ -479,17 +404,17 @@ export default function AddScheduleForm({
                 }}
                 onClick={() => {
                   form.setFieldsValue({
-                    startTime: dayjs(s.startTime, "HH:mm"),
-                    endTime: dayjs(s.endTime, "HH:mm"),
+                    startTime: dayjs(slot.startTime, "HH:mm"),
+                    endTime: dayjs(slot.endTime, "HH:mm"),
                   });
                 }}
               >
-                🕒 {start} → {end}
+                {start} - {end}
               </Tag>
             );
           })}
         </div>
-      )}
+      ) : null}
     </>
   );
 }
