@@ -153,39 +153,6 @@ function TeachersTable({
     [onDelete, onEdit, router],
   );
 
-  const handleActionClick = useCallback(
-    (action: string, teacher: Teacher) => {
-      switch (action) {
-        case "view":
-          setViewModal({ open: true, teacher });
-          break;
-        case "assign":
-          setAssignModal({ open: true, teacher });
-          break;
-        case "assignments":
-          router.push(`/school-admin/teacher-assignments/${teacher._id}`);
-          break;
-        case "edit":
-          if (onEdit) {
-            onEdit(teacher);
-          } else {
-            showToast.error("Edit function not configured");
-          }
-          break;
-        case "delete":
-          if (onDelete) {
-            setDeleteConfirm({ open: true, teacher });
-          } else {
-            showToast.error("Delete function not configured");
-          }
-          break;
-        default:
-          break;
-      }
-    },
-    [onDelete, onEdit, router],
-  );
-
   const columns = useMemo(
     () => [
       {

@@ -124,10 +124,9 @@ export default function AdmitCardPage({ examId }: { examId: string }) {
         approved: targetApproved,
       }).unwrap();
       message.success(
-        res.message ||
-          (targetApproved
-            ? `Approved ${res.data?.count ?? 0} admit cards`
-            : "Approval revoked successfully"),
+        targetApproved
+          ? `Approved ${res.count ?? 0} admit cards`
+          : "Approval revoked successfully",
       );
       refetch();
     } catch (error: any) {

@@ -31,7 +31,6 @@ export default function FeePage() {
     },
     {
       skip: !classId,
-      refetchOnMountOrArgChange: true,
     },
   );
 

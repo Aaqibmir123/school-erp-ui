@@ -39,7 +39,6 @@ function StudentTable({ classId, sectionId, search }: Props) {
       sectionId: sectionId || undefined,
     },
     {
-      refetchOnMountOrArgChange: true,
     },
   );
 
