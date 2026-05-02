@@ -12,6 +12,7 @@ export interface DashboardData {
     subject: string;
     teacher: string;
   } | null;
+  rollNumber?: number | null;
   sectionName: string;
   stats: {
     activeHomeworkCount: number;
