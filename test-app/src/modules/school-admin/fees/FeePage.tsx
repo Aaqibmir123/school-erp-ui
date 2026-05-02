@@ -86,14 +86,14 @@ export default function FeePage() {
   return (
     <Card
       title={
-        <Space orientation="vertical" size={2}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
           <Text strong style={{ fontSize: 20 }}>
             Fees Management
           </Text>
           <Text type="secondary">
             Review fee history and add or edit fee records for the selected student.
           </Text>
-        </Space>
+        </div>
       }
       style={{
         border: "1px solid #dbeafe",

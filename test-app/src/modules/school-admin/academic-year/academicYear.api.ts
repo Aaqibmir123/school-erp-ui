@@ -1,15 +1,54 @@
-import api from "@/src/services/api";
-export const getAcademicYears = async () => {
-  const res = await api.get("/school-admin/academic-years");
-  return res.data?.data ?? [];
+import { baseApi } from "@/src/store/api/baseApi";
+
+export type AcademicYear = {
+  _id: string;
+  isActive: boolean;
+  name: string;
 };
 
-export const createAcademicYear = async (data: { name: string }) => {
-  const res = await api.post("/school-admin/academic-years", data);
-  return res.data?.data ?? null;
+type ApiEnvelope<T> = {
+  data: T;
+  message?: string;
+  success?: boolean;
 };
 
-export const setActiveYear = async (id: string) => {
-  const res = await api.patch(`/school-admin/academic-years/set-active/${id}`);
-  return res.data?.data ?? null;
+type CreateAcademicYearPayload = {
+  name: string;
 };
+
+export const academicYearApi = baseApi.injectEndpoints({
+  endpoints: (builder) => ({
+    getAcademicYears: builder.query<AcademicYear[], void>({
+      query: () => "/school-admin/academic-years",
+      transformResponse: (response: ApiEnvelope<AcademicYear[]>) => response.data ?? [],
+      providesTags: ["AcademicYears"],
+    }),
+
+    createAcademicYear: builder.mutation<AcademicYear, CreateAcademicYearPayload>({
+      query: (body) => ({
+        url: "/school-admin/academic-years",
+        method: "POST",
+        body,
+      }),
+      transformResponse: (response: ApiEnvelope<AcademicYear>) => response.data,
+      invalidatesTags: ["AcademicYears"],
+    }),
+
+    setActiveYear: builder.mutation<AcademicYear, string>({
+      query: (id) => ({
+        url: `/school-admin/academic-years/set-active/${id}`,
+        method: "PATCH",
+      }),
+      transformResponse: (response: ApiEnvelope<AcademicYear>) => response.data,
+      invalidatesTags: ["AcademicYears", "Dashboard", "Exams", "Schedule"],
+    }),
+  }),
+  overrideExisting: false,
+});
+
+export const {
+  useCreateAcademicYearMutation,
+  useGetAcademicYearsQuery,
+  useLazyGetAcademicYearsQuery,
+  useSetActiveYearMutation,
+} = academicYearApi;

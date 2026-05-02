@@ -1,22 +1,10 @@
 "use client";
 
 import { BankOutlined, ClockCircleOutlined } from "@ant-design/icons";
-import {
-  App,
-  Button,
-  Card,
-  Col,
-  Modal,
-  Row,
-  Select,
-  Table,
-  Tag,
-  TimePicker,
-  Typography,
-} from "antd";
-
+import ResponsiveTable from "@/src/components/ResponsiveTable";
+import { App, Button, Card, Col, Row, Select, Tag, TimePicker, Typography } from "antd";
 import dayjs from "dayjs";
-import { useMemo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { showToast } from "@/src/utils/toast";
@@ -35,11 +23,11 @@ import type {
 
 const { Text } = Typography;
 
-export default function PeriodPage() {
+function PeriodPage() {
   const router = useRouter();
   const { modal } = App.useApp();
   const { data: periods = [] } = useGetPeriodsQuery();
-  const { school, loading: schoolLoading } = useSchool();
+  const { school } = useSchool();
 
   const [createPeriodApi, { isLoading }] = useCreatePeriodMutation();
   const [updatePeriodApi, { isLoading: isUpdating }] =
@@ -184,48 +172,51 @@ export default function PeriodPage() {
     return "Class Slot";
   };
 
-  const columns = [
-    {
-      title: "#",
-      render: (_: any, __: any, index: number) => index + 1,
-    },
-    {
-      title: "Time",
-      render: (_: any, record: any) => (
-        <Text strong>
-          {formatTime(record.startTime)} - {formatTime(record.endTime)}
-        </Text>
-      ),
-    },
-    {
-      title: "Type",
-      render: (_: any, record: any) => (
-        <Tag
-          style={{ padding: "4px 12px", borderRadius: 8 }}
-          color={
-            record.type === "break"
-              ? "orange"
-              : record.type === "lunch"
-                ? "red"
-                : "blue"
-          }
-        >
-          {labelType(record.type)}
-        </Tag>
-      ),
-    },
-    {
-      title: "Action",
-      render: (_: any, record: any) => (
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <Button onClick={() => startEdit(record)}>Edit</Button>
-          <Button danger type="primary" ghost onClick={() => remove(record._id)}>
-            Delete
-          </Button>
-        </div>
-      ),
-    },
-  ];
+  const columns = useMemo(
+    () => [
+      {
+        title: "#",
+        render: (_: any, __: any, index: number) => index + 1,
+      },
+      {
+        title: "Time",
+        render: (_: any, record: any) => (
+          <Text strong>
+            {formatTime(record.startTime)} - {formatTime(record.endTime)}
+          </Text>
+        ),
+      },
+      {
+        title: "Type",
+        render: (_: any, record: any) => (
+          <Tag
+            style={{ padding: "4px 12px", borderRadius: 8 }}
+            color={
+              record.type === "break"
+                ? "orange"
+                : record.type === "lunch"
+                  ? "red"
+                  : "blue"
+            }
+          >
+            {labelType(record.type)}
+          </Tag>
+        ),
+      },
+      {
+        title: "Action",
+        render: (_: any, record: any) => (
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <Button onClick={() => startEdit(record)}>Edit</Button>
+            <Button danger type="primary" ghost onClick={() => remove(record._id)}>
+              Delete
+            </Button>
+          </div>
+        ),
+      },
+    ],
+    [remove, startEdit],
+  );
 
   return (
     <Card
@@ -318,11 +309,12 @@ export default function PeriodPage() {
         </div>
       ) : null}
 
-      <Table
+      <ResponsiveTable
         dataSource={sortedPeriods}
         columns={columns}
         rowKey="_id"
         pagination={false}
+        loading={false}
         style={{ marginTop: 24 }}
         locale={{
           emptyText: "No time slots created yet",
@@ -331,3 +323,5 @@ export default function PeriodPage() {
     </Card>
   );
 }
+
+export default memo(PeriodPage);

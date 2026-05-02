@@ -1,28 +1,36 @@
 "use client";
 
-import { Table } from "antd";
+import ResponsiveTable from "@/src/components/ResponsiveTable";
+import { memo, useMemo } from "react";
+
 import { useGetClassesQuery } from "../classes";
 
-export default function ClassesList() {
-  const { data: classes = [] } = useGetClassesQuery();
+function ClassesList() {
+  const { data: classes = [], isLoading } = useGetClassesQuery();
 
-  const columns = [
-    {
-      title: "Class",
-      dataIndex: "name",
-    },
-    {
-      title: "Order",
-      dataIndex: "order",
-    },
-  ];
+  const columns = useMemo(
+    () => [
+      {
+        title: "Class",
+        dataIndex: "name",
+      },
+      {
+        title: "Order",
+        dataIndex: "order",
+      },
+    ],
+    [],
+  );
 
   return (
-    <Table
+    <ResponsiveTable
       rowKey="_id"
       columns={columns}
       dataSource={classes}
+      loading={isLoading}
       pagination={false}
     />
   );
 }
+
+export default memo(ClassesList);

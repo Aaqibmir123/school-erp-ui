@@ -1,12 +1,14 @@
 "use client";
 
+import { memo } from "react";
+
 import styles from "./BrandLoader.module.css";
 
 type BrandLoaderProps = {
   compact?: boolean;
 };
 
-export default function BrandLoader({ compact = false }: BrandLoaderProps) {
+function BrandLoader({ compact = false }: BrandLoaderProps) {
   return (
     <div
       className={compact ? styles.compactWrap : styles.wrap}
@@ -21,3 +23,5 @@ export default function BrandLoader({ compact = false }: BrandLoaderProps) {
     </div>
   );
 }
+
+export default memo(BrandLoader);

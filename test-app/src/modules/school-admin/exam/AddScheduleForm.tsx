@@ -7,7 +7,6 @@ import {
   Form,
   Select,
   Space,
-  Table,
   Tag,
   TimePicker,
 } from "antd";
@@ -15,6 +14,7 @@ import dayjs, { Dayjs } from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 
 import { showToast } from "@/src/utils/toast";
+import ResponsiveTable from "@/src/components/ResponsiveTable";
 import { useGetTeachersQuery } from "../api/teacherApi";
 import { useGetSectionsByClassQuery } from "../sections/sectionApi";
 import type { SchoolTimingSettings } from "../school/schoolSettings.types";
@@ -413,7 +413,7 @@ export default function AddScheduleForm({
       </div>
 
       {previewData.length > 0 ? (
-        <Table
+        <ResponsiveTable
           rowKey="section"
           columns={previewColumns}
           dataSource={previewData}

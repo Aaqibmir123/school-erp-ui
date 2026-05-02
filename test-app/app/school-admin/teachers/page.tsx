@@ -1,7 +1,6 @@
 "use client";
 
 import { Button, Card } from "antd";
-import dynamic from "next/dynamic";
 import { useState } from "react";
 
 import {
@@ -72,6 +71,4 @@ function TeachersPage() {
   );
 }
 
-export default dynamic(() => Promise.resolve(TeachersPage), {
-  ssr: false,
-});
+export default TeachersPage;

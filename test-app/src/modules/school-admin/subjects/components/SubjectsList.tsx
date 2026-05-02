@@ -1,7 +1,7 @@
 "use client";
 
 import { App, Button, Input, List, Popconfirm } from "antd";
-import { useState } from "react";
+import { memo, useCallback, useState } from "react";
 
 import {
   useCreateSubjectsMutation,
@@ -34,7 +34,7 @@ export default function SubjectsList({ classId }: Props) {
      ADD
   ========================= */
 
-  const handleAdd = async () => {
+  const handleAdd = useCallback(async () => {
     if (!name) return;
 
     try {
@@ -48,33 +48,34 @@ export default function SubjectsList({ classId }: Props) {
     } catch (error: any) {
       message.error(error?.data?.message || "Failed to add subject");
     }
-  };
+  }, [classId, createSubjects, message, name]);
 
   /* =========================
      DELETE
   ========================= */
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = useCallback(async (id: string) => {
     try {
       await deleteSubject(id).unwrap();
       message.success("Subject deleted");
     } catch (error: any) {
       message.error(error?.data?.message || "Failed to delete subject");
     }
-  };
+  }, [deleteSubject, message]);
 
   return (
     <div>
       {/* INPUT */}
 
-      <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
+      <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
         <Input
           placeholder="Subject name"
           value={name}
+          style={{ minWidth: 220, flex: "1 1 220px" }}
           onChange={(e) => setName(e.target.value)}
         />
 
-        <Button type="primary" onClick={handleAdd} loading={creating}>
+        <Button type="primary" onClick={handleAdd} loading={creating} style={{ flex: "0 0 auto" }}>
           Add
         </Button>
       </div>
@@ -106,4 +107,6 @@ export default function SubjectsList({ classId }: Props) {
     </div>
   );
 }
+
+export default memo(SubjectsList);
 

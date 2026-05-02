@@ -17,7 +17,7 @@ const { Text } = Typography;
 
 export default function ScheduleList({ examId }: any) {
   const screens = Grid.useBreakpoint();
-  const isMobile = !screens.md;
+  const isCompact = !screens.lg;
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [formData, setFormData] = useState<any>({});
 
@@ -175,7 +175,7 @@ export default function ScheduleList({ examId }: any) {
       title: "Time",
       render: (_: any, r: any) =>
         editingKey === r.key ? (
-          <Space direction="vertical" size={8}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <Space wrap size={6}>
               <TimePicker
                 use12Hours
@@ -203,7 +203,7 @@ export default function ScheduleList({ examId }: any) {
                 value: teacher._id,
               }))}
             />
-          </Space>
+          </div>
         ) : (
           <Tag color="green">
             {dayjs(r.startTime, "HH:mm").format("h:mm A")} -{" "}
@@ -237,8 +237,8 @@ export default function ScheduleList({ examId }: any) {
 
   return (
     <>
-      {isMobile ? (
-        <Space direction="vertical" size={12} style={{ width: "100%", marginTop: 8 }}>
+      {isCompact ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%", marginTop: 8 }}>
           {schedules.length ? (
             schedules.map((item: any, index: number) => (
               <Card
@@ -247,7 +247,7 @@ export default function ScheduleList({ examId }: any) {
                 style={{ borderRadius: 16 }}
                 styles={{ body: { padding: 14 } }}
               >
-                <Space direction="vertical" size={10} style={{ width: "100%" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%" }}>
                   <Space align="start" style={{ justifyContent: "space-between", width: "100%" }}>
                     <div>
                       <Text strong>{index + 1}. {item.className}</Text>
@@ -267,7 +267,7 @@ export default function ScheduleList({ examId }: any) {
                   </Tag>
 
                   {editingKey === item.key ? (
-                    <Space direction="vertical" size={8} style={{ width: "100%" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%" }}>
                       <DatePicker
                         value={formData.date}
                         onChange={(v) => setFormData({ ...formData, date: v })}
@@ -307,7 +307,7 @@ export default function ScheduleList({ examId }: any) {
                         </Button>
                         <Button onClick={() => setEditingKey(null)}>Cancel</Button>
                       </Space>
-                    </Space>
+                    </div>
                   ) : (
                     <Space>
                       <Button onClick={() => handleEdit(item)}>Edit</Button>
@@ -316,7 +316,7 @@ export default function ScheduleList({ examId }: any) {
                       </Popconfirm>
                     </Space>
                   )}
-                </Space>
+                </div>
               </Card>
             ))
           ) : (
@@ -324,7 +324,7 @@ export default function ScheduleList({ examId }: any) {
               No schedule added yet
             </div>
           )}
-        </Space>
+        </div>
       ) : (
         <Table
           rowKey="key"

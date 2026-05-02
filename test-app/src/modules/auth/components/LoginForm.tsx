@@ -10,13 +10,15 @@ import {
 import { Button, Card, Form, Input } from "antd";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { memo } from "react";
 
 import { LoginDTO } from "@/shared-types/auth.types";
+import { getAuthErrorMessage } from "../utils/authError";
 import { showToast } from "@/src/utils/toast";
 import { useLogin } from "../hooks/useLogin";
 import styles from "./LoginForm.module.css";
 
-export default function LoginForm() {
+function LoginForm() {
   const router = useRouter();
   const { login, loading } = useLogin();
 
@@ -35,12 +37,7 @@ export default function LoginForm() {
 
       router.replace(nextRoute);
     } catch (error: any) {
-      const message =
-        error?.response?.data?.message ||
-        error?.message ||
-        "Something went wrong";
-
-      showToast.error(message);
+      showToast.error(getAuthErrorMessage(error));
     }
   };
 
@@ -158,3 +155,5 @@ export default function LoginForm() {
     </main>
   );
 }
+
+export default memo(LoginForm);

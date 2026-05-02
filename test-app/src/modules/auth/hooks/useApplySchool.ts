@@ -1,22 +1,19 @@
-import { useState, useCallback } from "react";
-import { applySchoolApi } from "../api/auth.api";
+import { useCallback } from "react";
+
 import { ApplySchoolDTO } from "@/shared-types/auth.types";
 
+import { useApplySchoolMutation } from "../api/auth.api";
+
 export const useApplySchool = () => {
-  const [loading, setLoading] = useState(false);
+  const [triggerApplySchool, result] = useApplySchoolMutation();
 
-  const applySchool = useCallback(async (data: ApplySchoolDTO) => {
-    try {
-      setLoading(true);
+  const applySchool = useCallback(
+    async (data: ApplySchoolDTO) => {
+      const response = await triggerApplySchool(data).unwrap();
+      return response;
+    },
+    [triggerApplySchool],
+  );
 
-      const result = await applySchoolApi(data);
-
-      return result;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  return { applySchool, loading };
+  return { applySchool, loading: result.isLoading };
 };
-

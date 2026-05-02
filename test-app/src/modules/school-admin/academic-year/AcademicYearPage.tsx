@@ -1,88 +1,79 @@
 "use client";
 
-import { Button, Card, Col, Input, Row, Table, Tag } from "antd";
-import { useEffect, useState } from "react";
-
+import ResponsiveTable from "@/src/components/ResponsiveTable";
 import { showToast } from "@/src/utils/toast";
-import { createAcademicYear, getAcademicYears, setActiveYear } from "./academicYear.api";
+import { Button, Card, Col, Input, Row, Tag } from "antd";
+import type { ColumnsType } from "antd/es/table";
+import { memo, useCallback, useMemo, useState } from "react";
 
-type AcademicYear = {
-  _id: string;
-  isActive: boolean;
-  name: string;
-};
+import {
+  type AcademicYear,
+  useCreateAcademicYearMutation,
+  useGetAcademicYearsQuery,
+  useSetActiveYearMutation,
+} from "./academicYear.api";
 
-const AcademicYearPage = () => {
+function AcademicYearPage() {
   const [year, setYear] = useState("");
-  const [data, setData] = useState<AcademicYear[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { data: years = [], isLoading } = useGetAcademicYearsQuery();
+  const [createYear, createState] = useCreateAcademicYearMutation();
+  const [setActiveYear, activeState] = useSetActiveYearMutation();
+  const loading = isLoading || createState.isLoading || activeState.isLoading;
 
-  const fetchYears = async () => {
-    try {
-      setLoading(true);
-      const res = await getAcademicYears();
-      setData(Array.isArray(res) ? res : []);
-    } catch (error) {
-      showToast.apiError(error, "Failed to fetch years");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchYears();
-  }, []);
-
-  const handleAdd = async () => {
+  const handleAdd = useCallback(async () => {
     if (!year.trim()) {
       showToast.warning("Please enter year");
       return;
     }
 
     try {
-      await createAcademicYear({ name: year.trim() });
+      await createYear({ name: year.trim() }).unwrap();
       showToast.success("Year added");
       setYear("");
-      fetchYears();
     } catch (error) {
       showToast.apiError(error, "Error adding year");
     }
-  };
+  }, [createYear, year]);
 
-  const handleSetActive = async (record: AcademicYear) => {
-    try {
-      await setActiveYear(record._id);
-      showToast.success("Active year updated");
-      fetchYears();
-    } catch (error) {
-      showToast.apiError(error, "Error updating");
-    }
-  };
+  const handleSetActive = useCallback(
+    async (record: AcademicYear) => {
+      try {
+        await setActiveYear(record._id).unwrap();
+        showToast.success("Active year updated");
+      } catch (error) {
+        showToast.apiError(error, "Error updating");
+      }
+    },
+    [setActiveYear],
+  );
 
-  const columns = [
-    {
-      title: "Academic Year",
-      dataIndex: "name",
-    },
-    {
-      title: "Status",
-      render: (_: unknown, record: AcademicYear) =>
-        record.isActive ? <Tag color="green">Active</Tag> : <Tag>Inactive</Tag>,
-    },
-    {
-      title: "Action",
-      render: (_: unknown, record: AcademicYear) => (
-        <Button onClick={() => handleSetActive(record)}>Set Active</Button>
-      ),
-    },
-  ];
+  const columns: ColumnsType<AcademicYear> = useMemo(
+    () => [
+      {
+        title: "Academic Year",
+        dataIndex: "name",
+      },
+      {
+        title: "Status",
+        render: (_: unknown, record: AcademicYear) =>
+          record.isActive ? <Tag color="green">Active</Tag> : <Tag>Inactive</Tag>,
+      },
+      {
+        title: "Action",
+        render: (_: unknown, record: AcademicYear) => (
+          <Button onClick={() => handleSetActive(record)}>Set Active</Button>
+        ),
+      },
+    ],
+    [handleSetActive],
+  );
 
   return (
     <Row justify="center">
       <Col xs={24} md={16}>
         <Card variant="borderless" title="Academic Year Setup">
           <Row gutter={10} style={{ marginBottom: 20 }}>
-            <Col flex="auto">
+            <Col xs={24} md={18}>
               <Input
                 placeholder="Enter year (e.g. 2025-26)"
                 value={year}
@@ -90,17 +81,17 @@ const AcademicYearPage = () => {
               />
             </Col>
 
-            <Col>
-              <Button type="primary" onClick={handleAdd}>
+            <Col xs={24} md={6}>
+              <Button type="primary" onClick={handleAdd} block loading={createState.isLoading}>
                 Add Year
               </Button>
             </Col>
           </Row>
 
-          <Table
+          <ResponsiveTable
             rowKey="_id"
             columns={columns}
-            dataSource={data}
+            dataSource={years}
             loading={loading}
             pagination={false}
           />
@@ -108,6 +99,6 @@ const AcademicYearPage = () => {
       </Col>
     </Row>
   );
-};
+}
 
-export default AcademicYearPage;
+export default memo(AcademicYearPage);

@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 
 import BrandLoader from "@/src/components/BrandLoader";
 import SchoolTimingSection from "./components/SchoolTimingSection";
-import { createSchoolApi } from "./school.api";
+import { useCreateSchoolMutation } from "./school.api";
 import { useSchool } from "./useSchool";
 import {
   SchoolTimingFormValues,
@@ -40,6 +40,7 @@ export default function SchoolSettingsPage() {
   const router = useRouter();
   const { school, loading } = useSchool();
   const [saving, setSaving] = useState(false);
+  const [createSchool] = useCreateSchoolMutation();
 
   const timingDefaults = useMemo<Partial<SchoolTimingSettings>>(
     () => ({
@@ -149,7 +150,7 @@ export default function SchoolSettingsPage() {
       formData.append("checkOutCloseTime", payload.checkOutCloseTime || "");
       formData.append("workingDays", JSON.stringify(payload.workingDays || []));
 
-      await createSchoolApi(formData);
+      await createSchool(formData).unwrap();
       window.dispatchEvent(new Event("school-profile-updated"));
       showToast.success("School settings updated");
     } catch (error) {

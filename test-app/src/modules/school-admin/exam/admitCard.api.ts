@@ -6,6 +6,7 @@ export type AdmitCardStudent = {
   _id: string;
   className: string;
   fatherName: string;
+  approvalStatus?: "draft" | "approved";
   parentPhone: string;
   pdfUrl: string | null;
   releasedAt: string | null;
@@ -46,6 +47,18 @@ export const admitCardApi = baseApi.injectEndpoints({
       invalidatesTags: ["AdmitCards", "Exams"],
     }),
 
+    toggleAdmitCardApproval: builder.mutation<
+      { count: number; data: AdmitCardStudent[] },
+      { examId: string; approved: boolean }
+    >({
+      query: (body) => ({
+        url: "/school-admin/admit-cards/approval",
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: ["AdmitCards", "Exams"],
+    }),
+
     getReleasedAdmitCards: builder.query<any[], void>({
       query: () => "/school-admin/admit-cards/released",
       transformResponse: (res: ApiResponse<any[]>) => res.data,
@@ -58,5 +71,6 @@ export const {
   useGetAdmitCardStudentsQuery,
   usePreviewAdmitCardMutation,
   useReleaseAdmitCardsMutation,
+  useToggleAdmitCardApprovalMutation,
   useGetReleasedAdmitCardsQuery,
 } = admitCardApi;

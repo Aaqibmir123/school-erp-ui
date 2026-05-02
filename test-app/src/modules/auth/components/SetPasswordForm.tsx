@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 import { showToast } from "@/src/utils/toast";
 import { useSetPassword } from "../hooks/useSetPassword";
+import { getAuthErrorMessage } from "../utils/authError";
 
 export default function SetPasswordForm() {
   const params = useSearchParams();
@@ -20,11 +21,13 @@ export default function SetPasswordForm() {
       return;
     }
 
-    await submitPassword(token, values.password);
-
-    showToast.success("Password set successfully");
-
-    router.push("/");
+    try {
+      await submitPassword(token, values.password);
+      showToast.success("Password set successfully");
+      router.push("/");
+    } catch (error) {
+      showToast.error(getAuthErrorMessage(error, "Failed to set password"));
+    }
   };
 
   return (

@@ -15,20 +15,12 @@ import { useRouter } from "next/navigation";
 import { ApplySchoolDTO } from "@/shared-types/auth.types";
 import { showToast } from "@/src/utils/toast";
 import { useApplySchool } from "../hooks/useApplySchool";
+import { getAuthErrorMessage } from "../utils/authError";
 
 const { Title, Text } = Typography;
 
 type ApplySchoolFormValues = ApplySchoolDTO & {
   confirmPassword: string;
-};
-
-type SubmitError = {
-  message?: string;
-  response?: {
-    data?: {
-      message?: string;
-    };
-  };
 };
 
 export default function ApplySchoolForm() {
@@ -51,12 +43,7 @@ export default function ApplySchoolForm() {
       showToast.success("Application submitted");
       router.push("/application-pending");
     } catch (error: unknown) {
-      const apiError = error as SubmitError;
-      showToast.error(
-        apiError?.response?.data?.message ||
-          apiError?.message ||
-          "Failed to submit",
-      );
+      showToast.error(getAuthErrorMessage(error, "Failed to submit"));
     }
   };
 

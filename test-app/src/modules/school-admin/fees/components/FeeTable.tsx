@@ -3,7 +3,7 @@
 import ResponsiveTable from "@/src/components/ResponsiveTable";
 import { Button, Grid, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { useState } from "react";
+import { memo, useMemo, useState } from "react";
 
 import { StudentDTO } from "@/shared-types/student.types";
 import FeeDrawer from "./FeeDrawer";
@@ -21,7 +21,7 @@ type FeeStudent = StudentDTO & {
 const { Text } = Typography;
 const { useBreakpoint } = Grid;
 
-export default function FeeTable({
+function FeeTable({
   students = [],
   loading,
 }: {
@@ -36,67 +36,70 @@ export default function FeeTable({
 
   /* ================= COLUMNS ================= */
 
-  const columns: ColumnsType<FeeStudent> = [
-    {
-      title: "#",
-      width: 60,
-      render: (_, __, index) => <Text strong>{index + 1}</Text>,
-    },
+  const columns: ColumnsType<FeeStudent> = useMemo(
+    () => [
+      {
+        title: "#",
+        width: 60,
+        render: (_, __, index) => <Text strong>{index + 1}</Text>,
+      },
 
-    {
-      title: "Name",
-      dataIndex: "name",
-      render: (text) => <Text strong>{text}</Text>,
-    },
+      {
+        title: "Name",
+        dataIndex: "name",
+        render: (text) => <Text strong>{text}</Text>,
+      },
 
-    {
-      title: "Father Name",
-      dataIndex: "fatherName",
-      width: 170,
-      render: (text) => <Text>{text || "-"}</Text>,
-    },
+      {
+        title: "Father Name",
+        dataIndex: "fatherName",
+        width: 170,
+        render: (text) => <Text>{text || "-"}</Text>,
+      },
 
-    {
-      title: "Class",
-      width: 140,
-      render: (_, row: FeeStudent) => (
-        <Tag color="blue" style={{ borderRadius: 999, paddingInline: 10 }}>
-          {row.className} - {row.sectionName}
-        </Tag>
-      ),
-    },
+      {
+        title: "Class",
+        width: 140,
+        render: (_, row: FeeStudent) => (
+          <Tag color="blue" style={{ borderRadius: 999, paddingInline: 10 }}>
+            {row.className} - {row.sectionName}
+          </Tag>
+        ),
+      },
 
-    {
-      title: "Phone",
-      dataIndex: "parentPhone",
-      width: 150,
-      render: (text) => <Text type="secondary">{text || "-"}</Text>,
-    },
+      {
+        title: "Phone",
+        dataIndex: "parentPhone",
+        width: 150,
+        render: (text) => <Text type="secondary">{text || "-"}</Text>,
+      },
 
-    {
-      title: "Action",
-      align: "right",
-      width: 150,
-      render: (_, row) => (
-        <Button
-          type="primary"
-          size={isMobile ? "middle" : "large"}
-          block={isMobile}
-          style={{
-            borderRadius: 12,
-            boxShadow: "0 8px 18px rgba(37, 99, 235, 0.2)",
-            paddingInline: isMobile ? 12 : 18,
-          }}
-          onClick={() => {
-            setSelectedStudent(row);
-            setOpen(true);
-          }}
-        >
-          Add Fee
-        </Button>
-      ),
-    },
-  ];
+      {
+        title: "Action",
+        align: "right",
+        width: 150,
+        render: (_, row) => (
+          <Button
+            type="primary"
+            size={isMobile ? "middle" : "large"}
+            block={isMobile}
+            style={{
+              borderRadius: 12,
+              boxShadow: "0 8px 18px rgba(37, 99, 235, 0.2)",
+              paddingInline: isMobile ? 12 : 18,
+            }}
+            onClick={() => {
+              setSelectedStudent(row);
+              setOpen(true);
+            }}
+          >
+            Add Fee
+          </Button>
+        ),
+      },
+    ],
+    [isMobile],
+  );
 
   /* ================= UI ================= */
 
@@ -130,4 +133,6 @@ export default function FeeTable({
     </>
   );
 }
+
+export default memo(FeeTable);
 

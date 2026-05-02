@@ -19,7 +19,7 @@ import type { Dayjs } from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 
 import ResponsiveTable from "@/src/components/ResponsiveTable";
-import { getClassesApi } from "../classes/api/class.api";
+import { useGetClassesQuery } from "../classes/classes";
 import { useGetSectionsByClassQuery } from "../sections/sectionApi";
 import {
   useGetAttendanceHistoryQuery,
@@ -44,25 +44,15 @@ export default function AttendancePage() {
   const [dateRange, setDateRange] = useState<FilterDate>(null);
   const [page, setPage] = useState(1);
   const [limit] = useState(20);
-  const [classes, setClasses] = useState<{ label: string; value: string }[]>(
-    [],
+  const { data: classItems = [] } = useGetClassesQuery();
+  const classes = useMemo(
+    () =>
+      classItems.map((item) => ({
+        label: item.name,
+        value: item._id,
+      })),
+    [classItems],
   );
-
-  useEffect(() => {
-    void (async () => {
-      try {
-        const data = await getClassesApi();
-        setClasses(
-          data.map((item) => ({
-            label: item.name,
-            value: item._id,
-          })),
-        );
-      } catch {
-        setClasses([]);
-      }
-    })();
-  }, []);
 
   const { data: sections = [] } = useGetSectionsByClassQuery(
     selectedClassId || "",

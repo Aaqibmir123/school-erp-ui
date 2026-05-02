@@ -1,63 +1,52 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect, useMemo } from "react";
+import { memo, useCallback, useEffect, useMemo } from "react";
+import dynamic from "next/dynamic";
 
 import {
-  ApartmentOutlined,
+  CarryOutOutlined,
   CarOutlined,
   DollarOutlined,
-  FallOutlined,
-  CarryOutOutlined,
-  RiseOutlined,
   TeamOutlined,
   UserOutlined,
 } from "@ant-design/icons";
-import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  Cell,
-  CartesianGrid,
-  Legend,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 import {
   Button,
   Card,
   Col,
   Empty,
   Row,
+  Skeleton,
   Space,
   Statistic,
-  Table,
-  Tag,
   Typography,
 } from "antd";
 import { useRouter } from "next/navigation";
 
-import BrandLoader from "@/src/components/BrandLoader";
-import { useGetAdminDashboardSummaryQuery } from "./dashboard.api";
+import { useGetAdminDashboardOverviewQuery } from "./dashboard.api";
 import { WEB_THEME } from "@/src/theme/tokens";
-import type { TransportRecord } from "@/shared-types/transport.types";
 import styles from "./SchoolAdminDashboard.module.css";
 
 const { Title, Paragraph, Text } = Typography;
 
-const COLORS = [
-  WEB_THEME.colors.primary,
-  "#0F172A",
-  "#16A34A",
-  "#F59E0B",
-  "#EF4444",
-  "#06B6D4",
-];
+const DashboardAnalytics = dynamic(() => import("./SchoolAdminDashboardAnalytics"), {
+  loading: () => (
+    <Row gutter={[16, 16]}>
+      <Col xs={24} xl={14}>
+        <Card variant="borderless" className={styles.sectionCard}>
+          <Skeleton active paragraph={{ rows: 8 }} />
+        </Card>
+      </Col>
+      <Col xs={24} xl={10}>
+        <Card variant="borderless" className={styles.sectionCard}>
+          <Skeleton active paragraph={{ rows: 8 }} />
+        </Card>
+      </Col>
+    </Row>
+  ),
+  ssr: false,
+});
 
 type MetricCardProps = {
   title: string;
@@ -67,7 +56,7 @@ type MetricCardProps = {
   tone?: string;
 };
 
-function MetricCard({
+const MetricCard = memo(function MetricCard({
   title,
   value,
   helper,
@@ -92,10 +81,7 @@ function MetricCard({
             {title}
           </Text>
           <div style={{ marginTop: 4 }}>
-            <Statistic
-              value={value}
-              styles={{ content: { fontSize: 26, lineHeight: 1.2 } }}
-            />
+            <Statistic value={value} styles={{ content: { fontSize: 26, lineHeight: 1.2 } }} />
           </div>
           <Text type="secondary" style={{ fontSize: 12 }}>
             {helper}
@@ -104,17 +90,75 @@ function MetricCard({
       </Space>
     </Card>
   );
-}
+});
+
+const DashboardSkeleton = memo(function DashboardSkeleton() {
+  return (
+    <div className={styles.page}>
+      <div className={styles.hero}>
+        <div className={styles.heroBadge}>School overview</div>
+        <Title level={2} className={styles.heroTitle}>
+          School Admin Dashboard
+        </Title>
+        <Paragraph className={styles.heroText}>
+          Live school operations, fee collection, transport status, and counts.
+        </Paragraph>
+      </div>
+
+      <Card variant="borderless" className={styles.attendanceCard}>
+        <Space align="start" size={16} className={styles.attendanceWrap}>
+          <div className={styles.attendanceTone}>
+            <CarryOutOutlined />
+          </div>
+          <div className={styles.attendanceMeta}>
+            <Text strong>Attendance records</Text>
+            <div style={{ marginTop: 4 }}>
+              <Text type="secondary">Loading summary...</Text>
+            </div>
+          </div>
+        </Space>
+        <div className={styles.attendanceActionWrap}>
+          <Button type="primary" className={styles.attendanceAction} loading>
+            Open attendance
+          </Button>
+        </div>
+      </Card>
+
+      <Row gutter={[16, 16]}>
+        {[0, 1, 2, 3].map((index) => (
+          <Col xs={24} sm={12} xl={6} key={index}>
+            <Card variant="borderless" className={styles.metricCard}>
+              <Skeleton active title={false} paragraph={{ rows: 2 }} />
+            </Card>
+          </Col>
+        ))}
+      </Row>
+
+      <Row gutter={[16, 16]}>
+        <Col xs={24} xl={14}>
+          <Card variant="borderless" className={styles.sectionCard}>
+            <Skeleton active paragraph={{ rows: 8 }} />
+          </Card>
+        </Col>
+        <Col xs={24} xl={10}>
+          <Card variant="borderless" className={styles.sectionCard}>
+            <Skeleton active paragraph={{ rows: 8 }} />
+          </Card>
+        </Col>
+      </Row>
+    </div>
+  );
+});
 
 export default function SchoolAdminDashboard() {
   const router = useRouter();
-  const { data, isLoading, error, refetch } = useGetAdminDashboardSummaryQuery();
+  const { data, isLoading, error, refetch, isFetching } = useGetAdminDashboardOverviewQuery();
+
+  const refreshDashboard = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
   useEffect(() => {
-    const refreshDashboard = () => {
-      refetch();
-    };
-
     window.addEventListener("dashboard-updated", refreshDashboard);
     window.addEventListener("students-updated", refreshDashboard);
     window.addEventListener("fees-updated", refreshDashboard);
@@ -126,25 +170,18 @@ export default function SchoolAdminDashboard() {
       window.removeEventListener("fees-updated", refreshDashboard);
       window.removeEventListener("transport-updated", refreshDashboard);
     };
-  }, [refetch]);
+  }, [refreshDashboard]);
 
-  const feeTrend = data?.charts.monthlyFeeTrend ?? [];
-  const transportBreakdown = data?.charts.transportStatusBreakdown ?? [];
-  const revenueMix = data?.charts.revenueMix ?? [];
-  const recentTransports = data?.recentTransports;
-
-  const transportRows = useMemo(
-    () =>
-      (recentTransports ?? []).map((item) => ({
-        ...item,
-        salaryLabel:
-          item.salaryStatus.charAt(0).toUpperCase() + item.salaryStatus.slice(1),
-      })),
-    [recentTransports],
+  const attendanceCopy = useMemo(
+    () => ({
+      title: "Attendance records",
+      helper: "Open class attendance filters, date ranges, and records.",
+    }),
+    [],
   );
 
-  if (isLoading) {
-    return <BrandLoader />;
+  if (isLoading && !data) {
+    return <DashboardSkeleton />;
   }
 
   if (error || !data) {
@@ -176,11 +213,9 @@ export default function SchoolAdminDashboard() {
             <CarryOutOutlined />
           </div>
           <div className={styles.attendanceMeta}>
-            <Text strong>Attendance records</Text>
+            <Text strong>{attendanceCopy.title}</Text>
             <div style={{ marginTop: 4 }}>
-              <Text type="secondary">
-                Open class attendance filters, date ranges, and records.
-              </Text>
+              <Text type="secondary">{attendanceCopy.helper}</Text>
             </div>
           </div>
         </Space>
@@ -189,6 +224,7 @@ export default function SchoolAdminDashboard() {
             type="primary"
             className={styles.attendanceAction}
             onClick={() => router.push("/school-admin/attendance")}
+            loading={isFetching && !data}
           >
             Open attendance
           </Button>
@@ -233,228 +269,7 @@ export default function SchoolAdminDashboard() {
         </Col>
       </Row>
 
-      <Row gutter={[16, 16]}>
-        <Col xs={24} xl={14}>
-          <Card
-            variant="borderless"
-            title="Fee collection"
-            className={styles.sectionCard}
-          >
-            {feeTrend.some((item) => item.collected > 0 || item.due > 0) ? (
-              <ResponsiveContainer width="100%" height={320}>
-                <AreaChart data={feeTrend}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Area
-                    type="monotone"
-                    dataKey="collected"
-                    stroke={WEB_THEME.colors.primary}
-                    fill={WEB_THEME.colors.primarySoft}
-                    strokeWidth={3}
-                    name="Collected"
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="due"
-                    stroke="#EF4444"
-                    fill="#FEE2E2"
-                    strokeWidth={3}
-                    name="Due"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            ) : (
-              <Empty description="No fee trend data yet" />
-            )}
-          </Card>
-        </Col>
-
-        <Col xs={24} xl={10}>
-          <Card
-            variant="borderless"
-            title="Revenue mix"
-            className={styles.sectionCard}
-          >
-            {revenueMix.some((item) => item.value > 0) ? (
-              <ResponsiveContainer width="100%" height={320}>
-                <PieChart>
-                  <Pie
-                    data={revenueMix}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={110}
-                    innerRadius={70}
-                    paddingAngle={4}
-                  >
-                    {revenueMix.map((_, index) => (
-                      <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <Empty description="No financial breakdown yet" />
-            )}
-          </Card>
-        </Col>
-      </Row>
-
-      <Row gutter={[16, 16]}>
-        <Col xs={24} lg={10}>
-          <Card
-            variant="borderless"
-            title="Transport salaries"
-            className={styles.sectionCard}
-          >
-            {transportBreakdown.some((item) => item.value > 0) ? (
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={transportBreakdown}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-                  <XAxis dataKey="name" />
-                  <YAxis allowDecimals={false} />
-                  <Tooltip />
-                  <Bar dataKey="value" radius={[12, 12, 0, 0]}>
-                    {transportBreakdown.map((entry, index) => (
-                      <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <Empty description="No transport records yet" />
-            )}
-          </Card>
-        </Col>
-
-        <Col xs={24} lg={14}>
-          <Card
-            variant="borderless"
-            title="Recent transport records"
-            className={styles.tableCard}
-          >
-            <Table
-              rowKey="_id"
-              size="small"
-              pagination={false}
-              dataSource={transportRows}
-              columns={[
-                {
-                  title: "Route",
-                  dataIndex: "routeName",
-                  render: (_: string, record: TransportRecord) => (
-                    <div>
-                      <strong>{record.routeName}</strong>
-                      <div>
-                        <Text type="secondary">{record.vehicleNumber}</Text>
-                      </div>
-                    </div>
-                  ),
-                },
-                {
-                  title: "Driver",
-                  dataIndex: "driverName",
-                  render: (_: string, record: TransportRecord) => (
-                    <div>
-                      <div>{record.driverName}</div>
-                      <Text type="secondary">{record.driverPhone}</Text>
-                    </div>
-                  ),
-                },
-                {
-                  title: "Salary",
-                  dataIndex: "driverSalary",
-                  render: (_: number, record: TransportRecord) => (
-                    <div>
-                      <div>Rs. {Number(record.driverSalary || 0).toLocaleString()}</div>
-                      <Text type="secondary">
-                        Due Rs. {Number(record.salaryDueAmount || 0).toLocaleString()}
-                      </Text>
-                    </div>
-                  ),
-                },
-                {
-                  title: "Status",
-                  dataIndex: "salaryStatus",
-                  render: (_: string, record: TransportRecord) => (
-                    <Tag
-                      color={
-                        record.salaryStatus === "paid"
-                          ? "green"
-                          : record.salaryStatus === "partial"
-                            ? "gold"
-                            : "red"
-                      }
-                    >
-                      {record.salaryStatus}
-                    </Tag>
-                  ),
-                },
-              ]}
-              locale={{
-                emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} />,
-              }}
-            />
-          </Card>
-        </Col>
-      </Row>
-
-      <Row gutter={[16, 16]}>
-        <Col xs={24} md={12} xl={8}>
-          <Card variant="borderless" className={styles.sectionCard}>
-            <Space align="center" className={styles.sectionStack}>
-              <ApartmentOutlined />
-              <Text strong>Academic structure</Text>
-            </Space>
-            <Space orientation="vertical" size={8}>
-              <Text>Classes: {data.counts.classes}</Text>
-              <Text>Sections: {data.counts.sections}</Text>
-              <Text>Subjects: {data.counts.subjects}</Text>
-            </Space>
-          </Card>
-        </Col>
-        <Col xs={24} md={12} xl={8}>
-          <Card variant="borderless" className={styles.sectionCard}>
-            <Space align="center" className={styles.sectionStack}>
-              <RiseOutlined />
-              <Text strong>Budget planning</Text>
-            </Space>
-            <Space orientation="vertical" size={8}>
-              <Text>
-                Teacher payroll estimate: Rs.{" "}
-                {data.finance.teacherPayrollEstimate.toLocaleString()}
-              </Text>
-              <Text>
-                Transport salary paid: Rs.{" "}
-                {data.finance.transportSalaryPaid.toLocaleString()}
-              </Text>
-              <Text>
-                Transport salary due: Rs.{" "}
-                {data.finance.transportSalaryDue.toLocaleString()}
-              </Text>
-            </Space>
-          </Card>
-        </Col>
-        <Col xs={24} md={12} xl={8}>
-          <Card variant="borderless" className={styles.sectionCard}>
-            <Space align="center" className={styles.sectionStack}>
-              <FallOutlined />
-              <Text strong>Fee status split</Text>
-            </Space>
-            <Space orientation="vertical" size={8}>
-              <Text>Paid receipts: {data.finance.paidCount}</Text>
-              <Text>Partial dues: {data.finance.partialCount}</Text>
-              <Text>Unpaid dues: {data.finance.unpaidCount}</Text>
-            </Space>
-          </Card>
-        </Col>
-      </Row>
+      <DashboardAnalytics />
     </div>
   );
 }

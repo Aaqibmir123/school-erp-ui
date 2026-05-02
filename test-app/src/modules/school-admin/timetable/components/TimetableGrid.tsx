@@ -1,7 +1,8 @@
 "use client";
 
-import { Table, Select } from "antd";
+import { Select } from "antd";
 import { useState } from "react";
+import ResponsiveTable from "@/src/components/ResponsiveTable";
 
 const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 const periods = [1, 2, 3, 4, 5, 6];
@@ -64,7 +65,5 @@ export default function TimetableGrid() {
     })),
   ];
 
-  return (
-    <Table columns={columns} dataSource={data} pagination={false} bordered />
-  );
+  return <ResponsiveTable columns={columns} dataSource={data} pagination={false} bordered />;
 }

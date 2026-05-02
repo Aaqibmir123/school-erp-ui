@@ -1,18 +1,19 @@
 "use client";
 
-import { Card, Col, Empty, Input, Row, Select, Statistic, Table, Tag, Typography } from "antd";
-import { useMemo, useState } from "react";
-
-import { useGetAcademicYearsQuery } from "../assign-subject/teacherAssignment.api";
+import ResponsiveTable from "@/src/components/ResponsiveTable";
+import { useGetAcademicYearsQuery } from "../academic-year/academicYear.api";
 import { useGetClassesQuery } from "../classes/classes";
 import { useGetExamsQuery } from "../exam/exam.api";
 import { useGetSectionsByClassQuery } from "../sections/sectionApi";
 import { useGetSubjectsByClassQuery } from "../subjects/subject.api";
 import { useGetResultsHistoryQuery } from "./results.api";
+import { Card, Col, Empty, Input, Row, Select, Statistic, Tag, Typography } from "antd";
+import type { ColumnsType } from "antd/es/table";
+import { memo, useMemo, useState } from "react";
 
 const { Text } = Typography;
 
-export default function ResultsPage() {
+function ResultsPage() {
   const [examId, setExamId] = useState<string>();
   const [classId, setClassId] = useState<string>();
   const [sectionId, setSectionId] = useState<string>();
@@ -60,6 +61,58 @@ export default function ResultsPage() {
       return String(rowYearId || "") === academicYearId;
     });
   }, [historyData?.data, academicYearId]);
+
+  const columns: ColumnsType<any> = useMemo(
+    () => [
+      {
+        title: "Student",
+        render: (_: unknown, row: any) => (
+          <div>
+            <strong>
+              {`${row.studentId?.firstName || ""} ${row.studentId?.lastName || ""}`.trim() ||
+                "Student"}
+            </strong>
+            <div>
+              <Text type="secondary">Roll #{row.studentId?.rollNumber || "N/A"}</Text>
+            </div>
+          </div>
+        ),
+      },
+      {
+        title: "Class",
+        render: (_: unknown, row: any) => row.classId?.name || "-",
+      },
+      {
+        title: "Section",
+        render: (_: unknown, row: any) => row.sectionId?.name || "All",
+      },
+      {
+        title: "Exam",
+        render: (_: unknown, row: any) => row.examId?.name || "-",
+      },
+      {
+        title: "Subject",
+        render: (_: unknown, row: any) => row.subjectId?.name || "-",
+      },
+      {
+        title: "Marks",
+        render: (_: unknown, row: any) =>
+          `${row.marksObtained ?? 0} / ${row.totalMarks ?? 0}`,
+      },
+      {
+        title: "Academic Year",
+        render: (_: unknown, row: any) => {
+          const yearName =
+            row.examId?.academicYearId?.name ||
+            row.academicYearId?.name ||
+            row.academicYearName;
+
+          return yearName ? <Tag color="blue">{yearName}</Tag> : <Tag>—</Tag>;
+        },
+      },
+    ],
+    [],
+  );
 
   return (
     <Card title="Student Results Records">
@@ -169,7 +222,7 @@ export default function ResultsPage() {
         </Col>
       </Row>
 
-      <Table
+      <ResponsiveTable
         rowKey="_id"
         loading={historyLoading}
         dataSource={historyRows}
@@ -184,55 +237,10 @@ export default function ResultsPage() {
             <Empty description="No result records found for the selected filters" />
           ),
         }}
-        columns={[
-          {
-            title: "Student",
-            render: (_: unknown, row: any) => (
-              <div>
-                <strong>
-                  {`${row.studentId?.firstName || ""} ${row.studentId?.lastName || ""}`.trim() ||
-                    "Student"}
-                </strong>
-                <div>
-                  <Text type="secondary">Roll #{row.studentId?.rollNumber || "N/A"}</Text>
-                </div>
-              </div>
-            ),
-          },
-          {
-            title: "Class",
-            render: (_: unknown, row: any) => row.classId?.name || "-",
-          },
-          {
-            title: "Section",
-            render: (_: unknown, row: any) => row.sectionId?.name || "All",
-          },
-          {
-            title: "Exam",
-            render: (_: unknown, row: any) => row.examId?.name || "-",
-          },
-          {
-            title: "Subject",
-            render: (_: unknown, row: any) => row.subjectId?.name || "-",
-          },
-          {
-            title: "Marks",
-            render: (_: unknown, row: any) =>
-              `${row.marksObtained ?? 0} / ${row.totalMarks ?? 0}`,
-          },
-          {
-            title: "Academic Year",
-            render: (_: unknown, row: any) => {
-              const yearName =
-                row.examId?.academicYearId?.name ||
-                row.academicYearId?.name ||
-                row.academicYearName;
-
-              return yearName ? <Tag color="blue">{yearName}</Tag> : <Tag>—</Tag>;
-            },
-          },
-        ]}
+        columns={columns}
       />
     </Card>
   );
 }
+
+export default memo(ResultsPage);

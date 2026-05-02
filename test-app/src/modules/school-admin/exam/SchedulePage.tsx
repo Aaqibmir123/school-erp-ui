@@ -2,11 +2,11 @@
 
 import { CalendarOutlined } from "@ant-design/icons";
 import { Card, Divider, Empty, Space, Tag, Typography } from "antd";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import AddScheduleForm from "./AddScheduleForm";
 import ScheduleList from "./ScheduleList";
 
-import { getAcademicYears } from "../academic-year/academicYear.api";
+import { useGetAcademicYearsQuery } from "../academic-year/academicYear.api";
 import { useGetClassesWithSubjectsQuery, useGetExamsQuery } from "./exam.api";
 import { useSchool } from "../school/useSchool";
 import type { WeekdayValue } from "../school/schoolSettings.types";
@@ -17,7 +17,7 @@ const SchedulePage = ({ examId }: { examId: string }) => {
   const { data: res } = useGetClassesWithSubjectsQuery();
   const { data: exams = [] } = useGetExamsQuery();
   const { school } = useSchool();
-  const [activeYearName, setActiveYearName] = useState("Active academic year");
+  const { data: academicYears = [] } = useGetAcademicYearsQuery();
 
   const classes = res || [];
   const currentExam = useMemo(
@@ -33,21 +33,8 @@ const SchedulePage = ({ examId }: { examId: string }) => {
     [school],
   );
 
-  useEffect(() => {
-    const sync = async () => {
-      try {
-        const years = await getAcademicYears();
-        const active = years.find((item: any) => item.isActive);
-        if (active?.name) {
-          setActiveYearName(active.name);
-        }
-      } catch {
-        setActiveYearName("Active academic year");
-      }
-    };
-
-    sync();
-  }, []);
+  const activeYearName =
+    academicYears.find((item) => item.isActive)?.name || "Active academic year";
 
   if (!currentExam && exams.length > 0) {
     return (

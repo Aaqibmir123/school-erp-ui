@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   BankOutlined,
@@ -9,20 +9,24 @@ import {
   LogoutOutlined,
   MenuOutlined,
 } from "@ant-design/icons";
-import { Button, Drawer, Grid, Layout, Menu } from "antd";
+import { Button, Drawer, Layout, Menu } from "antd";
 import { useRouter } from "next/navigation";
 
-import { logoutApi } from "@/src/modules/auth/api/auth.api";
+import {
+  useGetProfileQuery,
+  useLogoutMutation,
+} from "@/src/modules/auth/api/auth.api";
 import { WEB_THEME } from "@/src/theme/tokens";
 
 const { Sider, Content, Header } = Layout;
-const { useBreakpoint } = Grid;
 
 export default function SuperAdminLayout({ children }: any) {
   const router = useRouter();
-  const screens = useBreakpoint();
-  const isMobile = !screens.md;
+  const [isMobile, setIsMobile] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [hasToken, setHasToken] = useState(false);
+  const sessionQuery = useGetProfileQuery(undefined, { skip: !hasToken });
+  const [logout] = useLogoutMutation();
 
   const items = useMemo(
     () => [
@@ -47,7 +51,7 @@ export default function SuperAdminLayout({ children }: any) {
 
   const handleMenu = async ({ key }: any) => {
     if (key === "logout") {
-      await logoutApi().catch(() => undefined);
+      await logout().unwrap().catch(() => undefined);
       localStorage.removeItem("token");
       localStorage.removeItem("refreshToken");
       router.push("/");
@@ -58,6 +62,28 @@ export default function SuperAdminLayout({ children }: any) {
     router.push(key);
     setMobileOpen(false);
   };
+
+  useEffect(() => {
+    setHasToken(Boolean(localStorage.getItem("token")));
+
+    const updateViewport = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    updateViewport();
+    window.addEventListener("resize", updateViewport);
+
+    return () => {
+      window.removeEventListener("resize", updateViewport);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!hasToken || !sessionQuery.isError) return;
+
+    localStorage.removeItem("token");
+    router.replace("/");
+  }, [hasToken, router, sessionQuery.isError]);
 
   return (
     <Layout style={{ minHeight: "100vh", background: "#F4F7FB" }}>

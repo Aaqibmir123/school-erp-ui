@@ -18,7 +18,7 @@ import dayjs, { Dayjs } from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 
 import { showToast } from "@/src/utils/toast";
-import { getAcademicYears } from "../academic-year/academicYear.api";
+import { useGetAcademicYearsQuery } from "../academic-year/academicYear.api";
 import { useCreateExamMutation, useUpdateExamMutation } from "./exam.api";
 
 const { Title, Text } = Typography;
@@ -54,8 +54,8 @@ export default function CreateExamScreen({
 }: Props) {
   const [form] = Form.useForm<FormValues>();
   const [loading, setLoading] = useState(false);
-  const [activeYearName, setActiveYearName] = useState("Active academic year");
   const [examTypeOptions, setExamTypeOptions] = useState<string[]>(DEFAULT_EXAM_TYPES);
+  const { data: academicYears = [] } = useGetAcademicYearsQuery();
 
   const [createExam] = useCreateExamMutation();
   const [updateExam] = useUpdateExamMutation();
@@ -75,22 +75,12 @@ export default function CreateExamScreen({
     }
   }, [editData, open, form]);
 
+  const activeYearName =
+    academicYears.find((item) => item.isActive)?.name || "Active academic year";
+
   useEffect(() => {
     if (!open) return;
 
-    const syncActiveYear = async () => {
-      try {
-        const years = await getAcademicYears();
-        const active = years.find((item: any) => item.isActive);
-        if (active?.name) {
-          setActiveYearName(active.name);
-        }
-      } catch {
-        setActiveYearName("Active academic year");
-      }
-    };
-
-    syncActiveYear();
     setExamTypeOptions(DEFAULT_EXAM_TYPES);
   }, [open]);
 

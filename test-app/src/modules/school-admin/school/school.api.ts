@@ -1,20 +1,51 @@
-import api from "@/src/services/api"; // axios instance
+import { baseApi } from "@/src/store/api/baseApi";
 
-export const getSchoolApi = async () => {
-  try {
-    const res = await api.get("/school");
-    return res.data;
-  } catch {
-    return null;
-  }
+type ApiEnvelope<T> = {
+  data: T;
+  message?: string;
+  success?: boolean;
 };
 
-export const createSchoolApi = async (data: FormData) => {
-  const res = await api.post("/school", data, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
-  });
-
-  return res.data;
+export type SchoolProfile = {
+  address?: string;
+  checkInCloseTime?: string;
+  checkInOpenTime?: string;
+  checkOutCloseTime?: string;
+  logo?: string;
+  name?: string;
+  schoolName?: string;
+  schoolEndTime?: string;
+  schoolStartTime?: string;
+  seal?: string;
+  signature?: string;
+  lateMarkAfterTime?: string;
+  workingDays?: string[];
 };
+
+export const schoolApi = baseApi.injectEndpoints({
+  endpoints: (builder) => ({
+    getSchool: builder.query<SchoolProfile | null, void>({
+      query: () => "/school",
+      transformResponse: (response: ApiEnvelope<SchoolProfile | null>) =>
+        response.data ?? null,
+      providesTags: ["Dashboard"],
+      refetchOnMountOrArgChange: false,
+      refetchOnFocus: false,
+      refetchOnReconnect: false,
+      keepUnusedDataFor: 300,
+    }),
+
+    createSchool: builder.mutation<SchoolProfile, FormData>({
+      query: (body) => ({
+        url: "/school",
+        method: "POST",
+        body,
+      }),
+      transformResponse: (response: ApiEnvelope<SchoolProfile>) => response.data,
+      invalidatesTags: ["Dashboard", "Auth"],
+    }),
+  }),
+  overrideExisting: false,
+});
+
+export const { useCreateSchoolMutation, useGetSchoolQuery } = schoolApi;

@@ -11,6 +11,7 @@ import {
   DollarOutlined,
   BankOutlined,
   EnvironmentOutlined,
+  FileDoneOutlined,
   LogoutOutlined,
   MenuOutlined,
   NotificationOutlined,
@@ -24,21 +25,21 @@ import {
   Avatar,
   Button,
   Drawer,
-  Grid,
   Layout,
   Menu,
   Typography,
 } from "antd";
 import { usePathname, useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { useSchool } from "@/src/modules/school-admin/school/useSchool";
-import BrandLoader from "@/src/components/BrandLoader";
-import { logoutApi } from "@/src/modules/auth/api/auth.api";
+import {
+  useGetProfileQuery,
+  useLogoutMutation,
+} from "@/src/modules/auth/api/auth.api";
 import { WEB_THEME } from "@/src/theme/tokens";
 
 const { Header, Sider, Content } = Layout;
-const { useBreakpoint } = Grid;
 const { Text } = Typography;
 
 const buildMenuItems = (): MenuProps["items"] => [
@@ -104,6 +105,11 @@ const buildMenuItems = (): MenuProps["items"] => [
         key: "/school-admin/results",
         icon: <ProfileOutlined />,
         label: "Results",
+      },
+      {
+        key: "/school-admin/marks-cards",
+        icon: <FileDoneOutlined />,
+        label: "Marks Cards",
       },
     ],
   },
@@ -183,7 +189,8 @@ const getParentGroup = (pathname: string) => {
     pathname.startsWith("/school-admin/periods") ||
     pathname.startsWith("/school-admin/timetable") ||
     pathname.startsWith("/school-admin/exams") ||
-    pathname.startsWith("/school-admin/results")
+    pathname.startsWith("/school-admin/results") ||
+    pathname.startsWith("/school-admin/marks-cards")
   ) {
     return "academic";
   }
@@ -237,9 +244,11 @@ export default function SchoolAdminLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { school, loading } = useSchool(pathname);
-  const screens = useBreakpoint();
-  const isMobile = !screens.md;
+  const [hasToken, setHasToken] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const sessionQuery = useGetProfileQuery(undefined, { skip: !hasToken });
+  const { school } = useSchool(pathname);
+  const [logout] = useLogoutMutation();
   const schoolName = school?.name || school?.schoolName || "School Admin";
   const schoolAddress = school?.address || "School ERP admin workspace";
 
@@ -254,10 +263,26 @@ export default function SchoolAdminLayout({
     return group ? [group] : [];
   }, [pathname]);
 
+  useEffect(() => {
+    setHasToken(Boolean(localStorage.getItem("token")));
+
+    const updateViewport = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    updateViewport();
+    window.addEventListener("resize", updateViewport);
+
+    return () => {
+      window.removeEventListener("resize", updateViewport);
+    };
+  }, []);
+
   const handleNavigate = async ({ key }: { key: string }) => {
     if (key === "logout") {
-      await logoutApi().catch(() => undefined);
+      await logout().unwrap().catch(() => undefined);
       localStorage.removeItem("token");
+      localStorage.removeItem("refreshToken");
       router.push("/");
       setMobileOpen(false);
       return;
@@ -285,6 +310,13 @@ export default function SchoolAdminLayout({
       }}
     />
   );
+
+  useEffect(() => {
+    if (!hasToken || !sessionQuery.isError) return;
+
+    localStorage.removeItem("token");
+    router.replace("/");
+  }, [hasToken, router, sessionQuery.isError]);
 
   return (
     <Layout style={{ minHeight: "100vh", background: "#F4F7FB" }}>
@@ -413,75 +445,57 @@ export default function SchoolAdminLayout({
               />
             )}
 
-            {loading ? (
-              <div
+            <>
+              <Avatar
+                size={isMobile ? 32 : 38}
+                src={school?.logo || undefined}
                 style={{
-                  alignItems: "center",
-                  display: "flex",
-                  flex: 1,
-                  justifyContent: "center",
-                  minHeight: 44,
+                  background:
+                    "linear-gradient(135deg, #DBEAFE 0%, #EFF6FF 100%)",
+                  color: WEB_THEME.colors.primaryDark,
+                  border: "1px solid rgba(29, 78, 216, 0.12)",
+                  flexShrink: 0,
                 }}
               >
-                <BrandLoader compact />
-              </div>
-            ) : school ? (
-              <>
-                <Avatar
-                  size={isMobile ? 32 : 38}
-                  src={school.logo || undefined}
-                  style={{
-                    background:
-                      "linear-gradient(135deg, #DBEAFE 0%, #EFF6FF 100%)",
-                    color: WEB_THEME.colors.primaryDark,
-                    border: "1px solid rgba(29, 78, 216, 0.12)",
-                    flexShrink: 0,
-                  }}
-                >
-                  {!school.logo && schoolName.charAt(0)}
-                </Avatar>
+                {(!school?.logo && schoolName.charAt(0)) || "S"}
+              </Avatar>
+              <div
+                style={{
+                  display: "flex",
+                  flex: 1,
+                  flexDirection: "column",
+                  justifyContent: "center",
+                  minWidth: 0,
+                }}
+              >
                 <div
                   style={{
-                    display: "flex",
-                    flex: 1,
-                    flexDirection: "column",
-                    justifyContent: "center",
-                    minWidth: 0,
+                    color: WEB_THEME.colors.textPrimary,
+                    fontSize: isMobile ? 14 : 15,
+                    fontWeight: 800,
+                    lineHeight: 1.1,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
                   }}
                 >
-                  <div
-                    style={{
-                      color: WEB_THEME.colors.textPrimary,
-                      fontSize: isMobile ? 14 : 15,
-                      fontWeight: 800,
-                      lineHeight: 1.1,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {schoolName}
-                  </div>
-                  <div
-                    style={{
-                      color: WEB_THEME.colors.textMuted,
-                      fontSize: isMobile ? 10 : 11,
-                      lineHeight: 1.15,
-                      marginTop: 1,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {schoolAddress}
-                  </div>
+                  {schoolName}
                 </div>
-              </>
-            ) : (
-              <span style={{ color: WEB_THEME.colors.textMuted }}>
-                School profile not set
-              </span>
-            )}
+                <div
+                  style={{
+                    color: WEB_THEME.colors.textMuted,
+                    fontSize: isMobile ? 10 : 11,
+                    lineHeight: 1.15,
+                    marginTop: 1,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {schoolAddress}
+                </div>
+              </div>
+            </>
           </div>
         </Header>
 

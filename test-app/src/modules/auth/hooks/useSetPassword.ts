@@ -1,17 +1,16 @@
-import { useState } from "react";
-import { setPassword } from "../api/auth.api";
+import { useCallback } from "react";
+
+import { useSetPasswordMutation } from "../api/auth.api";
 
 export const useSetPassword = () => {
-  const [loading, setLoading] = useState(false);
+  const [triggerSetPassword, result] = useSetPasswordMutation();
 
-  const submitPassword = async (token: string, password: string) => {
-    try {
-      setLoading(true);
-      await setPassword(token, password);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const submitPassword = useCallback(
+    async (token: string, password: string) => {
+      await triggerSetPassword({ token, password }).unwrap();
+    },
+    [triggerSetPassword],
+  );
 
-  return { submitPassword, loading };
+  return { submitPassword, loading: result.isLoading };
 };

@@ -6,6 +6,7 @@ export const baseApi = createApi({
   baseQuery: baseQueryWithInterceptor,
 
   tagTypes: [
+    "Auth",
     "Dashboard",
     "Timetable",
     "TeacherAssignments",

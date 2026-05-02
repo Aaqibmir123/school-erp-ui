@@ -7,10 +7,8 @@ import { ISubject } from "@/shared-types/subject.types";
 import { showToast } from "@/src/utils/toast";
 import { useGetSubjectsByClassQuery } from "@/src/modules/school-admin/subjects/subject.api";
 import { useGetClassesQuery } from "../classes/classes";
-import {
-  useAssignSubjectMutation,
-  useGetAcademicYearsQuery,
-} from "./teacherAssignment.api";
+import { useAssignSubjectMutation } from "./teacherAssignment.api";
+import { useGetAcademicYearsQuery } from "../academic-year/academicYear.api";
 
 interface Props {
   open: boolean;

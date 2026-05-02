@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Card, Empty, Space, Typography } from "antd";
+import { Button, Card, Empty, Grid, Typography } from "antd";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -16,6 +16,8 @@ export default function TeacherAssignmentsPage() {
   const params = useParams();
   const teacherId = params.teacherId as string;
   const [page, setPage] = useState(1);
+  const screens = Grid.useBreakpoint();
+  const isCompact = !screens.md;
 
   const { data: teachers = [] } = useGetTeachersQuery();
   const teacher = teachers.find((item) => item._id === teacherId);
@@ -39,18 +41,28 @@ export default function TeacherAssignmentsPage() {
     <Card
       title="Teacher Subject Assignments"
       extra={
-        <Button onClick={() => router.push("/school-admin/teachers")}>
-          Back To Teachers
-        </Button>
+        !isCompact ? (
+          <Button onClick={() => router.push("/school-admin/teachers")}>
+            Back To Teachers
+          </Button>
+        ) : null
       }
     >
-      <Space orientation="vertical" size={4} style={{ marginBottom: 16 }}>
+      {isCompact ? (
+        <div style={{ marginBottom: 16 }}>
+          <Button block onClick={() => router.push("/school-admin/teachers")}>
+            Back To Teachers
+          </Button>
+        </div>
+      ) : null}
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 16 }}>
         <Title level={5} style={{ margin: 0 }}>
           {teacher
             ? `${teacher.firstName || ""} ${teacher.lastName || ""}`.trim()
             : "Selected Teacher"}
         </Title>
-      </Space>
+      </div>
 
       {!isLoading && !isFetching && assignments.length === 0 ? (
         <Empty description="No subject assignments are saved for this teacher yet" />

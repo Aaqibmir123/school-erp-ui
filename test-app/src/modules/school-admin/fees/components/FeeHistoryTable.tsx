@@ -173,14 +173,14 @@ export default function FeeHistoryTable({ student }: any) {
           padding: 14,
         }}
       >
-        <Space orientation="vertical" size={2}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
           <Text strong style={{ color: "#1d4ed8" }}>
             Fee history for {student?.name}
           </Text>
           <Text type="secondary">
             Buttons stay wrapped on smaller screens, so nothing spills outside the card.
           </Text>
-        </Space>
+        </div>
       </div>
 
       <ResponsiveTable

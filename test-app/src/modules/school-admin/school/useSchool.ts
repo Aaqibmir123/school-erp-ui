@@ -1,25 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo } from "react";
 
 import { APP_ENV } from "@/src/config/env";
-import { getSchoolApi } from "./school.api";
-
-type SchoolProfile = {
-  address?: string;
-  checkInCloseTime?: string;
-  checkInOpenTime?: string;
-  checkOutCloseTime?: string;
-  logo?: string;
-  name?: string;
-  schoolName?: string;
-  schoolEndTime?: string;
-  schoolStartTime?: string;
-  seal?: string;
-  signature?: string;
-  lateMarkAfterTime?: string;
-  workingDays?: string[];
-};
+import { SchoolProfile, useGetSchoolQuery } from "./school.api";
 
 const resolveAssetUrl = (value?: string) => {
   if (!value) return undefined;
@@ -31,40 +15,24 @@ const resolveAssetUrl = (value?: string) => {
   return `${APP_ENV.SERVER_URL}${value.startsWith("/") ? "" : "/"}${value}`;
 };
 
-export const useSchool = (refreshKey?: string) => {
-  const [school, setSchool] = useState<SchoolProfile | null>(null);
-  const [loading, setLoading] = useState(false);
+const normalizeSchool = (data: SchoolProfile | null | undefined) =>
+  data
+    ? {
+        ...data,
+        logo: resolveAssetUrl(data.logo),
+        seal: resolveAssetUrl(data.seal),
+        signature: resolveAssetUrl(data.signature),
+      }
+    : null;
 
-  const fetchSchool = async () => {
-    try {
-      setLoading(true);
-      const data: SchoolProfile | null = await getSchoolApi();
-      setSchool(
-        data
-          ? {
-              ...data,
-              logo: resolveAssetUrl(data.logo),
-              seal: resolveAssetUrl(data.seal),
-              signature: resolveAssetUrl(data.signature),
-            }
-        : null,
-      );
-    } catch (error) {
-      setSchool(null);
-    } finally {
-      setLoading(false);
-    }
-  };
+export const useSchool = (_refreshKey?: string) => {
+  const { data, isLoading, isFetching, refetch } = useGetSchoolQuery();
 
-  useEffect(() => {
-    // Refetch when the layout path changes so the header reflects the latest
-    // school name/logo immediately after saving the profile page.
-    fetchSchool();
-  }, [refreshKey]);
+  const school = useMemo(() => normalizeSchool(data), [data]);
 
   useEffect(() => {
     const handleSchoolUpdated = () => {
-      fetchSchool();
+      void refetch();
     };
 
     window.addEventListener("school-profile-updated", handleSchoolUpdated);
@@ -72,7 +40,7 @@ export const useSchool = (refreshKey?: string) => {
     return () => {
       window.removeEventListener("school-profile-updated", handleSchoolUpdated);
     };
-  }, []);
+  }, [refetch]);
 
-  return { school, loading, refetch: fetchSchool };
+  return { school, loading: isLoading, refetch };
 };

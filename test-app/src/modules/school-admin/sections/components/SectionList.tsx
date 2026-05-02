@@ -1,19 +1,21 @@
 "use client";
 
-import { App, Button, Space, Table, Tag } from "antd";
-import { useMemo } from "react";
+import ResponsiveTable from "@/src/components/ResponsiveTable";
+import { App, Button, Tag } from "antd";
+import { memo, useCallback, useMemo } from "react";
 
 import { useDeleteSectionMutation, useGetSectionsQuery } from "../sectionApi";
 
 import { showToast } from "@/src/utils/toast";
 import type { ColumnsType } from "antd/es/table";
 import type { Section } from "@/shared-types/section.types";
+
 interface SectionGroup {
   className: string;
   sections: Section[];
 }
 
-export default function SectionList({ classId }: { classId?: string }) {
+function SectionList({ classId }: { classId?: string }) {
   const { message } = App.useApp();
   const { data, isLoading } = useGetSectionsQuery(
     classId ? { classId } : {},
@@ -21,7 +23,6 @@ export default function SectionList({ classId }: { classId?: string }) {
 
   const [deleteSection, { isLoading: deleting }] = useDeleteSectionMutation();
 
-  // 🔥 group data (typed)
   const groupedData: SectionGroup[] = useMemo(() => {
     if (!data) return [];
 
@@ -43,53 +44,55 @@ export default function SectionList({ classId }: { classId?: string }) {
     }));
   }, [data]);
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = useCallback(async (id: string) => {
     try {
       const res = await deleteSection(id).unwrap();
       showToast.apiResponse(res, "Section Deleted");
     } catch (err: any) {
       message.error(err?.data?.message || "Delete failed");
     }
-  };
+  }, [deleteSection, message]);
 
-  // 🔥 typed columns
-  const columns: ColumnsType<SectionGroup> = [
-    {
-      title: "Class",
-      dataIndex: "className",
-    },
-    {
-      title: "Sections",
-      render: (_, record) => (
-        <Space wrap>
-          {record.sections.map((s) => (
-            <Tag key={s._id}>{s.name}</Tag>
-          ))}
-        </Space>
-      ),
-    },
-    {
-      title: "Action",
-      render: (_, record) => (
-        <Space wrap>
-          {record.sections.map((s) => (
-            <Button
-              key={s._id}
-              danger
-              size="small"
-              loading={deleting}
-              onClick={() => handleDelete(s._id)}
-            >
-              Delete {s.name}
-            </Button>
-          ))}
-        </Space>
-      ),
-    },
-  ];
+  const columns: ColumnsType<SectionGroup> = useMemo(
+    () => [
+      {
+        title: "Class",
+        dataIndex: "className",
+      },
+      {
+        title: "Sections",
+        render: (_, record) => (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {record.sections.map((s) => (
+              <Tag key={s._id}>{s.name}</Tag>
+            ))}
+          </div>
+        ),
+      },
+      {
+        title: "Action",
+        render: (_, record) => (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {record.sections.map((s) => (
+              <Button
+                key={s._id}
+                danger
+                size="small"
+                loading={deleting}
+                onClick={() => handleDelete(s._id)}
+              >
+                Delete {s.name}
+              </Button>
+            ))}
+          </div>
+        ),
+      },
+    ],
+    [deleting, handleDelete],
+  );
 
   return (
-    <Table
+    <ResponsiveTable
       rowKey="className"
       columns={columns}
       dataSource={groupedData}
@@ -99,3 +102,4 @@ export default function SectionList({ classId }: { classId?: string }) {
   );
 }
 
+export default memo(SectionList);

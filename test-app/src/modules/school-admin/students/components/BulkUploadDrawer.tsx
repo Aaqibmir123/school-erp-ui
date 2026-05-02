@@ -1,8 +1,9 @@
 "use client";
 
-import { App, Button, Drawer, Table, Tag, Upload } from "antd";
+import { App, Button, Drawer, Tag, Upload } from "antd";
 
 import { useState } from "react";
+import ResponsiveTable from "@/src/components/ResponsiveTable";
 
 import {
   useImportStudentsMutation,
@@ -161,7 +162,7 @@ export default function BulkUploadDrawer({ open, onClose }: Props) {
         Preview
       </Button>
 
-      <Table
+      <ResponsiveTable
         style={{ marginTop: 20 }}
         columns={columns}
         dataSource={preview}

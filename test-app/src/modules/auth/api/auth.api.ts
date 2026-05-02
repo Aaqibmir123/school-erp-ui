@@ -1,10 +1,10 @@
-import {
+import { baseApi } from "@/src/store/api/baseApi";
+
+import type {
   ApplySchoolDTO,
   LoginDTO,
   LoginResponse,
 } from "@/shared-types/auth.types";
-
-import api from "../../../services/api";
 
 type ApiEnvelope<T> = {
   data: T;
@@ -12,38 +12,131 @@ type ApiEnvelope<T> = {
   success: boolean;
 };
 
-export const applySchoolApi = async (data: ApplySchoolDTO) => {
-  const response = await api.post<ApiEnvelope<unknown>>("/auth/apply-school", data);
+const syncSession = (session?: Pick<LoginResponse, "token" | "refreshToken">) => {
+  if (typeof window === "undefined" || !session?.token) return;
 
-  return response.data.data;
+  localStorage.setItem("token", session.token);
+
+  if (session.refreshToken) {
+    localStorage.setItem("refreshToken", session.refreshToken);
+  }
 };
 
-export const loginApi = async (data: LoginDTO) => {
-  const response = await api.post<ApiEnvelope<LoginResponse>>("/auth/login", data);
-
-  return response.data.data;
+const clearToken = () => {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem("token");
+  localStorage.removeItem("refreshToken");
 };
 
-export const refreshSessionApi = async () => {
-  const response = await api.post<ApiEnvelope<LoginResponse>>("/auth/refresh");
+export const authApi = baseApi.injectEndpoints({
+  endpoints: (builder) => ({
+    login: builder.mutation<LoginResponse, LoginDTO>({
+      query: (body) => ({
+        url: "/auth/login",
+        method: "POST",
+        body,
+      }),
+      transformResponse: (response: ApiEnvelope<LoginResponse>) =>
+        response.data,
+      async onQueryStarted(_arg, { queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          syncSession(data);
+        } catch {
+          // Error handling happens in the UI layer.
+        }
+      },
+      invalidatesTags: ["Auth"],
+    }),
 
-  return response.data.data;
-};
+    refreshSession: builder.mutation<LoginResponse, void>({
+      query: () => ({
+        url: "/auth/refresh",
+        method: "POST",
+      }),
+      transformResponse: (response: ApiEnvelope<LoginResponse>) =>
+        response.data,
+      async onQueryStarted(_arg, { queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          syncSession(data);
+        } catch {
+          clearToken();
+        }
+      },
+      invalidatesTags: ["Auth"],
+    }),
 
-export const logoutApi = async () => {
-  const response = await api.post<ApiEnvelope<{ loggedOut: boolean }>>(
-    "/auth/logout",
-  );
+    getProfile: builder.query<LoginResponse, void>({
+      query: () => ({
+        url: "/auth/refresh",
+        method: "POST",
+      }),
+      transformResponse: (response: ApiEnvelope<LoginResponse>) =>
+        response.data,
+      async onQueryStarted(_arg, { queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          syncSession(data);
+        } catch {
+          // No-op: profile request is used as a session bootstrap.
+        }
+      },
+      refetchOnMountOrArgChange: false,
+      refetchOnFocus: false,
+      refetchOnReconnect: false,
+      keepUnusedDataFor: 300,
+      providesTags: ["Auth"],
+    }),
 
-  return response.data.data;
-};
+    logout: builder.mutation<{ loggedOut: boolean }, void>({
+      query: () => ({
+        url: "/auth/logout",
+        method: "POST",
+      }),
+      transformResponse: (response: ApiEnvelope<{ loggedOut: boolean }>) =>
+        response.data,
+      async onQueryStarted(_arg, { queryFulfilled }) {
+        try {
+          await queryFulfilled;
+        } finally {
+          clearToken();
+        }
+      },
+      invalidatesTags: ["Auth"],
+    }),
 
-export const setPassword = async (token: string, password: string) => {
-  const response = await api.post<ApiEnvelope<unknown>>("/auth/set-password", {
-    password,
-    token,
-  });
+    applySchool: builder.mutation<unknown, ApplySchoolDTO>({
+      query: (body) => ({
+        url: "/auth/apply-school",
+        method: "POST",
+        body,
+      }),
+      transformResponse: (response: ApiEnvelope<unknown>) => response.data,
+    }),
 
-  return response.data.data;
-};
+    setPassword: builder.mutation<
+      unknown,
+      {
+        token: string;
+        password: string;
+      }
+    >({
+      query: (body) => ({
+        url: "/auth/set-password",
+        method: "POST",
+        body,
+      }),
+      transformResponse: (response: ApiEnvelope<unknown>) => response.data,
+    }),
+  }),
+});
 
+export const {
+  useApplySchoolMutation,
+  useGetProfileQuery,
+  useLoginMutation,
+  useLogoutMutation,
+  useRefreshSessionMutation,
+  useSetPasswordMutation,
+} = authApi;

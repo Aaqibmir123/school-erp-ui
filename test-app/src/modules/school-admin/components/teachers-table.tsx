@@ -10,19 +10,22 @@ import {
 import {
   Avatar,
   Button,
+  Card,
   Descriptions,
   Dropdown,
   Modal,
   Space,
   Tag,
+  Typography,
 } from "antd";
 import { useRouter } from "next/navigation";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import ResponsiveTable from "@/src/components/ResponsiveTable";
 import { APP_ENV } from "@/src/config/env";
 import { showToast } from "@/src/utils/toast";
 import AssignSubjectModal from "../assign-subject/AssignSubjectModal";
+
 interface Teacher {
   _id: string;
   employeeId: string;
@@ -45,14 +48,16 @@ interface Props {
   onRefresh?: () => void;
 }
 
-export default function TeachersTable({
+const { Text } = Typography;
+
+function TeachersTable({
   teachers,
   loading,
   onEdit,
   onDelete,
-  onRefresh,
 }: Props) {
   const router = useRouter();
+  const [isCompact, setIsCompact] = useState(false);
 
   const [viewModal, setViewModal] = useState<{
     open: boolean;
@@ -80,6 +85,19 @@ export default function TeachersTable({
 
   const [deleting, setDeleting] = useState(false);
 
+  useEffect(() => {
+    const updateViewport = () => {
+      setIsCompact(window.innerWidth < 992);
+    };
+
+    updateViewport();
+    window.addEventListener("resize", updateViewport);
+
+    return () => {
+      window.removeEventListener("resize", updateViewport);
+    };
+  }, []);
+
   const getImageUrl = useCallback((fileName?: string) => {
     if (!fileName) return undefined;
     if (/^https?:\/\//i.test(fileName) || fileName.startsWith("data:")) {
@@ -100,7 +118,40 @@ export default function TeachersTable({
     } finally {
       setDeleting(false);
     }
-  }, [deleteConfirm.teacher, onDelete, deleting]);
+  }, [deleteConfirm.teacher, deleting, onDelete]);
+
+  const handleActionClick = useCallback(
+    (action: string, teacher: Teacher) => {
+      switch (action) {
+        case "view":
+          setViewModal({ open: true, teacher });
+          break;
+        case "assign":
+          setAssignModal({ open: true, teacher });
+          break;
+        case "assignments":
+          router.push(`/school-admin/teacher-assignments/${teacher._id}`);
+          break;
+        case "edit":
+          if (onEdit) {
+            onEdit(teacher);
+          } else {
+            showToast.error("Edit function not configured");
+          }
+          break;
+        case "delete":
+          if (onDelete) {
+            setDeleteConfirm({ open: true, teacher });
+          } else {
+            showToast.error("Delete function not configured");
+          }
+          break;
+        default:
+          break;
+      }
+    },
+    [onDelete, onEdit, router],
+  );
 
   const handleActionClick = useCallback(
     (action: string, teacher: Teacher) => {
@@ -362,21 +413,107 @@ export default function TeachersTable({
     );
   };
 
+  const renderCompactCard = useCallback(
+    (teacher: Teacher, index: number) => {
+      const imageUrl = getImageUrl(teacher.profileImage);
+      const initial = teacher.firstName?.charAt(0)?.toUpperCase();
+
+      return (
+        <Card
+          key={teacher._id}
+          size="small"
+          style={{
+            borderRadius: 18,
+            boxShadow: "0 12px 28px rgba(15, 23, 42, 0.06)",
+            marginBottom: 12,
+          }}
+          styles={{ body: { padding: 14 } }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <Avatar
+              size={44}
+              src={imageUrl}
+              icon={<UserOutlined />}
+              style={{
+                backgroundColor: !imageUrl ? "#1890ff" : undefined,
+                fontWeight: 600,
+              }}
+            >
+              {!imageUrl && initial}
+            </Avatar>
+
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <Text type="secondary" style={{ fontSize: 12, display: "block" }}>
+                #{index + 1} • {teacher.employeeId}
+              </Text>
+              <strong style={{ fontSize: 15 }}>
+                {teacher.firstName} {teacher.lastName}
+              </strong>
+              {teacher.status ? (
+                <div style={{ marginTop: 6 }}>
+                  <Tag
+                    color={teacher.status === "active" ? "success" : "default"}
+                    style={{ borderRadius: 999, margin: 0 }}
+                  >
+                    {teacher.status}
+                  </Tag>
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 12 }}>
+            {teacher.phone ? <Text type="secondary">📞 {teacher.phone}</Text> : null}
+            {teacher.email ? <Text type="secondary">✉️ {teacher.email}</Text> : null}
+            {teacher.qualification ? (
+              <Text type="secondary">Qualification: {teacher.qualification}</Text>
+            ) : null}
+          </div>
+
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
+            <Button size="small" onClick={() => handleActionClick("view", teacher)}>
+              View
+            </Button>
+            <Button size="small" onClick={() => handleActionClick("assign", teacher)}>
+              Assign
+            </Button>
+            <Button size="small" onClick={() => handleActionClick("assignments", teacher)}>
+              Assignments
+            </Button>
+            <Button size="small" onClick={() => handleActionClick("edit", teacher)}>
+              Edit
+            </Button>
+            <Button danger size="small" onClick={() => handleActionClick("delete", teacher)}>
+              Delete
+            </Button>
+          </div>
+        </Card>
+      );
+    },
+    [getImageUrl, handleActionClick],
+  );
+
   return (
     <>
-      <ResponsiveTable
-        rowKey="_id"
-        columns={columns}
-        dataSource={teachers}
-        loading={loading}
-        pagination={{
-          pageSize: 10,
-          showSizeChanger: true,
-          showTotal: (total: number) => `Total ${total} teachers`,
-        }}
-        scroll={{ x: 800 }}
-        size="middle"
-      />
+      {isCompact ? (
+        <div>
+          {teachers.map((teacher, index) => renderCompactCard(teacher, index))}
+        </div>
+      ) : (
+        <ResponsiveTable
+          rowKey="_id"
+          columns={columns}
+          dataSource={teachers}
+          loading={loading}
+          pagination={{
+            pageSize: 10,
+            showSizeChanger: true,
+            showTotal: (total: number) => `Total ${total} teachers`,
+          }}
+          scroll={{ x: 800 }}
+          size="middle"
+        />
+      )}
 
       {renderViewModal()}
 
@@ -411,3 +548,5 @@ export default function TeachersTable({
     </>
   );
 }
+
+export default TeachersTable;

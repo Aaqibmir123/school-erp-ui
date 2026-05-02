@@ -15,7 +15,6 @@ import {
   Modal,
   Space,
   Tag,
-  Table,
   Tooltip,
   Typography,
   App,
@@ -25,11 +24,12 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import BrandLoader from "@/src/components/BrandLoader";
+import ResponsiveTable from "@/src/components/ResponsiveTable";
 import { useGetExamsQuery } from "./exam.api";
 import {
   useGetAdmitCardStudentsQuery,
   usePreviewAdmitCardMutation,
-  useReleaseAdmitCardsMutation,
+  useToggleAdmitCardApprovalMutation,
 } from "./admitCard.api";
 import { showToast } from "@/src/utils/toast";
 import { APP_ENV } from "@/src/config/env";
@@ -45,20 +45,24 @@ const resolvePdfUrl = (pdfUrl?: string | null) => {
 export default function AdmitCardPage({ examId }: { examId: string }) {
   const router = useRouter();
   const screens = Grid.useBreakpoint();
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const { data: exams = [] } = useGetExamsQuery();
   const { data: students = [], isFetching, refetch } = useGetAdmitCardStudentsQuery(examId, {
     skip: !examId,
   });
   const [previewAdmitCard] = usePreviewAdmitCardMutation();
-  const [releaseAdmitCards, { isLoading: releasing }] = useReleaseAdmitCardsMutation();
+  const [toggleAdmitCardApproval, { isLoading: approving }] =
+    useToggleAdmitCardApprovalMutation();
 
   const currentExam = useMemo(
     () => exams.find((item) => item._id === examId),
     [exams, examId],
   );
 
-  const releasedCount = students.filter((item) => item.status === "released").length;
+  const approvedCount = students.filter((item) =>
+    item.approvalStatus ? item.approvalStatus === "approved" : item.status === "released",
+  ).length;
+  const allApproved = students.length > 0 && approvedCount === students.length;
 
   const [previewing, setPreviewing] = useState(false);
   const [previewImageLoading, setPreviewImageLoading] = useState(false);
@@ -112,14 +116,37 @@ export default function AdmitCardPage({ examId }: { examId: string }) {
     }
   };
 
-  const handleRelease = async () => {
+  const handleToggleApproval = async () => {
     try {
-      const res = await releaseAdmitCards({ examId }).unwrap();
-      message.success(`Released ${res.count} admit cards`);
+      const targetApproved = !allApproved;
+      const res = await toggleAdmitCardApproval({
+        examId,
+        approved: targetApproved,
+      }).unwrap();
+      message.success(
+        res.message ||
+          (targetApproved
+            ? `Approved ${res.data?.count ?? 0} admit cards`
+            : "Approval revoked successfully"),
+      );
       refetch();
     } catch (error: any) {
-      showToast.apiError(error, "Release failed");
+      showToast.apiError(error, "Approval update failed");
     }
+  };
+
+  const confirmApprovalToggle = () => {
+    const targetApproved = !allApproved;
+
+    modal.confirm({
+      title: targetApproved ? "Approve admit cards?" : "Revoke approval?",
+      content: targetApproved
+        ? "Are you sure to approve it? Approved admit cards will be visible to students."
+        : "Are you sure to revoke approval? Students will no longer see these admit cards.",
+      okText: targetApproved ? "Approve" : "Revoke",
+      cancelText: "Cancel",
+      onOk: handleToggleApproval,
+    });
   };
 
   const columns = [
@@ -153,8 +180,9 @@ export default function AdmitCardPage({ examId }: { examId: string }) {
     {
       title: "Status",
       render: (_: any, row: any) =>
-        row.status === "released" ? (
-          <Tag color="green">Released</Tag>
+        row.approvalStatus === "approved" ||
+        (!row.approvalStatus && row.status === "released") ? (
+          <Tag color="green">Approved</Tag>
         ) : (
           <Tag color="orange">Draft</Tag>
         ),
@@ -227,7 +255,7 @@ export default function AdmitCardPage({ examId }: { examId: string }) {
               Admit Cards
             </Title>
             <Text type="secondary">
-              Preview one student, then approve and release all cards for this exam.
+              Preview one student, then approve or revoke all cards for this exam.
             </Text>
             <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
               <Tag color="blue">{currentExam?.name || "Exam"}</Tag>
@@ -250,17 +278,25 @@ export default function AdmitCardPage({ examId }: { examId: string }) {
             flexWrap: "wrap",
           }}
         >
-          <Tag color="green">Released: {releasedCount}</Tag>
+          <Tag color="green">Approved: {approvedCount}</Tag>
           <Tag color="blue">Total: {students.length}</Tag>
-          <Tooltip title={currentExam?.isPublished ? "Release admit cards" : "Publish exam first, then release admit cards"}>
+          <Tooltip
+            title={
+              currentExam?.isPublished
+                ? allApproved
+                  ? "Revoke approval"
+                  : "Approve admit cards"
+                : "Publish exam first, then approve admit cards"
+            }
+          >
             <Button
               type="primary"
               icon={<CheckCircleOutlined />}
-              onClick={handleRelease}
-              loading={releasing}
-              disabled={students.length === 0 || !currentExam?.isPublished}
+              onClick={confirmApprovalToggle}
+              loading={approving}
+              disabled={students.length === 0 || (!currentExam?.isPublished && !allApproved)}
             >
-              Approve & Release
+              {allApproved ? "Revoke Approval" : "Approve Admit Cards"}
             </Button>
           </Tooltip>
         </div>
@@ -273,12 +309,11 @@ export default function AdmitCardPage({ examId }: { examId: string }) {
         </Button>
       </div>
 
-      <Table
+      <ResponsiveTable
         rowKey="_id"
         dataSource={students}
         columns={columns}
         pagination={false}
-        scroll={{ x: 880 }}
         locale={{
           emptyText: (
             <Empty

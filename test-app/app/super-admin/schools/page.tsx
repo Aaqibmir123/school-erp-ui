@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Card, Empty, Grid, Space, Table, Tag, Typography } from "antd";
+import { Button, Card, Empty, Grid, Table, Tag, Typography } from "antd";
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
@@ -34,10 +34,15 @@ export default function SchoolsPage() {
           boxShadow: "0 16px 40px rgba(15, 23, 42, 0.06)",
         }}
       >
-        <Space
-          align={isMobile ? "start" : "center"}
-          direction={isMobile ? "vertical" : "horizontal"}
-          style={{ justifyContent: "space-between", width: "100%" }}
+        <div
+          style={{
+            alignItems: isMobile ? "flex-start" : "center",
+            display: "flex",
+            flexDirection: isMobile ? "column" : "row",
+            gap: 16,
+            justifyContent: "space-between",
+            width: "100%",
+          }}
         >
           <div>
             <Title level={3} style={{ marginBottom: 4 }}>
@@ -48,19 +53,24 @@ export default function SchoolsPage() {
             </Paragraph>
           </div>
 
-          <Button block={isMobile} icon={<ReloadOutlined />} onClick={() => void refetch()} loading={loading}>
+          <Button
+            block={isMobile}
+            icon={<ReloadOutlined />}
+            onClick={() => void refetch()}
+            loading={loading}
+          >
             Refresh
           </Button>
-        </Space>
+        </div>
       </Card>
 
       <Card variant="borderless" title="All Schools">
         {isMobile ? (
-          <Space direction="vertical" size={12} style={{ width: "100%" }}>
+          <div style={{ display: "flex", flexDirection: "column", width: "100%", gap: 12 }}>
             {schools.length ? (
               schools.map((school) => (
                 <Card key={school._id} size="small" style={{ borderRadius: 18 }}>
-                  <Space direction="vertical" size={10} style={{ width: "100%" }}>
+                  <div style={{ display: "flex", flexDirection: "column", width: "100%", gap: 10 }}>
                     <div>
                       <Title level={5} style={{ marginBottom: 4 }}>
                         {school.schoolName}
@@ -68,13 +78,13 @@ export default function SchoolsPage() {
                       <Tag color={statusColor(school.status)}>{school.status}</Tag>
                     </div>
 
-                    <Space direction="vertical" size={2}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                       <strong>{school.principalName}</strong>
                       <span>{school.email}</span>
                       <span>{school.phone}</span>
-                    </Space>
+                    </div>
 
-                    <Space direction="vertical" style={{ width: "100%" }} size={8}>
+                    <div style={{ display: "flex", flexDirection: "column", width: "100%", gap: 8 }}>
                       {school.status === "PENDING" && (
                         <Button
                           type="primary"
@@ -124,14 +134,14 @@ export default function SchoolsPage() {
                           Disable
                         </Button>
                       )}
-                    </Space>
-                  </Space>
+                    </div>
+                  </div>
                 </Card>
               ))
             ) : (
               <Empty description="No schools found" />
             )}
-          </Space>
+          </div>
         ) : (
           <Table
             rowKey="_id"
@@ -160,13 +170,13 @@ export default function SchoolsPage() {
                   </Tag>
                 ),
               },
-              {
-                title: "Actions",
-                render: (_: unknown, record: { _id: string; status: "PENDING" | "APPROVED" | "REJECTED" }) => (
-                  <Space wrap>
-                    {record.status === "PENDING" && (
-                      <Button
-                        type="primary"
+                  {
+                    title: "Actions",
+                    render: (_: unknown, record: { _id: string; status: "PENDING" | "APPROVED" | "REJECTED" }) => (
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        {record.status === "PENDING" && (
+                          <Button
+                            type="primary"
                         onClick={async () => {
                           try {
                             await handleApprove(record._id);
@@ -206,14 +216,14 @@ export default function SchoolsPage() {
                             showToast.apiError(error, "Could not disable school");
                           }
                         }}
-                      >
-                        Disable
-                      </Button>
-                    )}
-                  </Space>
-                ),
-              },
-            ]}
+                          >
+                            Disable
+                          </Button>
+                        )}
+                      </div>
+                    ),
+                  },
+                ]}
             scroll={{ x: 900 }}
           />
         )}

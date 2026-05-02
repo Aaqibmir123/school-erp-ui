@@ -27,7 +27,7 @@ import { useState } from "react";
 import { useEffect } from "react";
 
 import { showToast } from "@/src/utils/toast";
-import { useGetAcademicYearsQuery } from "../assign-subject/teacherAssignment.api";
+import { useGetAcademicYearsQuery } from "../academic-year/academicYear.api";
 import {
   useCreateNoticeMutation,
   useDeleteNoticeMutation,

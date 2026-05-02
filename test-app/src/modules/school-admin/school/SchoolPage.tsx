@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 
 import { showToast } from "@/src/utils/toast";
 
-import { createSchoolApi } from "./school.api";
+import { useCreateSchoolMutation } from "./school.api";
 import { useSchool } from "./useSchool";
 import styles from "./SchoolPage.module.css";
 
@@ -28,6 +28,7 @@ const SchoolPage = () => {
   const router = useRouter();
   const { school } = useSchool();
   const [saving, setSaving] = useState(false);
+  const [createSchool] = useCreateSchoolMutation();
 
   const [previewOverrides, setPreviewOverrides] = useState<{
     logo?: string;
@@ -83,7 +84,7 @@ const SchoolPage = () => {
       if (signatureFile) formData.append("signature", signatureFile);
       if (sealFile) formData.append("seal", sealFile);
 
-      await createSchoolApi(formData);
+      await createSchool(formData).unwrap();
 
       window.dispatchEvent(new Event("school-profile-updated"));
       showToast.success("School saved successfully");

@@ -1,14 +1,6 @@
 import { baseApi } from "@/src/store/api/baseApi";
 import type { AssignSubjectPayload } from "@/shared-types/teacherAssignment.types";
 
-/* ---------------- TYPES ---------------- */
-
-interface AcademicYear {
-  _id: string;
-  isActive?: boolean;
-  name: string;
-}
-
 /* ---------------- API ---------------- */
 
 export const teacherAssignmentApi = baseApi.injectEndpoints({
@@ -34,21 +26,11 @@ export const teacherAssignmentApi = baseApi.injectEndpoints({
         body,
       }),
     }),
-
-    /* GET ACADEMIC YEARS */
-    getAcademicYears: builder.query<AcademicYear[], void>({
-      query: () => ({
-        url: "/school-admin/academic-years",
-      }),
-      transformResponse: (res: { data: AcademicYear[] }) => res.data,
-      providesTags: ["AcademicYears"],
-    }),
   }),
 });
 
 export const {
   useAssignSubjectMutation,
   useSetTeacherPasswordMutation,
-  useGetAcademicYearsQuery,
 } = teacherAssignmentApi;
 

@@ -1,26 +1,18 @@
-import { useCallback, useState } from "react";
-import {
-  LoginDTO,
-  LoginResponse,
-} from "@/shared-types/auth.types";
-import { loginApi } from "../api/auth.api";
+import { useCallback } from "react";
+
+import { LoginDTO, LoginResponse } from "@/shared-types/auth.types";
+
+import { useLoginMutation } from "../api/auth.api";
 
 export const useLogin = () => {
-  const [loading, setLoading] = useState(false);
+  const [triggerLogin, result] = useLoginMutation();
 
-  const login = useCallback(async (data: LoginDTO) => {
-    try {
-      setLoading(true);
+  const login = useCallback(
+    async (data: LoginDTO) => {
+      return (await triggerLogin(data).unwrap()) as LoginResponse;
+    },
+    [triggerLogin],
+  );
 
-      const result = (await loginApi(data)) as LoginResponse;
-      localStorage.setItem("token", result.token);
-
-      return result;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  return { login, loading };
+  return { login, loading: result.isLoading };
 };
-

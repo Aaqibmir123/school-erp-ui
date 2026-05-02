@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 
-import { Button, Card, Col, Empty, Row, Space, Statistic, Table, Tag, Typography, Grid } from "antd";
+import { Button, Card, Col, Empty, Row, Statistic, Table, Tag, Typography, Grid } from "antd";
 import {
   BankOutlined,
   CheckCircleOutlined,
@@ -45,7 +45,7 @@ export default function AdminDashboard() {
       >
         <Row gutter={[16, 16]} align="middle">
           <Col xs={24} lg={14}>
-            <Space align="start" size={16}>
+            <div style={{ alignItems: "flex-start", display: "flex", gap: 16 }}>
               <div
                 style={{
                   alignItems: "center",
@@ -68,15 +68,22 @@ export default function AdminDashboard() {
                   Monitor new school requests, active schools, and quick account status changes from one place.
                 </Paragraph>
               </div>
-            </Space>
+            </div>
           </Col>
 
           <Col xs={24} lg={10}>
-            <Space wrap style={{ justifyContent: "flex-end", width: "100%" }}>
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                justifyContent: "flex-end",
+                width: "100%",
+              }}
+            >
               <Button icon={<ReloadOutlined />} onClick={() => void refetch()} loading={loading}>
                 Refresh
               </Button>
-            </Space>
+            </div>
           </Col>
         </Row>
       </Card>
@@ -122,11 +129,11 @@ export default function AdminDashboard() {
             extra={<Text type="secondary">{pendingSchools.length} awaiting review</Text>}
           >
             {isMobile ? (
-              <Space direction="vertical" style={{ width: "100%" }} size={12}>
+              <div style={{ display: "flex", flexDirection: "column", width: "100%", gap: 12 }}>
                 {pendingSchools.length ? (
                   pendingSchools.map((school: any) => (
                     <Card key={school._id} size="small">
-                      <Space direction="vertical" style={{ width: "100%" }} size={4}>
+                      <div style={{ display: "flex", flexDirection: "column", width: "100%", gap: 4 }}>
                         <strong>{school.schoolName}</strong>
                         <Text type="secondary">{school.principalName}</Text>
                         <Button
@@ -143,13 +150,13 @@ export default function AdminDashboard() {
                         >
                           Approve
                         </Button>
-                      </Space>
+                      </div>
                     </Card>
                   ))
                 ) : (
                   <Empty description="No new requests right now" />
                 )}
-              </Space>
+              </div>
             ) : (
               <Table
                 rowKey="_id"
@@ -192,11 +199,11 @@ export default function AdminDashboard() {
             extra={<Text type="secondary">Recent status overview</Text>}
           >
             {isMobile ? (
-              <Space direction="vertical" style={{ width: "100%" }} size={12}>
+              <div style={{ display: "flex", flexDirection: "column", width: "100%", gap: 12 }}>
                 {recentSchools.length ? (
                   recentSchools.map((school: any) => (
                     <Card key={school._id} size="small">
-                      <Space direction="vertical" style={{ width: "100%" }} size={6}>
+                      <div style={{ display: "flex", flexDirection: "column", width: "100%", gap: 6 }}>
                         <strong>{school.schoolName}</strong>
                         <Tag
                           color={
@@ -256,13 +263,13 @@ export default function AdminDashboard() {
                             Disable
                           </Button>
                         )}
-                      </Space>
+                      </div>
                     </Card>
                   ))
                 ) : (
                   <Empty description="No schools yet" />
                 )}
-              </Space>
+              </div>
             ) : (
               <Table
                 rowKey="_id"
@@ -292,7 +299,7 @@ export default function AdminDashboard() {
                   {
                     title: "Action",
                     render: (_: unknown, record: { _id: string; status: "PENDING" | "APPROVED" | "REJECTED" }) => (
-                      <Space>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                         {record.status === "PENDING" ? (
                           <Button
                             type="primary"
@@ -338,7 +345,7 @@ export default function AdminDashboard() {
                             Disable
                           </Button>
                         )}
-                      </Space>
+                      </div>
                     ),
                   },
                 ]}

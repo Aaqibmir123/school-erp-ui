@@ -24,13 +24,24 @@ const isAuthRoute = (args: any) => {
   return String(url).includes("/auth/");
 };
 
+const getRequestMethod = (args: any) => {
+  if (typeof args === "string") return "GET";
+  return String(args?.method || "GET").toUpperCase();
+};
+
 export const baseQueryWithInterceptor = async (
   args: any,
   api: any,
   extraOptions: any,
 ) => {
+  const method = getRequestMethod(args);
+  const shouldToggleGlobalLoading =
+    !isAuthRoute(args) && ["POST", "PUT", "PATCH", "DELETE"].includes(method);
+
   try {
-    api.dispatch(startLoading());
+    if (shouldToggleGlobalLoading) {
+      api.dispatch(startLoading());
+    }
 
     const result = await rawBaseQuery(args, api, extraOptions);
 
@@ -41,18 +52,37 @@ export const baseQueryWithInterceptor = async (
       !isAuthRoute(args)
     ) {
       const refreshResult = await rawBaseQuery(
-        { url: "/auth/refresh", method: "POST" },
+        {
+          url: "/auth/refresh",
+          method: "POST",
+          body:
+            typeof window !== "undefined"
+              ? {
+                  refreshToken: localStorage.getItem("refreshToken") || undefined,
+                }
+              : undefined,
+        },
         api,
         extraOptions,
       );
 
       const refreshedToken = (refreshResult as any)?.data?.data?.token;
+      const refreshedRefreshToken =
+        (refreshResult as any)?.data?.data?.refreshToken ||
+        (typeof window !== "undefined"
+          ? localStorage.getItem("refreshToken")
+          : null);
 
       if (refreshedToken && typeof window !== "undefined") {
         localStorage.setItem("token", refreshedToken);
+        if (refreshedRefreshToken) {
+          localStorage.setItem("refreshToken", refreshedRefreshToken);
+        }
 
         const retry = await rawBaseQuery(args, api, extraOptions);
-        api.dispatch(stopLoading());
+        if (shouldToggleGlobalLoading) {
+          api.dispatch(stopLoading());
+        }
         return retry;
       }
 
@@ -62,11 +92,15 @@ export const baseQueryWithInterceptor = async (
       }
     }
 
-    api.dispatch(stopLoading());
+    if (shouldToggleGlobalLoading) {
+      api.dispatch(stopLoading());
+    }
 
     return result;
   } catch (error) {
-    api.dispatch(stopLoading());
+    if (shouldToggleGlobalLoading) {
+      api.dispatch(stopLoading());
+    }
     return { error };
   }
 };

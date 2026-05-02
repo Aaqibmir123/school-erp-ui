@@ -1,8 +1,9 @@
 "use client";
 
-import { App, Button, Card, Table } from "antd";
+import { App, Button, Card } from "antd";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import ResponsiveTable from "@/src/components/ResponsiveTable";
 
 import {
   useSaveTimetableMutation,
@@ -279,7 +280,7 @@ if (!pid) continue;
 
   return (
     <Card title="Assign Timetable">
-      <Table
+      <ResponsiveTable
         rowKey="_id"
         dataSource={sortedPeriods}
         columns={columns}
