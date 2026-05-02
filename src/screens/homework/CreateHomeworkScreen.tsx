@@ -2,7 +2,7 @@
 
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
   FlatList,
@@ -23,13 +23,18 @@ import {
   useUpdateHomeworkMutation,
 } from "../../api/teacher/teacherApi";
 import AppButton from "../../theme/Button";
-import { COLORS, RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from "../../theme";
+import { COLORS } from "../../theme";
+import {
+  HomeworkFieldLabel,
+  HomeworkSectionCard,
+  HomeworkSectionTitle,
+  HomeworkSelectChip,
+} from "./components/CreateHomeworkParts";
 
 const CreateHomeworkScreen = ({ route, navigation }: any) => {
   const { subjectId, classId, sectionId, isEdit, homework } = route.params || {};
   const insets = useSafeAreaInsets();
   const isFixedSection = !!sectionId;
-
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [maxMarks, setMaxMarks] = useState("");
@@ -44,15 +49,6 @@ const CreateHomeworkScreen = ({ route, navigation }: any) => {
   const { data: classes = [] } = useGetMyClassesQuery();
   const [createHomework] = useCreateHomeworkMutation();
   const [updateHomework] = useUpdateHomeworkMutation();
-
-  const selectedContext = useMemo(
-    () => ({
-      className: selectedClass?.className || "",
-      sectionName: selectedSection?.name || "",
-      subjectName: selectedSubject?.subjectName || "",
-    }),
-    [selectedClass, selectedSection, selectedSubject],
-  );
 
   useEffect(() => {
     if (isEdit && homework) {
@@ -165,66 +161,82 @@ const CreateHomeworkScreen = ({ route, navigation }: any) => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
+    <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={styles.flex}
       >
         <ScrollView
+          style={styles.scroll}
           contentContainerStyle={[
-            styles.container,
-            { paddingBottom: 96 + insets.bottom },
+            styles.content,
+            { paddingBottom: 16 },
           ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.heroCard}>
-            <Text style={styles.kicker}>Homework workspace</Text>
-            <Text style={styles.title}>
-              {isEdit ? "Edit Homework" : "Create Homework"}
-            </Text>
-            <Text style={styles.subtitle}>
-              Build a clear assignment with clean spacing and quick class
-              selection.
-            </Text>
+          <View style={styles.header}>
+            <View style={styles.headerTextWrap}>
+              <View style={styles.badge}>
+                <Ionicons name="clipboard-outline" size={13} color={COLORS.primary} />
+                <Text style={styles.kicker}>Homework</Text>
+              </View>
+            </View>
+
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => navigation.goBack()}
+              style={styles.closeBtn}
+            >
+              <Ionicons name="close" size={20} color={COLORS.textPrimary} />
+            </Pressable>
           </View>
 
-          <View style={styles.card}>
-            <SectionTitle title="Homework details" />
-            <FieldLabel label="Title" />
-            <TextInput
-              style={styles.input}
-              placeholder="Enter homework title"
-              placeholderTextColor={COLORS.textTertiary}
-              value={title}
-              onChangeText={setTitle}
-            />
+          <HomeworkSectionCard>
+            <HomeworkSectionTitle title="Homework details" icon="sparkles-outline" />
+            <HomeworkFieldLabel label="Title" icon="create-outline" />
+            <View style={styles.inputRow}>
+              <Ionicons name="create-outline" size={16} color={COLORS.primary} />
+              <TextInput
+                style={styles.input}
+                placeholder="Enter homework title"
+                placeholderTextColor={COLORS.textTertiary}
+                value={title}
+                onChangeText={setTitle}
+              />
+            </View>
 
-            <FieldLabel label="Description" />
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder="Describe the task, instructions, and expectations"
-              placeholderTextColor={COLORS.textTertiary}
-              value={description}
-              onChangeText={setDescription}
-              multiline
-              textAlignVertical="top"
-            />
+            <HomeworkFieldLabel label="Description" icon="reader-outline" />
+            <View style={[styles.inputRow, styles.textAreaRow]}>
+              <Ionicons name="reader-outline" size={16} color={COLORS.primary} />
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="Describe the task, instructions, and expectations"
+                placeholderTextColor={COLORS.textTertiary}
+                value={description}
+                onChangeText={setDescription}
+                multiline
+                textAlignVertical="top"
+              />
+            </View>
 
-            <FieldLabel label="Max Marks" />
-            <TextInput
-              style={styles.input}
-              placeholder="Enter marks (optional)"
-              placeholderTextColor={COLORS.textTertiary}
-              value={maxMarks}
-              onChangeText={setMaxMarks}
-              keyboardType="numeric"
-            />
-          </View>
+            <HomeworkFieldLabel label="Max Marks" icon="trophy-outline" />
+            <View style={styles.inputRow}>
+              <Ionicons name="trophy-outline" size={16} color={COLORS.primary} />
+              <TextInput
+                style={styles.input}
+                placeholder="Enter marks"
+                placeholderTextColor={COLORS.textTertiary}
+                value={maxMarks}
+                onChangeText={setMaxMarks}
+                keyboardType="numeric"
+              />
+            </View>
+          </HomeworkSectionCard>
 
-          <View style={styles.card}>
-            <SectionTitle title="Class and subject" />
-            <FieldLabel label="Select Class" />
+          <HomeworkSectionCard>
+            <HomeworkSectionTitle title="Class and subject" icon="school-outline" />
+            <HomeworkFieldLabel label="Select Class" icon="layers-outline" />
             <FlatList
               horizontal
               data={classes}
@@ -232,7 +244,7 @@ const CreateHomeworkScreen = ({ route, navigation }: any) => {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.chipRow}
               renderItem={({ item }) => (
-                <SelectChip
+                <HomeworkSelectChip
                   label={item.className}
                   active={selectedClass?.classId === item.classId}
                   onPress={() => handleClassSelect(item)}
@@ -242,7 +254,7 @@ const CreateHomeworkScreen = ({ route, navigation }: any) => {
 
             {subjects.length > 0 ? (
               <>
-                <FieldLabel label="Select Subject" />
+                <HomeworkFieldLabel label="Select Subject" icon="book-outline" />
                 <FlatList
                   horizontal
                   data={subjects}
@@ -250,7 +262,7 @@ const CreateHomeworkScreen = ({ route, navigation }: any) => {
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.chipRow}
                   renderItem={({ item }) => (
-                    <SelectChip
+                    <HomeworkSelectChip
                       label={item.subjectName}
                       active={selectedSubject?.subjectId === item.subjectId}
                       onPress={() => setSelectedSubject(item)}
@@ -262,7 +274,7 @@ const CreateHomeworkScreen = ({ route, navigation }: any) => {
 
             {!isFixedSection && selectedClass ? (
               <>
-                <FieldLabel label="Select Section" />
+                <HomeworkFieldLabel label="Select Section" icon="grid-outline" />
                 {sections.length ? (
                   <FlatList
                     horizontal
@@ -271,7 +283,7 @@ const CreateHomeworkScreen = ({ route, navigation }: any) => {
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={styles.chipRow}
                     renderItem={({ item }) => (
-                      <SelectChip
+                      <HomeworkSelectChip
                         label={item.name}
                         active={selectedSection?._id === item._id}
                         onPress={() => setSelectedSection(item)}
@@ -279,43 +291,21 @@ const CreateHomeworkScreen = ({ route, navigation }: any) => {
                     )}
                   />
                 ) : (
-                  <Text style={styles.helperText}>
-                    No sections found for this class.
-                  </Text>
+                  <Text>No sections found for this class.</Text>
                 )}
               </>
             ) : null}
-          </View>
+          </HomeworkSectionCard>
 
-          <View style={styles.card}>
-            <SectionTitle title="Due date" />
-            <Pressable
-              onPress={() => setShowDate(true)}
-              style={({ pressed }) => [styles.dateBox, pressed && styles.pressed]}
-            >
-              <Ionicons
-                name="calendar-outline"
-                size={18}
-                color={COLORS.primary}
-              />
+          <HomeworkSectionCard>
+            <HomeworkSectionTitle title="Due date" icon="calendar-outline" />
+            <Pressable onPress={() => setShowDate(true)} style={styles.dateRow}>
+              <View style={styles.dateIcon}>
+                <Ionicons name="calendar-outline" size={16} color={COLORS.primary} />
+              </View>
               <Text style={styles.dateText}>{dueDate.toDateString()}</Text>
             </Pressable>
-
-            <Text style={styles.contextText}>
-              {selectedContext.className
-                ? `${selectedContext.className}${selectedContext.sectionName ? ` • Section ${selectedContext.sectionName}` : ""}${selectedContext.subjectName ? ` • ${selectedContext.subjectName}` : ""}`
-                : "Choose a class to see the homework context."}
-            </Text>
-          </View>
-
-          <Pressable
-            onPress={handleSubmit}
-            style={({ pressed }) => [styles.submitBtn, pressed && styles.pressed]}
-          >
-            <Text style={styles.submitText}>
-              {isEdit ? "Update Homework" : "Create Homework"}
-            </Text>
-          </Pressable>
+          </HomeworkSectionCard>
 
           {showDate ? (
             <DateTimePicker
@@ -330,52 +320,13 @@ const CreateHomeworkScreen = ({ route, navigation }: any) => {
           ) : null}
         </ScrollView>
 
-        <View
-          style={[
-            styles.footer,
-            { paddingBottom: Math.max(insets.bottom, SPACING.md) },
-          ]}
-        >
-          <AppButton
-            title={isEdit ? "Update Homework" : "Create Homework"}
-            onPress={handleSubmit}
-          />
+        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+          <AppButton title="Save" onPress={handleSubmit} />
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
-
-const SectionTitle = ({ title }: { title: string }) => (
-  <Text style={styles.sectionTitle}>{title}</Text>
-);
-
-const FieldLabel = ({ label }: { label: string }) => (
-  <Text style={styles.label}>{label}</Text>
-);
-
-const SelectChip = ({
-  active,
-  label,
-  onPress,
-}: {
-  active: boolean;
-  label: string;
-  onPress: () => void;
-}) => (
-  <Pressable
-    onPress={onPress}
-    style={({ pressed }) => [
-      styles.chip,
-      active && styles.chipActive,
-      pressed && styles.chipPressed,
-    ]}
-  >
-    <Text style={[styles.chipText, active && styles.chipTextActive]}>
-      {label}
-    </Text>
-  </Pressable>
-);
 
 export default CreateHomeworkScreen;
 
@@ -384,29 +335,41 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     flex: 1,
   },
-  flex: {
+  content: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+  },
+  scroll: {
     flex: 1,
   },
-  container: {
-    padding: SPACING.lg,
+  footer: {
+    backgroundColor: "rgba(234,241,255,0.98)",
+    borderTopColor: "rgba(191,219,254,0.75)",
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 16,
+    paddingTop: 12,
   },
-  heroCard: {
-    ...SHADOWS.soft,
-    backgroundColor: COLORS.card,
-    borderColor: COLORS.border,
-    borderRadius: RADIUS.xl,
-    borderWidth: 1,
-    marginBottom: SPACING.md,
-    padding: SPACING.md,
+  header: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 12,
   },
-  card: {
-    ...SHADOWS.soft,
-    backgroundColor: COLORS.card,
-    borderColor: COLORS.border,
-    borderRadius: RADIUS.xl,
+  headerTextWrap: {
+    flex: 1,
+    paddingRight: 12,
+  },
+  badge: {
+    alignItems: "center",
+    alignSelf: "flex-start",
+    backgroundColor: "rgba(219,234,254,0.9)",
+    borderColor: "rgba(191,219,254,1)",
+    borderRadius: 999,
     borderWidth: 1,
-    marginBottom: SPACING.md,
-    padding: SPACING.md,
+    flexDirection: "row",
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
   },
   kicker: {
     color: COLORS.primary,
@@ -415,105 +378,69 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
     textTransform: "uppercase",
   },
-  title: {
-    ...TYPOGRAPHY.title,
-    color: COLORS.textPrimary,
-    marginTop: 2,
-  },
-  subtitle: {
-    color: COLORS.textSecondary,
-    marginTop: SPACING.xs,
-  },
-  sectionTitle: {
-    color: COLORS.textPrimary,
-    fontSize: 16,
-    fontWeight: "800",
-    marginBottom: SPACING.xs,
-  },
-  label: {
-    color: COLORS.textSecondary,
-    fontSize: 13,
-    fontWeight: "700",
-    marginBottom: SPACING.xs,
-    marginTop: SPACING.sm,
-  },
-  input: {
-    backgroundColor: COLORS.cardMuted,
-    borderColor: COLORS.border,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    color: COLORS.textPrimary,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
-  },
-  textArea: {
-    minHeight: 100,
-  },
-  chipRow: {
-    paddingBottom: SPACING.xs,
-  },
-  chip: {
-    backgroundColor: COLORS.cardMuted,
-    borderColor: COLORS.border,
-    borderRadius: RADIUS.full,
-    borderWidth: 1,
-    marginRight: SPACING.sm,
-    marginTop: SPACING.xs,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
-  },
-  chipActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  chipPressed: {
-    opacity: 0.92,
-    transform: [{ scale: 0.99 }],
-  },
-  chipText: {
-    color: COLORS.textSecondary,
-    fontWeight: "700",
-  },
-  chipTextActive: {
-    color: COLORS.textInverse,
-  },
-  helperText: {
-    color: COLORS.textTertiary,
-    marginTop: SPACING.xs,
-  },
-  dateBox: {
+  inputRow: {
     alignItems: "center",
     backgroundColor: COLORS.cardMuted,
     borderColor: COLORS.border,
-    borderRadius: RADIUS.md,
+    borderRadius: 16,
     borderWidth: 1,
     flexDirection: "row",
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  textAreaRow: {
+    alignItems: "flex-start",
+  },
+  input: {
+    color: COLORS.textPrimary,
+    flex: 1,
+    fontSize: 14,
+    padding: 0,
+  },
+  textArea: {
+    minHeight: 96,
+    textAlignVertical: "top",
+  },
+  chipRow: {
+    paddingBottom: 4,
+  },
+  dateRow: {
+    alignItems: "center",
+    backgroundColor: COLORS.cardMuted,
+    borderColor: COLORS.border,
+    borderRadius: 16,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  dateIcon: {
+    alignItems: "center",
+    backgroundColor: "rgba(219,234,254,0.8)",
+    borderRadius: 999,
+    height: 28,
+    justifyContent: "center",
+    width: 28,
   },
   dateText: {
     color: COLORS.textPrimary,
+    fontSize: 14,
     fontWeight: "700",
-    marginLeft: 10,
   },
-  contextText: {
-    display: "none",
+  closeBtn: {
+    alignItems: "center",
+    backgroundColor: COLORS.card,
+    borderColor: COLORS.border,
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 40,
+    justifyContent: "center",
+    width: 40,
   },
-  submitBtn: {
-    display: "none",
-  },
-  submitText: {
-    display: "none",
-  },
-  footer: {
-    backgroundColor: COLORS.background,
-    borderTopColor: COLORS.border,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.md,
-  },
-  pressed: {
-    opacity: 0.9,
-    transform: [{ scale: 0.99 }],
+  flex: {
+    flex: 1,
   },
 });

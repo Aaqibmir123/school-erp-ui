@@ -15,8 +15,9 @@ import {
   useGetTodayTimetableQuery,
   useGetWeeklyTimetableQuery,
 } from "../../../api/student/student.api";
-
 import FallbackBanner from "../../../components/FallbackBanner";
+import { COLORS, RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from "@/src/theme";
+import { STUDENT_GLAS_CARD, STUDENT_THEME } from "../studentTheme";
 
 export default function TimetableScreen() {
   const [tab, setTab] = useState<"today" | "weekly">("today");
@@ -40,7 +41,7 @@ export default function TimetableScreen() {
   const formatTime = (time: string) => {
     if (!time) return "";
     const [h, m] = time.split(":");
-    let hour = parseInt(h);
+    let hour = parseInt(h, 10);
     const ampm = hour >= 12 ? "PM" : "AM";
     hour = hour % 12 || 12;
     return `${hour}:${m} ${ampm}`;
@@ -53,10 +54,8 @@ export default function TimetableScreen() {
     })}`;
   };
 
-  /* ================= TODAY ================= */
-
   const renderToday = () => {
-    if (todayLoading) return <ActivityIndicator style={{ marginTop: 40 }} />;
+    if (todayLoading) return <ActivityIndicator style={{ marginTop: 40 }} color={COLORS.primary} />;
 
     if (todayError) {
       return (
@@ -81,9 +80,7 @@ export default function TimetableScreen() {
       <FlatList
         data={todayData}
         keyExtractor={(_, i) => i.toString()}
-        ListHeaderComponent={
-          <Text style={styles.date}>📅 {getTodayDate()}</Text>
-        }
+        ListHeaderComponent={<Text style={styles.date}>📅 {getTodayDate()}</Text>}
         renderItem={({ item, index }) => {
           const label =
             item.sectionName === "All"
@@ -92,30 +89,29 @@ export default function TimetableScreen() {
 
           return (
             <View style={styles.card}>
-              <Text style={styles.period}>P{index + 1}</Text>
-
-              <View style={styles.row}>
-                <View>
-                  <Text style={styles.subject}>{item.subject}</Text>
-                  <Text style={styles.meta}>{label}</Text>
-                  <Text style={styles.teacher}>👨‍🏫 {item.teacher || "N/A"}</Text>
+              <View style={styles.cardHeader}>
+                <View style={styles.periodPill}>
+                  <Text style={styles.periodText}>Period {index + 1}</Text>
                 </View>
-
                 <Text style={styles.time}>
                   {formatTime(item.startTime)} - {formatTime(item.endTime)}
                 </Text>
               </View>
+
+              <Text style={styles.subject}>{item.subject}</Text>
+              <Text style={styles.meta}>{label}</Text>
+              <Text style={styles.teacher}>👨‍🏫 {item.teacher || "N/A"}</Text>
             </View>
           );
         }}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
       />
     );
   };
 
-  /* ================= WEEKLY ================= */
-
   const renderWeekly = () => {
-    if (weeklyLoading) return <ActivityIndicator style={{ marginTop: 40 }} />;
+    if (weeklyLoading) return <ActivityIndicator style={{ marginTop: 40 }} color={COLORS.primary} />;
 
     if (weeklyError) {
       return (
@@ -129,18 +125,22 @@ export default function TimetableScreen() {
 
     if (!Object.keys(weeklyData).length) {
       return (
-        <FallbackBanner
-          title="No Weekly Data"
-          subtitle="Timetable not available"
-        />
+        <FallbackBanner title="No Weekly Data" subtitle="Timetable not available" />
       );
     }
 
     return (
-      <ScrollView>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.weekContent}>
         {Object.keys(weeklyData).map((day) => (
           <View key={day} style={styles.dayCard}>
-            <Text style={styles.day}>{day}</Text>
+            <View style={styles.dayHeader}>
+              <Text style={styles.day}>{day}</Text>
+              <View style={styles.dayPill}>
+                <Text style={styles.dayPillText}>
+                  {weeklyData[day].length} periods
+                </Text>
+              </View>
+            </View>
 
             {weeklyData[day].map((item: any, i: number) => {
               const label =
@@ -150,12 +150,10 @@ export default function TimetableScreen() {
 
               return (
                 <View key={i} style={styles.weekRow}>
-                  <View>
+                  <View style={{ flex: 1 }}>
                     <Text style={styles.subject}>{item.subject}</Text>
                     <Text style={styles.meta}>{label}</Text>
-                    <Text style={styles.teacher}>
-                      👨‍🏫 {item.teacher || "N/A"}
-                    </Text>
+                    <Text style={styles.teacher}>👨‍🏫 {item.teacher || "N/A"}</Text>
                   </View>
 
                   <Text style={styles.time}>
@@ -172,14 +170,12 @@ export default function TimetableScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={["#0f2027", "#2c5364", "#00c9a7"]}
-        style={styles.header}
-      >
+      <LinearGradient colors={STUDENT_THEME.heroGradient} style={styles.header}>
         <View style={styles.headerRow}>
           <Ionicons name="calendar" size={20} color="#fff" />
           <Text style={styles.headerTitle}>Timetable</Text>
         </View>
+        <Text style={styles.headerSub}>Daily and weekly class flow</Text>
       </LinearGradient>
 
       <View style={styles.tabWrapper}>
@@ -188,9 +184,7 @@ export default function TimetableScreen() {
             style={[styles.tab, tab === "today" && styles.activeTab]}
             onPress={() => setTab("today")}
           >
-            <Text
-              style={[styles.tabText, tab === "today" && styles.activeText]}
-            >
+            <Text style={[styles.tabText, tab === "today" && styles.activeText]}>
               Today
             </Text>
           </TouchableOpacity>
@@ -199,114 +193,170 @@ export default function TimetableScreen() {
             style={[styles.tab, tab === "weekly" && styles.activeTab]}
             onPress={() => setTab("weekly")}
           >
-            <Text
-              style={[styles.tabText, tab === "weekly" && styles.activeText]}
-            >
+            <Text style={[styles.tabText, tab === "weekly" && styles.activeText]}>
               Weekly
             </Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      <View style={styles.body}>
-        {tab === "today" ? renderToday() : renderWeekly()}
-      </View>
+      <View style={styles.body}>{tab === "today" ? renderToday() : renderWeekly()}</View>
     </View>
   );
 }
 
-/* ================= STYLES ================= */
-
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f4f6fa" },
-
-  header: {
-    paddingTop: 50,
-    paddingBottom: 20,
-    paddingHorizontal: 16,
-    borderBottomLeftRadius: 25,
-    borderBottomRightRadius: 25,
+  container: {
+    backgroundColor: STUDENT_THEME.background,
+    flex: 1,
   },
-
-  headerRow: { flexDirection: "row", alignItems: "center" },
-
+  header: {
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    paddingHorizontal: 16,
+    paddingTop: 28,
+    paddingBottom: 22,
+  },
+  headerRow: {
+    alignItems: "center",
+    flexDirection: "row",
+  },
   headerTitle: {
     color: "#fff",
     fontSize: 18,
-    fontWeight: "700",
+    fontWeight: "800",
     marginLeft: 8,
   },
-
-  tabWrapper: { marginTop: -15, paddingHorizontal: 16 },
-
+  headerSub: {
+    color: "rgba(255,255,255,0.82)",
+    marginTop: 6,
+  },
+  tabWrapper: {
+    marginTop: -16,
+    paddingHorizontal: 16,
+  },
   tabRow: {
+    backgroundColor: "rgba(255,255,255,0.92)",
+    borderRadius: 18,
     flexDirection: "row",
-    backgroundColor: "#fff",
-    borderRadius: 12,
     overflow: "hidden",
-    elevation: 3,
+    ...SHADOWS.soft,
   },
-
-  tab: { flex: 1, paddingVertical: 10, alignItems: "center" },
-
-  activeTab: { backgroundColor: "#1677ff" },
-
-  tabText: { fontWeight: "600", color: "#555" },
-
-  activeText: { color: "#fff" },
-
-  body: { flex: 1, paddingTop: 10 },
-
+  tab: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 12,
+  },
+  activeTab: {
+    backgroundColor: COLORS.primary,
+  },
+  tabText: {
+    color: COLORS.textSecondary,
+    fontWeight: "800",
+  },
+  activeText: {
+    color: "#fff",
+  },
+  body: {
+    flex: 1,
+    paddingTop: 10,
+  },
   date: {
-    marginLeft: 12,
-    marginBottom: 8,
-    fontSize: 12,
-    color: "#777",
-  },
-
-  card: {
-    backgroundColor: "#fff",
-    marginHorizontal: 12,
+    color: COLORS.textSecondary,
+    fontWeight: "800",
     marginBottom: 10,
-    padding: 12,
-    borderRadius: 12,
-    elevation: 2,
   },
-
-  period: { fontSize: 11, color: "#888" },
-
-  row: {
+  listContent: {
+    paddingBottom: SPACING.xxl,
+    paddingHorizontal: 16,
+    paddingTop: 6,
+  },
+  weekContent: {
+    paddingBottom: SPACING.xxl,
+    paddingHorizontal: 16,
+    paddingTop: 6,
+  },
+  card: {
+    ...STUDENT_GLAS_CARD,
+    ...SHADOWS.soft,
+    borderRadius: RADIUS.xl,
+    marginBottom: SPACING.md,
+    padding: SPACING.lg,
+  },
+  cardHeader: {
+    alignItems: "center",
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 4,
-    alignItems: "center",
+    marginBottom: SPACING.sm,
   },
-
-  subject: { fontSize: 14, fontWeight: "700" },
-
+  periodPill: {
+    backgroundColor: COLORS.primaryLight,
+    borderRadius: RADIUS.full,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  periodText: {
+    color: COLORS.primary,
+    fontSize: 11,
+    fontWeight: "800",
+  },
+  dayCard: {
+    ...STUDENT_GLAS_CARD,
+    ...SHADOWS.card,
+    borderRadius: RADIUS.xl,
+    marginBottom: SPACING.md,
+    padding: SPACING.lg,
+  },
+  dayHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: SPACING.sm,
+  },
+  day: {
+    ...TYPOGRAPHY.sectionTitle,
+    color: COLORS.textPrimary,
+  },
+  dayPill: {
+    backgroundColor: COLORS.cardMuted,
+    borderRadius: RADIUS.full,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  dayPillText: {
+    color: COLORS.textSecondary,
+    fontSize: 11,
+    fontWeight: "800",
+  },
+  row: {},
+  weekRow: {
+    borderTopColor: COLORS.border,
+    borderTopWidth: 1,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: SPACING.sm,
+    paddingTop: SPACING.sm,
+  },
+  subject: {
+    color: COLORS.textPrimary,
+    fontSize: 15,
+    fontWeight: "800",
+  },
   meta: {
+    color: COLORS.textSecondary,
     fontSize: 12,
-    color: "#1677ff",
     marginTop: 2,
   },
-
-  teacher: { fontSize: 12, color: "#666" },
-
-  time: { fontSize: 12, color: "#333" },
-
-  dayCard: {
-    backgroundColor: "#fff",
-    marginHorizontal: 12,
-    marginBottom: 10,
-    padding: 12,
-    borderRadius: 12,
+  teacher: {
+    color: COLORS.textTertiary,
+    fontSize: 12,
+    marginTop: 2,
   },
-
-  day: { fontSize: 14, fontWeight: "700", marginBottom: 6 },
-
-  weekRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 6,
+  time: {
+    color: COLORS.textPrimary,
+    fontSize: 12,
+    fontWeight: "800",
+    marginLeft: SPACING.md,
+    textAlign: "right",
   },
 });

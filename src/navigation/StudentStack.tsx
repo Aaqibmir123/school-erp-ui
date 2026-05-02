@@ -1,14 +1,18 @@
 import { Ionicons } from "@expo/vector-icons";
-import { DrawerActions } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import React from "react";
 import { Pressable, StyleSheet } from "react-native";
 
 import ExamScreen from "../screens/student/ExamScreen/ExamScreen";
+import AdmitCardsScreen from "../screens/student/AdmitCardsScreen/AdmitCardsScreen";
 import FeesScreen from "../screens/student/Fee/FeesScreen";
+import NoticeFeedScreen from "../screens/notices/NoticeFeedScreen";
 import ProfileScreen from "../screens/student/profile/ProfileScreen";
 import StudentResultScreen from "../screens/student/ResultScreen/ResultScreen";
+import StudentTestRecordsScreen from "../screens/student/TestRecordsScreen/TestRecordsScreen";
 import StudentTabNavigator from "./StudentTabNavigator";
+import NoticesHeaderButton from "../components/ui/NoticesHeaderButton";
+import { COLORS, RADIUS, SHADOWS } from "@/src/theme";
 
 const Stack = createNativeStackNavigator();
 
@@ -17,7 +21,7 @@ export default function StudentStack() {
     <Stack.Navigator
       screenOptions={{
         headerStyle: styles.header,
-        headerTintColor: "#fff",
+        headerTintColor: COLORS.textPrimary,
         headerTitleAlign: "center",
         headerTitleStyle: styles.title,
         headerShadowVisible: false,
@@ -27,27 +31,24 @@ export default function StudentStack() {
         name="Tabs"
         component={StudentTabNavigator}
         options={({ navigation }) => ({
-          headerTitle: "Dashboard",
+          headerTitle: "Home",
+          headerRight: () => (
+            <NoticesHeaderButton
+              compact
+              onPress={() => navigation.navigate("Notices")}
+            />
+          ),
           headerLeft: () => (
             <Pressable
               onPress={() =>
-                navigation.getParent()?.dispatch(DrawerActions.openDrawer())
+                (navigation.getParent() as { openDrawer?: () => void } | undefined)?.openDrawer?.()
               }
               style={styles.headerIconBtn}
             >
-              <Ionicons name="menu" size={24} color="#fff" />
+              <Ionicons name="menu" size={24} color={COLORS.textPrimary} />
             </Pressable>
           ),
           headerLeftContainerStyle: styles.headerLeftContainer,
-          headerRight: () => (
-            <Pressable
-              onPress={() => navigation.navigate("Profile")}
-              style={styles.headerIconBtn}
-            >
-              <Ionicons name="person-circle" size={28} color="#fff" />
-            </Pressable>
-          ),
-          headerRightContainerStyle: styles.headerRightContainer,
         })}
       />
 
@@ -68,10 +69,26 @@ export default function StudentStack() {
       />
 
       <Stack.Screen
+        name="AdmitCardsScreen"
+        component={AdmitCardsScreen}
+        options={{
+          headerTitle: "Admit Cards",
+        }}
+      />
+
+      <Stack.Screen
         name="ResultScreen"
         component={StudentResultScreen}
         options={{
-          headerTitle: "Results",
+          headerTitle: "Marks Card",
+        }}
+      />
+
+      <Stack.Screen
+        name="TestRecordsScreen"
+        component={StudentTestRecordsScreen}
+        options={{
+          headerTitle: "Test Records",
         }}
       />
 
@@ -82,28 +99,43 @@ export default function StudentStack() {
           headerTitle: "My Fees",
         }}
       />
+
+      <Stack.Screen
+        name="Notices"
+        component={NoticeFeedScreen}
+        options={{
+          headerTitle: "Notices",
+          headerShown: false,
+        }}
+      />
     </Stack.Navigator>
   );
 }
 
 const styles = StyleSheet.create({
   header: {
-    backgroundColor: "#1677ff",
+    ...SHADOWS.soft,
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    borderBottomColor: COLORS.border,
+    borderBottomWidth: 1,
+    height: 68,
   },
   title: {
-    fontSize: 16,
-    fontWeight: "700",
+    color: COLORS.textPrimary,
+    fontSize: 18,
+    fontWeight: "800",
   },
   headerIconBtn: {
+    backgroundColor: COLORS.card,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.full,
+    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
-    height: 44,
-    width: 44,
+    height: 46,
+    width: 46,
   },
   headerLeftContainer: {
-    paddingLeft: 6,
-  },
-  headerRightContainer: {
-    paddingRight: 6,
+    paddingLeft: 12,
   },
 });

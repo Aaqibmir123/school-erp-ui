@@ -33,13 +33,15 @@ yarn-error.*
 # local env files
 .env*.local
 .env
+.env.*
 backend/.env
 test-app/.env
-backend/
 test-app/.next/
 test-app/node_modules/
 backend/node_modules/
 backend/dist/
+**/firebase*.json
+**/*service-account*.json
 
 # typescript
 *.tsbuildinfo

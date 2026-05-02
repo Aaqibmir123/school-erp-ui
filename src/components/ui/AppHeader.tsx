@@ -1,29 +1,33 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from "@/src/theme";
+import type { ReactNode } from "react";
 
 type AppHeaderProps = {
   title: string;
+  rightElement?: ReactNode;
   onBack?: () => void;
   onMenu?: () => void;
   subtitle?: string;
 };
 
-const AppHeader = ({ title, onBack, onMenu, subtitle }: AppHeaderProps) => {
-  const insets = useSafeAreaInsets();
+const AppHeader = ({ title, rightElement, onBack, onMenu, subtitle }: AppHeaderProps) => {
   const hasBack = !!onBack;
 
   return (
     <SafeAreaView edges={["top"]} style={styles.safeArea}>
-      <View style={[styles.container, { paddingBottom: SPACING.sm }]}>
+      <View style={styles.container}>
         <Pressable
           accessibilityRole="button"
           hitSlop={12}
           onPress={hasBack ? onBack : onMenu}
-          style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}
+          style={({ pressed }) => [
+            styles.iconButton,
+            pressed && styles.pressed,
+          ]}
         >
           <Ionicons
             name={hasBack ? "arrow-back" : "menu"}
@@ -43,10 +47,8 @@ const AppHeader = ({ title, onBack, onMenu, subtitle }: AppHeaderProps) => {
           ) : null}
         </View>
 
-        <View style={[styles.iconButton, { opacity: 0 }]} />
+        {rightElement ?? <View style={[styles.iconButton, { opacity: 0 }]} />}
       </View>
-
-      <View style={[styles.divider, { marginBottom: insets.bottom > 0 ? 0 : SPACING.xs }]} />
     </SafeAreaView>
   );
 };
@@ -61,18 +63,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexDirection: "row",
     justifyContent: "space-between",
+    backgroundColor: "rgba(255,255,255,0.68)",
+    borderBottomColor: "rgba(217,226,236,0.8)",
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.06,
+    shadowRadius: 18,
     paddingHorizontal: SPACING.lg,
+    paddingBottom: SPACING.sm,
     paddingTop: SPACING.sm,
-  },
-  divider: {
-    backgroundColor: COLORS.border,
-    height: StyleSheet.hairlineWidth,
-    opacity: 0.9,
+    elevation: 2,
   },
   iconButton: {
     alignItems: "center",
-    backgroundColor: COLORS.card,
-    borderColor: COLORS.border,
+    backgroundColor: "rgba(255,255,255,0.82)",
+    borderColor: "rgba(217,226,236,0.95)",
     borderRadius: RADIUS.full,
     borderWidth: 1,
     height: 40,

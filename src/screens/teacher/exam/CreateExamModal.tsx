@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   KeyboardAvoidingView,
   Modal,
@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 
+import { useAuth } from "@/src/context/AuthContext";
 import AppButton from "@/src/theme/Button";
 import AppInput from "@/src/theme/Input";
 import { COLORS, RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from "@/src/theme";
@@ -20,11 +21,55 @@ import { showToast } from "@/src/utils/toast";
 import {
   useCreateExamMutation,
   useGetMyClassesQuery,
+  useUpdateExamMutation,
 } from "../../../api/teacher/teacherApi";
 
-const CreateExamModal = ({ visible, onClose }: any) => {
+const ALL_EXAM_TYPE_OPTIONS = [
+  { label: "Written", value: "written" },
+  { label: "Oral", value: "oral" },
+  { label: "Quiz", value: "quiz" },
+  { label: "Class Test", value: "class_test" },
+  { label: "Unit Test", value: "unit_test" },
+  { label: "Mid Term", value: "mid_term" },
+  { label: "Final", value: "final" },
+] as const;
+
+const TEACHER_EXAM_TYPE_OPTIONS = ALL_EXAM_TYPE_OPTIONS.filter((item) =>
+  ["class_test", "unit_test"].includes(item.value),
+);
+
+const normalizeExamType = (value: string) => {
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "_");
+
+  const aliases: Record<string, string> = {
+    class_test: "class_test",
+    classtest: "class_test",
+    written: "written",
+    oral: "oral",
+    quiz: "quiz",
+    unit_test: "unit_test",
+    unittest: "unit_test",
+    mid_term: "mid_term",
+    midterm: "mid_term",
+    final: "final",
+  };
+
+  return aliases[normalized] || "";
+};
+
+const CreateExamModal = ({
+  visible,
+  onClose,
+  editingExam,
+  onSuccess,
+}: any) => {
+  const { role } = useAuth();
   const { data: classes = [] } = useGetMyClassesQuery();
   const [createExam, { isLoading }] = useCreateExamMutation();
+  const [updateExam, { isLoading: isUpdating }] = useUpdateExamMutation();
 
   const [form, setForm] = useState({
     name: "",
@@ -36,6 +81,10 @@ const CreateExamModal = ({ visible, onClose }: any) => {
   const [selectedClass, setSelectedClass] = useState<any>(null);
   const [selectedSection, setSelectedSection] = useState<any>(null);
   const [selectedSubject, setSelectedSubject] = useState<any>(null);
+  const [formError, setFormError] = useState("");
+
+  const examTypeOptions =
+    role === "SCHOOL_ADMIN" ? ALL_EXAM_TYPE_OPTIONS : TEACHER_EXAM_TYPE_OPTIONS;
 
   const formattedClasses = useMemo(() => {
     const map: Record<string, any> = {};
@@ -54,12 +103,89 @@ const CreateExamModal = ({ visible, onClose }: any) => {
     setSelectedClass(null);
     setSelectedSection(null);
     setSelectedSubject(null);
+    setFormError("");
+  };
+
+  useEffect(() => {
+    if (!visible) return;
+
+    if (editingExam) {
+      const classMatch = formattedClasses.find((item: any) =>
+        editingExam.classIds?.some((classItem: any) => {
+          const classId = classItem?._id || classItem?.id || classItem;
+          return String(classId) === String(item.classId);
+        }),
+      );
+
+      const subjectMatch = classMatch?.subjects?.find((subject: any) => {
+        const subjectId = subject?.subjectId || subject?._id || subject?.id;
+        const savedSubject =
+          editingExam.subjectId?._id ||
+          editingExam.subjectId?.id ||
+          editingExam.subjectId;
+        return String(subjectId) === String(savedSubject);
+      });
+
+      const sectionMatch = classMatch?.sections?.find((section: any) => {
+        const sectionId = section?._id || section?.id;
+        const savedSection =
+          editingExam.sectionId?._id ||
+          editingExam.sectionId?.id ||
+          editingExam.sectionId;
+        return String(sectionId) === String(savedSection);
+      });
+
+      const nextExamType = normalizeExamType(editingExam.examType || "");
+
+      setForm({
+        name: editingExam.name || "",
+        examType: nextExamType,
+        totalMarks: String(editingExam.totalMarks ?? ""),
+      });
+      setExamDate(editingExam.date ? new Date(editingExam.date) : new Date());
+      setSelectedClass(classMatch || null);
+      setSelectedSection(sectionMatch || null);
+      setSelectedSubject(subjectMatch || null);
+
+      if (
+        role !== "SCHOOL_ADMIN" &&
+        nextExamType &&
+        !TEACHER_EXAM_TYPE_OPTIONS.some((item) => item.value === nextExamType)
+      ) {
+        setFormError("Teachers can only manage class test or unit test.");
+      } else {
+        setFormError("");
+      }
+
+      return;
+    }
+
+    resetForm();
+  }, [visible, editingExam, formattedClasses, role]);
+
+  const handleClose = () => {
+    resetForm();
+    onClose?.();
   };
 
   const handleSave = async () => {
     try {
+      setFormError("");
+
       if (!form.name.trim() || !form.examType.trim() || !selectedClass) {
-        return showToast.warning("Please fill the required fields");
+        setFormError("Please fill the required fields.");
+        return;
+      }
+
+      const allowedValues = examTypeOptions.map((item) => item.value);
+
+      if (!allowedValues.includes(form.examType as any)) {
+        setFormError(
+          role === "SCHOOL_ADMIN"
+            ? "Please choose a valid exam type."
+            : "Teachers can only create class test or unit test.",
+        );
+        return;
       }
 
       const payload = {
@@ -72,17 +198,31 @@ const CreateExamModal = ({ visible, onClose }: any) => {
         date: examDate.toISOString(),
       };
 
-      await createExam(payload).unwrap();
-      showToast.success("Exam created successfully");
+      if (editingExam?._id) {
+        await updateExam({ id: editingExam._id, payload }).unwrap();
+        showToast.success("Exam updated successfully");
+      } else {
+        await createExam(payload).unwrap();
+        showToast.success("Exam created successfully");
+      }
+
       resetForm();
       onClose?.();
+      onSuccess?.();
     } catch (error: any) {
-      showToast.error(error?.data?.message || "Failed to create exam");
+      const message = error?.data?.message || "Failed to create exam";
+      setFormError(message);
+      showToast.error(message);
     }
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={handleClose}
+    >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={styles.flex}
@@ -92,12 +232,14 @@ const CreateExamModal = ({ visible, onClose }: any) => {
             <View style={styles.header}>
               <View style={styles.headerCopy}>
                 <Text style={styles.kicker}>Exam workspace</Text>
-                <Text style={styles.title}>Create Exam</Text>
+                <Text style={styles.title}>
+                  {editingExam?._id ? "Update Exam" : "Create Exam"}
+                </Text>
               </View>
 
               <Pressable
                 hitSlop={12}
-                onPress={onClose}
+                onPress={handleClose}
                 style={({ pressed }) => [styles.closeBtn, pressed && styles.pressed]}
               >
                 <Ionicons name="close" size={20} color={COLORS.textPrimary} />
@@ -109,6 +251,12 @@ const CreateExamModal = ({ visible, onClose }: any) => {
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.content}
             >
+              {formError ? (
+                <View style={styles.errorBanner}>
+                  <Text style={styles.errorText}>{formError}</Text>
+                </View>
+              ) : null}
+
               <AppInput
                 label="Exam name"
                 placeholder="Mid Term Test"
@@ -120,12 +268,45 @@ const CreateExamModal = ({ visible, onClose }: any) => {
 
               <AppInput
                 label="Exam type"
-                placeholder="Written, oral, quiz"
-                value={form.examType}
-                onChangeText={(value: string) =>
-                  setForm((prev) => ({ ...prev, examType: value }))
+                placeholder="Select exam type"
+                value={
+                  examTypeOptions.find((item) => item.value === form.examType)
+                    ?.label || ""
                 }
+                editable={false}
               />
+
+              <View style={styles.section}>
+                <Text style={styles.sectionLabel}>Choose type</Text>
+                <View style={styles.chipRow}>
+                  {examTypeOptions.map((item) => {
+                    const isActive = form.examType === item.value;
+
+                    return (
+                      <Pressable
+                        key={item.value}
+                        onPress={() =>
+                          setForm((prev) => ({ ...prev, examType: item.value }))
+                        }
+                        style={({ pressed }) => [
+                          styles.chip,
+                          isActive && styles.chipActive,
+                          pressed && styles.chipPressed,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.chipText,
+                            isActive && styles.chipTextActive,
+                          ]}
+                        >
+                          {item.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
 
               <AppInput
                 label="Total marks"
@@ -257,9 +438,9 @@ const CreateExamModal = ({ visible, onClose }: any) => {
 
             <View style={styles.footer}>
               <AppButton
-                title="Save Exam"
+                title={editingExam?._id ? "Update Exam" : "Save Exam"}
                 onPress={handleSave}
-                loading={isLoading}
+                loading={isLoading || isUpdating}
               />
             </View>
           </View>
@@ -343,6 +524,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
     paddingTop: SPACING.lg,
     paddingBottom: SPACING.md,
+  },
+  errorBanner: {
+    backgroundColor: "rgba(239, 68, 68, 0.1)",
+    borderColor: "rgba(239, 68, 68, 0.22)",
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    marginBottom: SPACING.md,
+    padding: SPACING.md,
+  },
+  errorText: {
+    color: COLORS.error,
+    fontSize: 13,
+    fontWeight: "700",
+    lineHeight: 18,
   },
   section: {
     marginTop: SPACING.sm,

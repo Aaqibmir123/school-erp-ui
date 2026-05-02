@@ -6,6 +6,7 @@ import DashboardScreen from "../screens/student/dashboard/DashboardScreen";
 import TimetableScreen from "../screens/student/timetable/TimetableScreen";
 import AttendanceStack from "./AttendanceStack"; 
 import StudentHomeworkStack from "./StudentHomeworkStack";
+import { COLORS, RADIUS, SHADOWS } from "@/src/theme";
 
 const Tab = createBottomTabNavigator();
 
@@ -14,9 +15,12 @@ export default function StudentTabNavigator() {
 
   return (
     <Tab.Navigator
+      detachInactiveScreens
+      lazy
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarHideOnKeyboard: true,
+        freezeOnBlur: true,
         tabBarItemStyle: {
           alignItems: "center",
           justifyContent: "center",
@@ -60,19 +64,28 @@ export default function StudentTabNavigator() {
           return <Ionicons name={iconName} size={size} color={color} />;
         },
 
-        tabBarActiveTintColor: "#1677ff",
-        tabBarInactiveTintColor: "#888",
+        tabBarActiveTintColor: COLORS.primary,
+        tabBarInactiveTintColor: COLORS.textTertiary,
 
         tabBarStyle: {
-          borderTopColor: "#E2E8F0",
+          ...SHADOWS.card,
+          backgroundColor: "rgba(255, 255, 255, 0.94)",
+          borderTopColor: COLORS.border,
           borderTopWidth: 1,
-          height: 60 + insets.bottom,
-          paddingBottom: Math.max(insets.bottom, 8),
-          paddingTop: 6,
+          height: 68 + insets.bottom,
+          paddingBottom: Math.max(insets.bottom, 10),
+          paddingTop: 8,
+          borderTopLeftRadius: RADIUS.xl,
+          borderTopRightRadius: RADIUS.xl,
+          overflow: "hidden",
         },
       })}
     >
-      <Tab.Screen name="Dashboard" component={DashboardScreen} />
+      <Tab.Screen
+        name="Dashboard"
+        component={DashboardScreen}
+        options={{ title: "Home" }}
+      />
 
       <Tab.Screen name="Homework" component={StudentHomeworkStack} />
       <Tab.Screen name="Timetable" component={TimetableScreen} />

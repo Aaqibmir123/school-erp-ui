@@ -1,7 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import {
-  ActivityIndicator,
   FlatList,
   StyleSheet,
   Text,
@@ -9,6 +8,7 @@ import {
   View,
 } from "react-native";
 
+import BrandLoader from "@/src/components/BrandLoader";
 import {
   useDeleteExamMutation,
   useGetMyExamsQuery,
@@ -82,7 +82,7 @@ const ExamListScreen = ({ navigation }: any) => {
   if (isLoading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+        <BrandLoader />
       </View>
     );
   }

@@ -1,6 +1,13 @@
 import { View, Text, StyleSheet } from "react-native";
 
-export default function HeaderCard({ name, className }: any) {
+import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from "@/src/theme";
+
+type Props = {
+  name: string;
+  className: string;
+};
+
+export default function HeaderCard({ name, className }: Props) {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Hi {name} 👋</Text>
@@ -10,7 +17,19 @@ export default function HeaderCard({ name, className }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { marginBottom: 20 },
-  title: { fontSize: 22, fontWeight: "700" },
-  subtitle: { color: "#666", marginTop: 4 },
+  container: {
+    backgroundColor: COLORS.card,
+    borderRadius: RADIUS.lg,
+    marginBottom: SPACING.md,
+    padding: SPACING.lg,
+  },
+  title: {
+    ...TYPOGRAPHY.title,
+    color: COLORS.textPrimary,
+  },
+  subtitle: {
+    ...TYPOGRAPHY.body,
+    color: COLORS.textSecondary,
+    marginTop: SPACING.xs,
+  },
 });

@@ -1,12 +1,15 @@
 import { Ionicons } from "@expo/vector-icons";
 import { DrawerContentScrollView, DrawerItemList } from "@react-navigation/drawer";
+import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "../context/AuthContext";
+import { APP_ENV } from "@/src/config/env";
 import { COLORS, RADIUS, SHADOWS, SPACING } from "../theme";
+import { STUDENT_GLAS_CARD } from "@/src/screens/student/studentTheme";
 
 export default function CustomDrawer(props: any) {
   const { navigation } = props;
@@ -31,7 +34,14 @@ export default function CustomDrawer(props: any) {
         selectedStudent.lastName?.charAt(0) || ""
       }`
     : "S";
-  const avatarUri = selectedStudent?.image;
+  const resolveImageUri = (value?: string | null) => {
+    if (!value) return null;
+    if (/^https?:\/\//i.test(value) || value.startsWith("file:")) return value;
+    return `${APP_ENV.SERVER_URL}${value}`;
+  };
+  const avatarUri = resolveImageUri(
+    selectedStudent?.profileImage || selectedStudent?.image,
+  );
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom", "left"]}>
@@ -41,14 +51,18 @@ export default function CustomDrawer(props: any) {
           contentContainerStyle={styles.content}
         >
           <LinearGradient
-            colors={[COLORS.primaryDark, COLORS.primary]}
+            colors={["#0F172A", "#1D4ED8", "#38BDF8"]}
             style={styles.header}
           >
             <View style={styles.profileRow}>
-              <View style={styles.avatarShell}>
-                {avatarUri ? (
-                  <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
-                ) : (
+            <View style={styles.avatarShell}>
+              {avatarUri ? (
+                <Image
+                  source={{ uri: avatarUri }}
+                  style={styles.avatarImage}
+                  contentFit="cover"
+                />
+              ) : (
                   <View style={styles.avatarOverlay}>
                     <Text style={styles.avatarText}>{avatarLabel}</Text>
                   </View>
@@ -70,7 +84,10 @@ export default function CustomDrawer(props: any) {
                 styles.profileBtn,
                 pressed && styles.pressed,
               ]}
-              onPress={() => navigation.navigate("Profile")}
+              onPress={() => {
+                navigation.closeDrawer?.();
+                navigation.navigate("Home", { screen: "Profile" });
+              }}
             >
               <Ionicons name="person-outline" size={16} color={COLORS.primary} />
               <Text style={styles.profileText}>View Profile</Text>
@@ -106,11 +123,13 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   header: {
+    ...SHADOWS.card,
     borderBottomLeftRadius: RADIUS.xl,
     borderBottomRightRadius: RADIUS.xl,
     margin: SPACING.md,
     marginBottom: SPACING.sm,
     padding: SPACING.lg,
+    ...STUDENT_GLAS_CARD,
   },
   profileRow: {
     alignItems: "center",
@@ -179,7 +198,9 @@ const styles = StyleSheet.create({
   logout: {
     ...SHADOWS.soft,
     alignItems: "center",
-    backgroundColor: COLORS.card,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    borderColor: COLORS.border,
+    borderWidth: 1,
     borderRadius: RADIUS.lg,
     flexDirection: "row",
     justifyContent: "center",

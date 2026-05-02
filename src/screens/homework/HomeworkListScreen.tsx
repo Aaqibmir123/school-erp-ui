@@ -1,229 +1,243 @@
 "use client";
 
+import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import React, { useState } from "react";
-import {
-  ActivityIndicator,
-  FlatList,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 
+import BrandLoader from "@/src/components/BrandLoader";
+import FallbackBanner from "@/src/components/FallbackBanner";
+import HomeworkCard from "@/src/components/homework/HomeworkCard";
+import { COLORS, RADIUS, SPACING } from "@/src/theme";
+import { showToast } from "@/src/utils/toast";
 import {
   useDeleteHomeworkMutation,
   useGetTeacherHomeworkQuery,
 } from "../../api/teacher/teacherApi";
 
-import HomeworkCard from "@/src/components/homework/HomeworkCard";
-
 const HomeworkListScreen = () => {
   const navigation = useNavigation<any>();
+  const openCreateHomework = (params?: any) => {
+    const rootNav = navigation.getParent?.()?.getParent?.();
 
-  const { data: homework = [], isLoading } = useGetTeacherHomeworkQuery();
+    if (rootNav?.navigate) {
+      rootNav.navigate("CreateHomework", params);
+      return;
+    }
+
+    navigation.navigate("CreateHomework", params);
+  };
+
+  const {
+    data: homework = [],
+    isLoading,
+    refetch,
+  } = useGetTeacherHomeworkQuery();
   const [deleteHomework, { isLoading: deleting }] = useDeleteHomeworkMutation();
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  /* ================= DELETE ================= */
   const handleDelete = async () => {
     if (!deleteId) return;
 
     try {
       await deleteHomework(deleteId).unwrap();
+      showToast.success("Homework deleted");
       setDeleteId(null);
+      await refetch();
     } catch {
-      // WHY: Deletion errors are already shown via UI flows elsewhere, so we
-      // avoid console noise in production builds.
+      showToast.error("Unable to delete homework");
     }
   };
 
-  /* ================= LOADING ================= */
   if (isLoading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" />
-        <Text>Loading homework...</Text>
+        <BrandLoader />
       </View>
     );
   }
 
-  /* ================= UI ================= */
-
   return (
     <View style={styles.container}>
-      {/* HEADER */}
-      <Text style={styles.heading}>Homework</Text>
+      <View style={styles.heroRow}>
+        <Pressable
+          style={({ pressed }) => [styles.createBtn, pressed && styles.pressed]}
+          onPress={() => openCreateHomework()}
+        >
+          <Ionicons name="add" size={18} color={COLORS.textInverse} />
+          <Text style={styles.createText}>Create Homework</Text>
+        </Pressable>
+      </View>
 
-      {/* CREATE BUTTON */}
-      <TouchableOpacity
-        style={styles.createBtn}
-        onPress={() => navigation.navigate("CreateHomework")}
-      >
-        <Text style={styles.createText}>+ Create Homework</Text>
-      </TouchableOpacity>
+      <FlatList
+        data={homework}
+        keyExtractor={(item) => item._id}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.listContent}
+        refreshing={isLoading}
+        onRefresh={refetch}
+        ListEmptyComponent={
+          <FallbackBanner
+            title="No homework found"
+            subtitle="Create the first assignment to see it here."
+          />
+        }
+        renderItem={({ item }) => (
+          <HomeworkCard
+            item={item}
+            onCheck={() =>
+              navigation.navigate("HomeworkCheck", {
+                homeworkId: item._id,
+                classId: item.classId,
+                subjectId: item.subjectId,
+                sectionId: item.sectionId,
+                maxMarks: item.maxMarks,
+              })
+            }
+            onEdit={() =>
+              openCreateHomework({
+                isEdit: true,
+                homework: item,
+              })
+            }
+            onDelete={() => setDeleteId(item._id)}
+          />
+        )}
+      />
 
-      {/* LIST */}
-      {homework.length === 0 ? (
-        <View style={styles.emptyBox}>
-          <Text style={styles.emptyText}>No homework created yet 📭</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={homework.data}
-          keyExtractor={(item) => item._id}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 40 }}
-          renderItem={({ item }) => (
-            <HomeworkCard
-              item={item}
-              onCheck={() =>
-                navigation.navigate("HomeworkCheck", {
-                  homeworkId: item._id,
-                  students: item.students,
-                  classId: item.classId,
-                  subjectId: item.subjectId,
-                  sectionId: item.sectionId, // 💣 ADD THIS
-                })
-              }
-              onEdit={() =>
-                navigation.navigate("CreateHomework", {
-                  isEdit: true,
-                  homework: item,
-                })
-              }
-              onDelete={() => setDeleteId(item._id)}
-            />
-          )}
-        />
-      )}
-
-      {/* DELETE MODAL */}
-      {deleteId && (
+      {deleteId ? (
         <View style={styles.overlay}>
           <View style={styles.modal}>
-            <Text style={styles.modalTitle}>Delete Homework?</Text>
-
+            <Text style={styles.modalTitle}>Delete homework?</Text>
             <Text style={styles.modalText}>This action cannot be undone.</Text>
 
             <View style={styles.actions}>
-              <TouchableOpacity
-                style={styles.cancelBtn}
+              <Pressable
+                style={({ pressed }) => [
+                  styles.cancelBtn,
+                  pressed && styles.pressed,
+                ]}
                 onPress={() => setDeleteId(null)}
               >
-                <Text style={{ fontWeight: "500" }}>Cancel</Text>
-              </TouchableOpacity>
+                <Text style={styles.cancelText}>Cancel</Text>
+              </Pressable>
 
-              <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete}>
-                {deleting ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={{ color: "#fff", fontWeight: "600" }}>
-                    Delete
-                  </Text>
-                )}
-              </TouchableOpacity>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.deleteBtn,
+                  pressed && styles.pressed,
+                ]}
+                onPress={handleDelete}
+                disabled={deleting}
+              >
+                <Text style={styles.deleteText}>
+                  {deleting ? "Deleting..." : "Delete"}
+                </Text>
+              </Pressable>
             </View>
           </View>
         </View>
-      )}
+      ) : null}
     </View>
   );
 };
 
 export default HomeworkListScreen;
 
-/* ================= STYLES ================= */
-
 const styles = StyleSheet.create({
   container: {
+    backgroundColor: COLORS.background,
     flex: 1,
-    backgroundColor: "#f4f6fb",
-    padding: 14,
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.lg,
   },
-
-  heading: {
-    fontSize: 22,
-    fontWeight: "700",
-    marginBottom: 12,
-    color: "#111",
-  },
-
-  createBtn: {
-    backgroundColor: "#1677ff",
-    paddingVertical: 14,
-    borderRadius: 12,
+  center: {
     alignItems: "center",
-    marginBottom: 14,
-    elevation: 2,
-  },
-
-  createText: {
-    color: "#fff",
-    fontWeight: "700",
-    fontSize: 15,
-  },
-
-  emptyBox: {
-    marginTop: 60,
-    alignItems: "center",
-  },
-
-  emptyText: {
-    color: "#777",
-    fontSize: 14,
-  },
-
-  overlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.4)",
+    flex: 1,
     justifyContent: "center",
+  },
+  heroRow: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: SPACING.md,
+    gap: SPACING.md,
+  },
+  createBtn: {
     alignItems: "center",
+    alignSelf: "flex-start",
+    backgroundColor: COLORS.primary,
+    borderRadius: RADIUS.lg,
+    flexDirection: "row",
+    gap: 6,
+    minHeight: 44,
+    justifyContent: "center",
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.md,
   },
-
+  createText: {
+    color: COLORS.textInverse,
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  listContent: {
+    paddingBottom: SPACING.xl,
+  },
+  overlay: {
+    alignItems: "center",
+    backgroundColor: "rgba(15, 23, 42, 0.48)",
+    bottom: 0,
+    justifyContent: "center",
+    left: 0,
+    position: "absolute",
+    right: 0,
+    top: 0,
+  },
   modal: {
-    width: "85%",
-    backgroundColor: "#fff",
-    borderRadius: 14,
-    padding: 20,
+    backgroundColor: COLORS.card,
+    borderRadius: RADIUS.xl,
+    maxWidth: 360,
+    padding: SPACING.lg,
+    width: "86%",
   },
-
   modalTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#111",
+    color: COLORS.textPrimary,
+    fontSize: 18,
+    fontWeight: "800",
   },
-
   modalText: {
-    marginTop: 8,
-    color: "#555",
+    color: COLORS.textSecondary,
+    marginTop: SPACING.xs,
   },
-
   actions: {
     flexDirection: "row",
-    justifyContent: "flex-end",
-    marginTop: 20,
+    gap: SPACING.sm,
+    marginTop: SPACING.md,
   },
-
   cancelBtn: {
-    marginRight: 10,
-    padding: 10,
-  },
-
-  deleteBtn: {
-    backgroundColor: "#ff4d4f",
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-
-  center: {
-    flex: 1,
-    justifyContent: "center",
     alignItems: "center",
+    backgroundColor: COLORS.cardMuted,
+    borderRadius: RADIUS.md,
+    flex: 1,
+    paddingVertical: SPACING.sm,
+  },
+  cancelText: {
+    color: COLORS.textPrimary,
+    fontWeight: "700",
+  },
+  deleteBtn: {
+    alignItems: "center",
+    backgroundColor: COLORS.danger,
+    borderRadius: RADIUS.md,
+    flex: 1,
+    paddingVertical: SPACING.sm,
+  },
+  deleteText: {
+    color: COLORS.textInverse,
+    fontWeight: "800",
+  },
+  pressed: {
+    opacity: 0.92,
+    transform: [{ scale: 0.99 }],
   },
 });

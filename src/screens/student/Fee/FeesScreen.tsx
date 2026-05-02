@@ -1,16 +1,17 @@
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
+import * as WebBrowser from "expo-web-browser";
 import { memo, useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  Linking,
   RefreshControl,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 import FallbackBanner from "@/src/components/FallbackBanner";
 import { APP_ENV } from "@/src/config/env";
@@ -30,6 +31,18 @@ type FeeItem = {
   totalAmount: number;
 };
 
+const resolveReceiptUrl = (pdfUrl?: string | null) => {
+  if (!pdfUrl) return null;
+  if (/^https?:\/\//i.test(pdfUrl)) return pdfUrl;
+  return `${APP_ENV.SERVER_URL}${pdfUrl.startsWith("/") ? "" : "/"}${pdfUrl}`;
+};
+
+const buildReceiptFileUri = (pdfUrl: string, id: string) => {
+  const fileName = pdfUrl.split("/").pop() || `receipt-${id}.pdf`;
+  const safeFileName = fileName.endsWith(".pdf") ? fileName : `${fileName}.pdf`;
+  return new FileSystem.File(FileSystem.Paths.cache, safeFileName);
+};
+
 function FeesScreen() {
   const { data = [], isLoading, isFetching, isError, refetch } = useGetMyFeesQuery();
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
@@ -40,23 +53,46 @@ function FeesScreen() {
     try {
       setDownloadingId(id);
 
-      const fileName = pdfUrl.split("/").pop() || `receipt-${id}.pdf`;
-      const fileUri = `${FileSystem.Paths.document}/${fileName}`;
+      const resolvedUrl = resolveReceiptUrl(pdfUrl);
+      if (!resolvedUrl) {
+        throw new Error("Receipt URL missing");
+      }
 
-      const result = await FileSystem.downloadAsync(
-        `${APP_ENV.SERVER_URL}${pdfUrl}`,
-        fileUri,
+      const targetFile = buildReceiptFileUri(pdfUrl, id);
+      const downloadedFile = await FileSystem.File.downloadFileAsync(
+        resolvedUrl,
+        targetFile,
+        { idempotent: true },
       );
 
       showToast.success("Receipt downloaded");
 
       if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(result.uri);
+        await Sharing.shareAsync(downloadedFile.uri, {
+          dialogTitle: "Share receipt",
+          mimeType: "application/pdf",
+        });
       }
-    } catch {
+    } catch (error) {
+      console.error("Receipt download failed:", error);
       showToast.error("Download failed");
     } finally {
       setDownloadingId(null);
+    }
+  }, []);
+
+  const handleViewReceipt = useCallback(async (pdfUrl?: string | null) => {
+    const resolvedUrl = resolveReceiptUrl(pdfUrl);
+    if (!resolvedUrl) {
+      showToast.error("Receipt not available");
+      return;
+    }
+
+    try {
+      await WebBrowser.openBrowserAsync(resolvedUrl);
+    } catch (error) {
+      console.error("Receipt preview failed:", error);
+      showToast.error("Preview unavailable");
     }
   }, []);
 
@@ -68,12 +104,17 @@ function FeesScreen() {
 
       return (
         <View style={styles.card}>
-          <View style={styles.header}>
-            <View>
+          <View style={styles.receiptHeader}>
+            <View style={styles.receiptIcon}>
+              <Text style={styles.receiptIconText}>R</Text>
+            </View>
+            <View style={styles.receiptHeaderText}>
               <Text style={styles.month}>{item.month}</Text>
               <Text style={styles.type}>{item.feeType?.toUpperCase()} FEE</Text>
             </View>
+          </View>
 
+          <View style={styles.statusRow}>
             <View
               style={[
                 styles.badge,
@@ -86,21 +127,26 @@ function FeesScreen() {
             >
               <Text style={styles.badgeText}>{item.status.toUpperCase()}</Text>
             </View>
+            {item.paidDate ? (
+              <Text style={styles.date}>
+                Paid on {new Date(item.paidDate).toLocaleDateString()}
+              </Text>
+            ) : (
+              <Text style={styles.date}>Receipt ready for review</Text>
+            )}
           </View>
 
-          <View style={styles.amountRow}>
-            <View>
-              <Text style={styles.label}>Total</Text>
+          <View style={styles.receiptGrid}>
+            <View style={styles.receiptBox}>
+              <Text style={styles.label}>Total Amount</Text>
               <Text style={styles.total}>Rs. {item.totalAmount}</Text>
             </View>
-
-            <View>
-              <Text style={styles.label}>Paid</Text>
+            <View style={styles.receiptBox}>
+              <Text style={styles.label}>Paid Amount</Text>
               <Text style={styles.paid}>Rs. {item.paidAmount}</Text>
             </View>
-
-            <View>
-              <Text style={styles.label}>Remaining</Text>
+            <View style={styles.receiptBox}>
+              <Text style={styles.label}>Pending</Text>
               <Text
                 style={[
                   styles.remaining,
@@ -112,19 +158,13 @@ function FeesScreen() {
             </View>
           </View>
 
-          {item.paidDate ? (
-            <Text style={styles.date}>
-              Paid on {new Date(item.paidDate).toLocaleDateString()}
-            </Text>
-          ) : null}
-
           <View style={styles.buttonRow}>
             {hasReceipt ? (
               <TouchableOpacity
                 style={[styles.button, styles.viewBtn]}
-                onPress={() => Linking.openURL(`${APP_ENV.SERVER_URL}${item.pdfUrl}`)}
+                onPress={() => handleViewReceipt(item.pdfUrl)}
               >
-                <Text style={styles.buttonText}>View</Text>
+                <Text style={styles.buttonText}>View Receipt</Text>
               </TouchableOpacity>
             ) : null}
 
@@ -140,7 +180,7 @@ function FeesScreen() {
                 {downloadingId === item._id
                   ? "Downloading..."
                   : hasReceipt
-                    ? "Download"
+                    ? "Download PDF"
                     : "No Receipt"}
               </Text>
             </TouchableOpacity>
@@ -241,9 +281,9 @@ const styles = StyleSheet.create({
   card: {
     ...SHADOWS.card,
     backgroundColor: COLORS.card,
-    borderRadius: RADIUS.xl,
+    borderRadius: 28,
     marginBottom: SPACING.md,
-    padding: SPACING.xl,
+    padding: SPACING.lg,
   },
   center: {
     alignItems: "center",
@@ -260,15 +300,31 @@ const styles = StyleSheet.create({
   date: {
     ...TYPOGRAPHY.caption,
     color: COLORS.textSecondary,
-    marginTop: SPACING.md,
+    marginTop: 0,
   },
   downloadBtn: {
     backgroundColor: COLORS.primary,
   },
-  header: {
+  receiptHeader: {
     alignItems: "center",
     flexDirection: "row",
-    justifyContent: "space-between",
+    gap: SPACING.md,
+  },
+  receiptHeaderText: {
+    flex: 1,
+  },
+  receiptIcon: {
+    alignItems: "center",
+    backgroundColor: COLORS.primaryLight,
+    borderRadius: RADIUS.full,
+    height: 46,
+    justifyContent: "center",
+    width: 46,
+  },
+  receiptIconText: {
+    color: COLORS.primary,
+    fontSize: 18,
+    fontWeight: "900",
   },
   label: {
     ...TYPOGRAPHY.caption,
@@ -303,6 +359,27 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.caption,
     color: COLORS.textSecondary,
     marginTop: SPACING.xs,
+  },
+  receiptGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: SPACING.sm,
+    marginTop: SPACING.lg,
+  },
+  receiptBox: {
+    backgroundColor: COLORS.cardMuted,
+    borderColor: COLORS.border,
+    borderRadius: 18,
+    borderWidth: 1,
+    flexGrow: 1,
+    minWidth: 96,
+    padding: SPACING.md,
+  },
+  statusRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: SPACING.md,
   },
   viewBtn: {
     backgroundColor: COLORS.success,

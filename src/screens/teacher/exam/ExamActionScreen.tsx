@@ -6,9 +6,23 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 /* 💣 TYPE DEFINE YAHI KAR (NO EXTRA FILE) */
 type RootStackParamList = {
-  ExamAction: { examId: string; subjectId: string; classId: string };
+  ExamAction: {
+    examId: string;
+    subjectId: string;
+    classId: string;
+    totalMarks?: number;
+  };
   ExamAttendance: { examId: string; subjectId: string; classId: string };
-  ExamMarks: { examId: string; subjectId: string; classId: string };
+  ExamMarks: {
+    examId: string;
+    subjectId: string;
+    classId: string;
+    totalMarks?: number;
+    sectionId?: string | null;
+    examName?: string;
+    className?: string;
+    sectionName?: string;
+  };
 };
 
 type NavigationProp = NativeStackNavigationProp<

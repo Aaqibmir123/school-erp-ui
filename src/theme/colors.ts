@@ -1,8 +1,8 @@
 export const COLORS = {
-  background: "#F4F7FB",
+  background: "#EAF1FF",
   border: "#D9E2EC",
   card: "#FFFFFF",
-  cardMuted: "#F8FAFC",
+  cardMuted: "#F6F9FF",
   error: "#DC2626",
   danger: "#DC2626",
   dangerSoft: "#FEF2F2",
@@ -13,6 +13,7 @@ export const COLORS = {
   primaryDark: "#0F172A",
   primaryLight: "#DBEAFE",
   primarySoft: "#DBEAFE",
+  surface: "#F8FAFC",
   success: "#16A34A",
   successSoft: "#DCFCE7",
   textInverse: "#F8FAFC",

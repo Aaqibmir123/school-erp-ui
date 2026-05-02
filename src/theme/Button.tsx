@@ -5,6 +5,7 @@ import {
     Text,
     TextStyle,
     TouchableOpacity,
+    View,
     ViewStyle,
 } from "react-native";
 
@@ -14,6 +15,7 @@ type Props = {
   title: string;
   onPress: () => void;
   loading?: boolean;
+  loadingText?: string;
   disabled?: boolean;
   style?: ViewStyle;
   textStyle?: TextStyle;
@@ -24,12 +26,30 @@ const AppButton = ({
   title,
   onPress,
   loading = false,
+  loadingText,
   disabled = false,
   style,
   textStyle,
   variant = "primary",
 }: Props) => {
   const isDisabled = disabled || loading;
+
+  const handlePress = () => {
+    if (__DEV__) {
+      console.log("[AppButton] press", {
+        title,
+        disabled: isDisabled,
+        loading,
+        variant,
+      });
+    }
+
+    if (isDisabled) {
+      return;
+    }
+
+    onPress();
+  };
 
   const getVariantStyle = () => {
     switch (variant) {
@@ -63,7 +83,7 @@ const AppButton = ({
   return (
     <TouchableOpacity
       activeOpacity={0.85}
-      onPress={onPress}
+      onPress={handlePress}
       disabled={isDisabled}
       style={[
         styles.button,
@@ -73,7 +93,12 @@ const AppButton = ({
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={getTextColor()} />
+        <View style={styles.loadingContent}>
+          <ActivityIndicator color={getTextColor()} />
+          <Text style={[styles.text, { color: getTextColor() }, textStyle]}>
+            {loadingText || title}
+          </Text>
+        </View>
       ) : (
         <Text style={[styles.text, { color: getTextColor() }, textStyle]}>
           {title}
@@ -98,6 +123,13 @@ const styles = StyleSheet.create({
   text: {
     fontSize: 15,
     fontWeight: "700",
+  },
+
+  loadingContent: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: SPACING.sm,
+    justifyContent: "center",
   },
 
   disabled: {

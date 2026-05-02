@@ -15,6 +15,7 @@ import {
 } from "@react-navigation/drawer";
 import { LinearGradient } from "expo-linear-gradient";
 
+import { APP_ENV } from "@/src/config/env";
 import { useAuth } from "@/src/context/AuthContext";
 import { COLORS, RADIUS, SHADOWS, SPACING } from "@/src/theme";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -32,59 +33,82 @@ const CustomTeacherDrawer = (props: any) => {
     }
   };
 
-  const avatarUri = user?.image;
+  const avatarUri = user?.image
+    ? /^https?:\/\//i.test(user.image)
+      ? user.image
+      : `${APP_ENV.SERVER_URL}${user.image.startsWith("/") ? "" : "/"}${user.image}`
+    : null;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom", "left"]}>
       <View style={styles.container}>
-      <DrawerContentScrollView
-        {...props}
-        contentContainerStyle={styles.content}
-      >
-        <LinearGradient
-          colors={[COLORS.primaryDark, COLORS.primary]}
-          style={styles.header}
+        <DrawerContentScrollView
+          {...props}
+          contentContainerStyle={styles.content}
         >
-          <View style={styles.profileRow}>
-            {avatarUri ? (
-              <Image source={{ uri: avatarUri }} style={styles.avatar} />
-            ) : (
-              <View style={styles.avatarFallback}>
-                <Text style={styles.avatarText}>
-                  {user?.name?.charAt(0) || "T"}
+          <LinearGradient
+            colors={[COLORS.primaryDark, COLORS.primary]}
+            style={styles.header}
+          >
+            <View style={styles.profileRow}>
+              {avatarUri ? (
+                <Image source={{ uri: avatarUri }} style={styles.avatar} />
+              ) : (
+                <View style={styles.avatarFallback}>
+                  <Text style={styles.avatarText}>
+                    {user?.name?.charAt(0) || "T"}
+                  </Text>
+                </View>
+              )}
+
+              <View style={styles.profileTextWrap}>
+                <Text style={styles.name}>{user?.name || "Teacher"}</Text>
+                <Text style={styles.role}>{user?.role}</Text>
+              </View>
+            </View>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.profileCard,
+                pressed && styles.pressed,
+              ]}
+              onPress={() =>
+                navigation.navigate("Home", {
+                  screen: "Profile",
+                })
+              }
+            >
+              <Ionicons name="person-outline" size={18} color={COLORS.primary} />
+              <View style={styles.profileCardText}>
+                <Text style={styles.profileCardTitle}>My Profile</Text>
+                <Text style={styles.profileCardSub}>
+                  Photo, contact, and personal details
                 </Text>
               </View>
-            )}
+              <Ionicons
+                name="chevron-forward"
+                size={18}
+                color={COLORS.primary}
+              />
+            </Pressable>
+          </LinearGradient>
 
-            <View style={styles.profileTextWrap}>
-              <Text style={styles.name}>{user?.name || "Teacher"}</Text>
-              <Text style={styles.role}>{user?.role}</Text>
-            </View>
+          <View style={styles.menu}>
+            <DrawerItemList {...props} />
           </View>
+        </DrawerContentScrollView>
 
-          <Pressable
-            style={({ pressed }) => [
-              styles.profileBtn,
-              pressed && styles.pressed,
-            ]}
-            onPress={() => navigation.navigate("Profile")}
-          >
-            <Ionicons name="person-outline" size={16} color="#6366F1" />
-            <Text style={styles.profileText}>View Profile</Text>
-          </Pressable>
-        </LinearGradient>
-
-        <View style={styles.menu}>
-          <DrawerItemList {...props} />
+        <View
+          style={[
+            styles.footer,
+            { paddingBottom: Math.max(insets.bottom, SPACING.md) },
+          ]}
+        >
+          <TouchableOpacity style={styles.logout} onPress={handleLogout}>
+            <Ionicons name="log-out-outline" size={22} color={COLORS.danger} />
+            <Text style={styles.logoutText}>Logout</Text>
+          </TouchableOpacity>
         </View>
-      </DrawerContentScrollView>
-
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, SPACING.md) }]}>
-        <TouchableOpacity style={styles.logout} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={22} color={COLORS.danger} />
-          <Text style={styles.logoutText}>Logout</Text>
-        </TouchableOpacity>
-      </View>
       </View>
     </SafeAreaView>
   );
@@ -148,20 +172,28 @@ const styles = StyleSheet.create({
     opacity: 0.82,
     textTransform: "capitalize",
   },
-  profileBtn: {
-    marginTop: 10,
-    flexDirection: "row",
+  profileCard: {
     alignItems: "center",
-    backgroundColor: COLORS.textInverse,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: RADIUS.full,
-    alignSelf: "flex-start",
+    backgroundColor: COLORS.card,
+    borderRadius: RADIUS.lg,
+    flexDirection: "row",
+    gap: SPACING.sm,
+    marginTop: SPACING.md,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
   },
-  profileText: {
-    marginLeft: 6,
-    color: COLORS.primary,
-    fontWeight: "700",
+  profileCardText: {
+    flex: 1,
+  },
+  profileCardTitle: {
+    color: COLORS.textPrimary,
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  profileCardSub: {
+    color: COLORS.textSecondary,
+    fontSize: 12,
+    marginTop: 2,
   },
   menu: {
     paddingHorizontal: SPACING.xs,

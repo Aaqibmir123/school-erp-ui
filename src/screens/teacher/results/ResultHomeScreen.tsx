@@ -1,42 +1,51 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+
+import { COLORS, RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from "@/src/theme";
 
 const ResultHomeScreen = () => {
   const navigation = useNavigation<any>();
 
+  const actions = [
+    {
+      icon: "create-outline",
+      title: "Enter Marks",
+      desc: "Pick an exam and add marks.",
+      onPress: () => navigation.navigate("SelectExam", { mode: "enter" }),
+    },
+    {
+      icon: "eye-outline",
+      title: "View Results",
+      desc: "Review saved results by exam.",
+      onPress: () => navigation.navigate("SelectExam", { mode: "view" }),
+    },
+  ] as const;
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Results</Text>
+      <Text style={styles.kicker}>Results</Text>
+      <Text style={styles.title}>Result workspace</Text>
+      <Text style={styles.subtitle}>
+        Choose whether to add marks or review existing results.
+      </Text>
 
-      {/* VIEW RESULTS */}
-      <TouchableOpacity
-        style={styles.card}
-        onPress={() => navigation.navigate("SelectExam", { mode: "view" })}
-      >
-        <Text style={styles.icon}>📊</Text>
-        <Text style={styles.cardTitle}>View Results</Text>
-        <Text style={styles.cardDesc}>
-          Check student results and performance
-        </Text>
-      </TouchableOpacity>
-
-      {/* ENTER MARKS */}
-      <TouchableOpacity
-        style={styles.card}
-        onPress={() => navigation.navigate("SelectExam", { mode: "enter" })}
-      >
-        <Text style={styles.icon}>✍️</Text>
-        <Text style={styles.cardTitle}>Enter Marks</Text>
-        <Text style={styles.cardDesc}>Add marks and upload marksheets</Text>
-      </TouchableOpacity>
-
-      {/* UPLOAD */}
-      <TouchableOpacity style={styles.card}>
-        <Text style={styles.icon}>📤</Text>
-        <Text style={styles.cardTitle}>Upload Marksheet</Text>
-        <Text style={styles.cardDesc}>Upload bulk marksheets (optional)</Text>
-      </TouchableOpacity>
+      <View style={styles.grid}>
+        {actions.map((item) => (
+          <Pressable
+            key={item.title}
+            onPress={item.onPress}
+            style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+          >
+            <View style={styles.iconWrap}>
+              <Ionicons name={item.icon as any} size={20} color={COLORS.primary} />
+            </View>
+            <Text style={styles.cardTitle}>{item.title}</Text>
+            <Text style={styles.cardDesc}>{item.desc}</Text>
+          </Pressable>
+        ))}
+      </View>
     </View>
   );
 };
@@ -45,38 +54,59 @@ export default ResultHomeScreen;
 
 const styles = StyleSheet.create({
   container: {
+    backgroundColor: COLORS.background,
     flex: 1,
-    padding: 20,
-    backgroundColor: "#f5f6fa",
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.lg,
   },
-
-  title: {
-    fontSize: 22,
-    fontWeight: "bold",
-    marginBottom: 20,
-  },
-
-  card: {
-    backgroundColor: "#fff",
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 15,
-    elevation: 3,
-  },
-
-  icon: {
-    fontSize: 20,
-  },
-
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginTop: 6,
-  },
-
-  cardDesc: {
+  kicker: {
+    color: COLORS.primary,
     fontSize: 12,
-    color: "#666",
+    fontWeight: "800",
+    letterSpacing: 0.6,
+    textTransform: "uppercase",
+  },
+  title: {
+    ...TYPOGRAPHY.sectionTitle,
+    color: COLORS.textPrimary,
+    marginTop: 2,
+  },
+  subtitle: {
+    color: COLORS.textSecondary,
+    marginTop: SPACING.xs,
+  },
+  grid: {
+    gap: SPACING.md,
+    marginTop: SPACING.lg,
+  },
+  card: {
+    ...SHADOWS.soft,
+    backgroundColor: COLORS.card,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.xl,
+    borderWidth: 1,
+    padding: SPACING.lg,
+  },
+  pressed: {
+    opacity: 0.95,
+    transform: [{ scale: 0.995 }],
+  },
+  iconWrap: {
+    alignItems: "center",
+    backgroundColor: COLORS.primarySoft,
+    borderRadius: RADIUS.full,
+    height: 44,
+    justifyContent: "center",
+    width: 44,
+  },
+  cardTitle: {
+    color: COLORS.textPrimary,
+    fontSize: 16,
+    fontWeight: "800",
+    marginTop: SPACING.sm,
+  },
+  cardDesc: {
+    color: COLORS.textSecondary,
     marginTop: 4,
   },
 });

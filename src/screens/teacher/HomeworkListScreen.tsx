@@ -1,17 +1,21 @@
 "use client";
 
+import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import React from "react";
 import {
-  ActivityIndicator,
   Alert,
   FlatList,
+  RefreshControl,
+  Pressable,
   StyleSheet,
   Text,
   View,
 } from "react-native";
 
+import BrandLoader from "@/src/components/BrandLoader";
 import FallbackBanner from "@/src/components/FallbackBanner";
+import HomeworkCard from "@/src/components/homework/HomeworkCard";
 import { COLORS, SPACING, TYPOGRAPHY } from "@/src/theme";
 import { showToast } from "@/src/utils/toast";
 import {
@@ -19,15 +23,28 @@ import {
   useGetTeacherHomeworkQuery,
 } from "../../api/teacher/teacherApi";
 
-import HomeworkCard from "@/src/components/homework/HomeworkCard";
-
 const HomeworkListScreen = () => {
   const navigation = useNavigation<any>();
+  const openCreateHomework = (params?: any) => {
+    const rootNav = navigation.getParent?.()?.getParent?.();
 
-  /* ✅ RTK QUERY */
-  const { data: homework = [], isLoading } = useGetTeacherHomeworkQuery();
+    if (rootNav?.navigate) {
+      rootNav.navigate("CreateHomework", params);
+      return;
+    }
 
-  /* ✅ RTK MUTATION */
+    navigation.navigate("CreateHomework", params);
+  };
+
+  /* ================= RTK QUERY ================= */
+  const {
+    data: homework = [],
+    isLoading,
+    isFetching,
+    refetch,
+  } = useGetTeacherHomeworkQuery();
+
+  /* ================= RTK MUTATION ================= */
   const [deleteHomework] = useDeleteHomeworkMutation();
 
   /* ================= DELETE ================= */
@@ -48,27 +65,34 @@ const HomeworkListScreen = () => {
     ]);
   };
 
-  /* ================= LOADING ================= */
   if (isLoading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>Loading homework</Text>
+        <BrandLoader />
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.kicker}>Homework management</Text>
-      <Text style={styles.title}>Assigned Homework</Text>
-      <Text style={styles.subtitle}>
-        Review, edit, or check submissions from a cleaner mobile layout.
-      </Text>
+      <View style={styles.headerRow}>
+        <Text style={styles.title}>Homework</Text>
+
+        <Pressable
+          onPress={() => openCreateHomework()}
+          style={({ pressed }) => [styles.createButton, pressed && styles.pressed]}
+        >
+          <Ionicons name="add" size={18} color={COLORS.textInverse} />
+          <Text style={styles.createButtonText}>New</Text>
+        </Pressable>
+      </View>
 
       <FlatList
         data={homework}
         keyExtractor={(item) => item._id}
+        refreshControl={
+          <RefreshControl refreshing={isFetching} onRefresh={refetch} />
+        }
         ListEmptyComponent={<FallbackBanner title="No homework found" />}
         renderItem={({ item }) => (
           <HomeworkCard
@@ -80,11 +104,12 @@ const HomeworkListScreen = () => {
                 students: item.students,
                 classId: item.classId,
                 subjectId: item.subjectId,
-                sectionId: item.sectionId, // 💣 ADD THIS
+                sectionId: item.sectionId,
+                maxMarks: item.maxMarks,
               })
             }
             onEdit={() =>
-              navigation.navigate("CreateHomework", {
+              openCreateHomework({
                 isEdit: true,
                 homework: item,
               })
@@ -102,38 +127,47 @@ export default HomeworkListScreen;
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     backgroundColor: COLORS.background,
+    flex: 1,
     paddingHorizontal: SPACING.lg,
     paddingTop: SPACING.lg,
   },
+  headerRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: SPACING.xs,
+  },
   center: {
+    alignItems: "center",
     flex: 1,
     justifyContent: "center",
+  },
+  createButton: {
     alignItems: "center",
+    backgroundColor: COLORS.primary,
+    borderRadius: 999,
+    flexDirection: "row",
+    gap: 6,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: 10,
   },
-  kicker: {
-    color: COLORS.primary,
-    fontSize: 12,
+  createButtonText: {
+    color: COLORS.textInverse,
+    fontSize: 13,
     fontWeight: "800",
-    letterSpacing: 0.6,
-    textTransform: "uppercase",
-  },
-  title: {
-    ...TYPOGRAPHY.headline,
-    color: COLORS.textPrimary,
-    marginTop: 2,
-  },
-  subtitle: {
-    color: COLORS.textSecondary,
-    marginBottom: SPACING.md,
-    marginTop: SPACING.xs,
   },
   listContent: {
     paddingBottom: SPACING.xl,
   },
-  loadingText: {
-    color: COLORS.textSecondary,
-    marginTop: SPACING.sm,
+  title: {
+    ...TYPOGRAPHY.headline,
+    color: COLORS.textPrimary,
+    flex: 1,
+    marginTop: 0,
+    paddingRight: SPACING.sm,
+  },
+  pressed: {
+    opacity: 0.92,
   },
 });

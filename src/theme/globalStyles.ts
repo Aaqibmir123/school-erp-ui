@@ -1,9 +1,9 @@
-import { StyleSheet } from "react-native";
-
 import { COLORS } from "./colors";
 import { RADIUS } from "./radius";
 import { SHADOWS } from "./shadows";
 import { SPACING } from "./spacing";
+
+import { StyleSheet } from "react-native";
 
 export const GLOBAL_STYLES = StyleSheet.create({
   card: {

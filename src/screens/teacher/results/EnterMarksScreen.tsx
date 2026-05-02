@@ -1,7 +1,6 @@
 import { useRoute } from "@react-navigation/native";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   KeyboardAvoidingView,
   Platform,
@@ -13,8 +12,9 @@ import {
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
-import ToastMessage from "../../../components/ToastMessage";
+import BrandLoader from "@/src/components/BrandLoader";
 import { COLORS, RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from "@/src/theme";
+import { showToast } from "@/src/utils/toast";
 import {
   useCreateResultMutation,
   useGetResultsByExamQuery,
@@ -44,7 +44,6 @@ const EnterMarksScreen = () => {
   const [createResult] = useCreateResultMutation();
   const [marksData, setMarksData] = useState<any>({});
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState<any>(null);
 
   useEffect(() => {
     if (!students.length) return;
@@ -107,10 +106,7 @@ const EnterMarksScreen = () => {
     );
 
     if (hasError) {
-      setToast({
-        type: "error",
-        message: `Marks cannot exceed ${totalMarks}`,
-      });
+      showToast.error(`Marks cannot exceed ${totalMarks}`);
       return;
     }
 
@@ -127,6 +123,7 @@ const EnterMarksScreen = () => {
           examId,
           studentId: id,
           classId,
+          sectionId,
           subjectId: exam.subjectId._id,
           marksObtained: Number(item.marks),
           totalMarks,
@@ -134,10 +131,7 @@ const EnterMarksScreen = () => {
       });
 
       await createResult({ results: resultsArray }).unwrap();
-      setToast({
-        type: "success",
-        message: "Results saved successfully",
-      });
+      showToast.success("Results saved successfully");
       await refetch();
 
       setMarksData((prev: any) => {
@@ -151,10 +145,7 @@ const EnterMarksScreen = () => {
         return updated;
       });
     } catch (error: any) {
-      setToast({
-        type: "error",
-        message: error?.data?.message || "Failed",
-      });
+      showToast.error(error?.data?.message || "Failed to save results");
     } finally {
       setLoading(false);
     }
@@ -208,7 +199,7 @@ const EnterMarksScreen = () => {
   if (isLoading) {
     return (
       <View style={styles.loadingWrap}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+        <BrandLoader />
       </View>
     );
   }
@@ -220,8 +211,6 @@ const EnterMarksScreen = () => {
         style={styles.flex}
       >
         <View style={styles.container}>
-          {toast ? <ToastMessage {...toast} /> : null}
-
           <View style={styles.topCard}>
             <Text style={styles.kicker}>Results entry</Text>
             <Text style={styles.examTitle}>{exam?.name}</Text>
@@ -242,14 +231,16 @@ const EnterMarksScreen = () => {
           <Pressable
             onPress={handleSave}
             style={({ pressed }) => [
-              styles.footerBtn,
+              styles.footerWrap,
               pressed && styles.pressed,
               { paddingBottom: Math.max(insets.bottom, SPACING.md) },
             ]}
           >
-            <Text style={styles.footerText}>
-              {loading ? "Saving..." : "Save Results"}
-            </Text>
+            <View style={styles.footerBtn}>
+              <Text style={styles.footerText}>
+                {loading ? "Saving..." : "Save Results"}
+              </Text>
+            </View>
           </Pressable>
         </View>
       </KeyboardAvoidingView>
@@ -395,16 +386,21 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontWeight: "700",
   },
-  footerBtn: {
-    backgroundColor: COLORS.primary,
-    borderTopLeftRadius: RADIUS.lg,
-    borderTopRightRadius: RADIUS.lg,
+  footerWrap: {
     bottom: 0,
     left: 0,
-    paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.md,
     position: "absolute",
     right: 0,
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.md,
+  },
+  footerBtn: {
+    ...SHADOWS.soft,
+    backgroundColor: COLORS.primary,
+    borderRadius: RADIUS.full,
+    marginHorizontal: SPACING.xs,
+    minHeight: 52,
+    justifyContent: "center",
   },
   footerText: {
     color: COLORS.textInverse,

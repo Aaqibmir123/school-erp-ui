@@ -1,9 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { COLORS } from "../theme/colors";
-import { RADIUS } from "../theme/radius";
-import { SPACING } from "../theme/spacing";
+import { COLORS, RADIUS, SPACING } from "../theme";
 
 const EmptyState = ({
   title = "No Data",

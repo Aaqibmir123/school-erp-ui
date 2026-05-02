@@ -5,8 +5,12 @@ export const useNetwork = () => {
   const [isConnected, setIsConnected] = useState(true);
 
   useEffect(() => {
+    void NetInfo.fetch().then((state) => {
+      setIsConnected(!!state.isConnected && state.isInternetReachable !== false);
+    });
+
     const unsubscribe = NetInfo.addEventListener((state) => {
-      setIsConnected(!!state.isConnected);
+      setIsConnected(!!state.isConnected && state.isInternetReachable !== false);
     });
 
     return () => unsubscribe();

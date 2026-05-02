@@ -1,16 +1,18 @@
 "use client";
 
+import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
+  RefreshControl,
   StyleSheet,
   Text,
   View,
 } from "react-native";
 
-import FallbackBanner from "@/src/components/FallbackBanner";
-import { COLORS, SPACING, TYPOGRAPHY } from "@/src/theme";
+import AppButton from "@/src/theme/Button";
+import BrandLoader from "@/src/components/BrandLoader";
+import { COLORS, RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from "@/src/theme";
 import { useGetTimetableQuery } from "../../api/teacher/teacherApi";
 import ClassItem from "../../components/timetable/ClassItem";
 import DayTabs from "./DayTabs";
@@ -18,9 +20,9 @@ import DayTabs from "./DayTabs";
 const TimetableScreen = ({ navigation }: any) => {
   const [selectedDay, setSelectedDay] = useState("Mon");
 
-  const { data, isLoading, isError, refetch } = useGetTimetableQuery();
+  const { data, isLoading, isFetching, isError, refetch } =
+    useGetTimetableQuery();
 
-  /* ================= AUTO DAY SELECT ================= */
   useEffect(() => {
     if (data?.data) {
       const firstDayWithData = Object.keys(data.data).find(
@@ -33,58 +35,76 @@ const TimetableScreen = ({ navigation }: any) => {
     }
   }, [data]);
 
-  /* ================= MEMO ================= */
   const classes = useMemo(() => {
     if (!data?.data) return [];
     return data.data[selectedDay] || [];
   }, [data, selectedDay]);
 
-  /* ================= LOADING ================= */
   if (isLoading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>Loading timetable</Text>
+        <BrandLoader />
       </View>
     );
   }
 
-  /* ================= ERROR ================= */
   if (isError) {
     return (
       <View style={styles.errorWrap}>
-      <FallbackBanner
-          title="Timetable unavailable"
-          subtitle="We could not fetch your class schedule right now."
-          actionLabel="Retry"
-          onRetry={refetch}
-        />
+        <View style={styles.emptyCard}>
+          <View style={styles.iconBubble}>
+            <Ionicons
+              name="calendar-outline"
+              size={18}
+              color={COLORS.primary}
+            />
+          </View>
+          <Text style={styles.emptyTitle}>Timetable unavailable</Text>
+          <AppButton title="Retry" onPress={refetch} />
+        </View>
       </View>
     );
   }
 
-  /* ================= UI ================= */
   return (
     <View style={styles.container}>
-      <Text style={styles.kicker}>Teacher schedule</Text>
-      <Text style={styles.title}>Timetable</Text>
-      <Text style={styles.subtitle}>
-        Review daily classes and jump into attendance or actions quickly.
-      </Text>
+      <View style={styles.headerRow}>
+        <View style={styles.iconBubble}>
+          <Ionicons
+            name="calendar-outline"
+            size={18}
+            color={COLORS.primary}
+          />
+        </View>
+        <Text style={styles.title}>Timetable</Text>
+      </View>
 
-      <DayTabs selectedDay={selectedDay} setSelectedDay={setSelectedDay} />
+      <View style={styles.tabsCard}>
+        <DayTabs selectedDay={selectedDay} setSelectedDay={setSelectedDay} />
+      </View>
 
       {!classes.length ? (
-        <FallbackBanner
-          title="No classes today"
-          subtitle="This day has no scheduled classes yet."
-        />
+        <View style={styles.emptyWrap}>
+          <View style={styles.emptyCard}>
+            <View style={styles.iconBubble}>
+              <Ionicons
+                name="sparkles-outline"
+                size={18}
+                color={COLORS.primary}
+              />
+            </View>
+            <Text style={styles.emptyTitle}>No classes today</Text>
+          </View>
+        </View>
       ) : (
         <FlatList
           data={classes}
           keyExtractor={(item, index) => item?._id || index.toString()}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl refreshing={isFetching} onRefresh={refetch} />
+          }
           renderItem={({ item }) => (
             <ClassItem item={item} navigation={navigation} />
           )}
@@ -96,45 +116,71 @@ const TimetableScreen = ({ navigation }: any) => {
 
 export default TimetableScreen;
 
-/* ================= STYLES ================= */
-
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     backgroundColor: COLORS.background,
+    flex: 1,
     paddingHorizontal: SPACING.lg,
     paddingTop: SPACING.lg,
+  },
+  center: {
+    alignItems: "center",
+    flex: 1,
+    justifyContent: "center",
   },
   errorWrap: {
     backgroundColor: COLORS.background,
     flex: 1,
     padding: SPACING.lg,
   },
-  kicker: {
-    color: COLORS.primary,
-    fontSize: 12,
-    fontWeight: "800",
-    letterSpacing: 0.6,
-    textTransform: "uppercase",
+  headerRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: SPACING.sm,
+    marginBottom: SPACING.md,
+  },
+  iconBubble: {
+    alignItems: "center",
+    backgroundColor: COLORS.primarySoft,
+    borderRadius: RADIUS.full,
+    height: 42,
+    justifyContent: "center",
+    width: 42,
   },
   title: {
     ...TYPOGRAPHY.headline,
     color: COLORS.textPrimary,
-    marginTop: 2,
-  },
-  subtitle: {
-    color: COLORS.textSecondary,
-    marginBottom: SPACING.md,
-    marginTop: SPACING.xs,
-  },
-  center: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
   },
-  loadingText: {
-    color: COLORS.textSecondary,
+  tabsCard: {
+    backgroundColor: COLORS.card,
+    borderColor: COLORS.border,
+    borderRadius: 24,
+    borderWidth: 1,
+    marginBottom: SPACING.md,
+    paddingHorizontal: SPACING.sm,
+    paddingTop: 6,
+  },
+  emptyWrap: {
+    marginTop: SPACING.md,
+  },
+  emptyCard: {
+    ...SHADOWS.soft,
+    alignItems: "center",
+    alignSelf: "stretch",
+    backgroundColor: COLORS.card,
+    borderColor: COLORS.border,
+    borderRadius: 24,
+    borderWidth: 1,
+    paddingHorizontal: SPACING.xl,
+    paddingVertical: SPACING.xl,
+  },
+  emptyTitle: {
+    ...TYPOGRAPHY.sectionTitle,
+    color: COLORS.textPrimary,
+    marginBottom: SPACING.md,
     marginTop: SPACING.sm,
+    textAlign: "center",
   },
   listContent: {
     paddingBottom: SPACING.xl,

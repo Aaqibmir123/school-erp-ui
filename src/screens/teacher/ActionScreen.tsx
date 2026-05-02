@@ -16,6 +16,16 @@ export default function ActionScreen({ route, navigation }: any) {
   } = route.params || {};
 
   const isAllowed = !!fromTimetable;
+  const openCreateHomework = (params?: any) => {
+    const rootNav = navigation.getParent?.()?.getParent?.();
+
+    if (rootNav?.navigate) {
+      rootNav.navigate("CreateHomework", params);
+      return;
+    }
+
+    navigation.navigate("CreateHomework", params);
+  };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
@@ -69,7 +79,7 @@ export default function ActionScreen({ route, navigation }: any) {
         <Pressable
           style={({ pressed }) => [styles.card, pressed && styles.pressed]}
           onPress={() =>
-            navigation.navigate("CreateHomework", {
+            openCreateHomework({
               subjectId,
               subjectName,
               classId,
