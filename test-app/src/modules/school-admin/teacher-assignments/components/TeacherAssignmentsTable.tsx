@@ -1,6 +1,6 @@
 "use client";
 
-import { App, Button, Space, Table, Tag } from "antd";
+import { App, Button, Modal, Space, Table, Tag } from "antd";
 import { ColumnsType } from "antd/es/table";
 import { useState } from "react";
 
@@ -40,7 +40,7 @@ export default function TeacherAssignmentsTable({
       const err = error?.data || error;
 
       if (err?.requiresConfirmation) {
-        modal.destroyAll();
+        Modal.destroyAll();
 
         return modal.confirm({
           title: "Warning",
