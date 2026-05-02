@@ -20,6 +20,7 @@ export const baseApi = createApi({
     "AcademicYears",
     "Notices",
     "Schedule",
+    "AdmitCards",
     "Fee",
     "Transport",
     "Attendance",

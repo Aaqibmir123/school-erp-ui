@@ -1,17 +1,4 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": "nextjs",
-  "redirects": [
-    {
-      "source": "/:path*",
-      "has": [
-        {
-          "type": "host",
-          "value": "www.smartschoolerp.co.in"
-        }
-      ],
-      "destination": "https://smartschoolerp.co.in/:path*",
-      "permanent": true
-    }
-  ]
+  "framework": "nextjs"
 }

@@ -110,6 +110,7 @@ export const examApi = baseApi.injectEndpoints({
       }),
       transformResponse: (res: ApiResponse<ITeacher[]>) => res.data,
     }),
+
     /* ================= PREVIEW ================= */
 
     previewSchedule: builder.mutation<
@@ -119,6 +120,7 @@ export const examApi = baseApi.injectEndpoints({
         classId: string;
         subjectId: string;
         sectionId?: string;
+        inchargeTeacherId?: string;
         date: string;
         startTime: string;
         endTime: string;

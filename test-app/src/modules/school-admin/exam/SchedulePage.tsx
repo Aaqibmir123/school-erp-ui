@@ -88,7 +88,7 @@ const SchedulePage = ({ examId }: { examId: string }) => {
                 Exam Schedule
               </Title>
               <div style={{ color: "#64748b" }}>
-                Create and manage schedules by class, subject, and school timings.
+                Create and manage schedules by class, subject, optional incharge, and school timings.
               </div>
             </div>
           </Space>

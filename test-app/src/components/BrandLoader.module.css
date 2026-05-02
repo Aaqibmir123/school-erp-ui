@@ -12,9 +12,10 @@
 
 .compactWrap {
   align-items: center;
-  display: inline-flex;
+  display: flex;
   justify-content: center;
   min-height: 40px;
+  width: 100%;
 }
 
 .ring {

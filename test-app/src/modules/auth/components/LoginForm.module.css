@@ -11,7 +11,7 @@
 }
 
 .brandPanel {
-  background: url("/images/hero (2).jpg") center/cover no-repeat;
+  background: linear-gradient(160deg, rgba(15, 23, 42, 0.22), rgba(37, 99, 235, 0.64));
   border-radius: 34px;
   min-height: 460px;
   overflow: hidden;
@@ -280,6 +280,13 @@
 
   .subtitle {
     max-width: none;
+  }
+}
+
+@media (min-width: 881px) {
+  .brandPanel {
+    background: url("/images/hero (2).jpg") center/cover no-repeat,
+      linear-gradient(160deg, rgba(15, 23, 42, 0.22), rgba(37, 99, 235, 0.64));
   }
 }
 

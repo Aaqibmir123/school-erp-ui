@@ -3,6 +3,7 @@
 import {
   Button,
   DatePicker,
+  Grid,
   Form,
   Select,
   Space,
@@ -14,6 +15,7 @@ import dayjs, { Dayjs } from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 
 import { showToast } from "@/src/utils/toast";
+import { useGetTeachersQuery } from "../api/teacherApi";
 import { useGetSectionsByClassQuery } from "../sections/sectionApi";
 import type { SchoolTimingSettings } from "../school/schoolSettings.types";
 import {
@@ -26,6 +28,7 @@ interface FormValues {
   classId: string;
   subjectId: string;
   sectionId?: string;
+  inchargeTeacherId?: string;
   date: Dayjs;
   startTime: Dayjs;
   endTime: Dayjs;
@@ -34,8 +37,11 @@ interface FormValues {
 interface PreviewItem {
   section: string;
   teacherName: string | null;
+  inchargeName: string | null;
   conflict: boolean;
+  inchargeConflict: boolean;
   hasTeacher: boolean;
+  hasIncharge: boolean;
 }
 
 interface TimeSlot {
@@ -72,6 +78,8 @@ export default function AddScheduleForm({
   schoolTiming: Partial<SchoolTimingSettings>;
 }) {
   const [form] = Form.useForm<FormValues>();
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [previewData, setPreviewData] = useState<PreviewItem[]>([]);
   const [suggestions, setSuggestions] = useState<TimeSlot[]>([]);
@@ -83,6 +91,7 @@ export default function AddScheduleForm({
       skip: !selectedClass || !showSectionField,
     },
   );
+  const { data: teachers = [] } = useGetTeachersQuery();
 
   const [previewSchedule, { isLoading: previewLoading }] =
     usePreviewScheduleMutation();
@@ -148,6 +157,7 @@ export default function AddScheduleForm({
         classId: values.classId,
         subjectId: values.subjectId,
         sectionId: showSectionField ? values.sectionId : undefined,
+        inchargeTeacherId: values.inchargeTeacherId,
         date: values.date.format("YYYY-MM-DD"),
         startTime,
         endTime,
@@ -181,7 +191,7 @@ export default function AddScheduleForm({
 
   const onFinish = async (values: FormValues) => {
     try {
-      const hasIssue = previewData.some((item) => item.conflict || !item.hasTeacher);
+      const hasIssue = previewData.some((item) => item.conflict || item.inchargeConflict);
       if (hasIssue) {
         showToast.error("Resolve the preview issues before saving");
         return;
@@ -205,6 +215,7 @@ export default function AddScheduleForm({
         classId: values.classId,
         subjectId: values.subjectId,
         sectionId: showSectionField ? values.sectionId : undefined,
+        inchargeTeacherId: values.inchargeTeacherId,
         date: values.date.format("YYYY-MM-DD"),
         startTime,
         endTime,
@@ -232,13 +243,26 @@ export default function AddScheduleForm({
         row.hasTeacher ? (
           <Tag color="green">{row.teacherName}</Tag>
         ) : (
-          <Tag color="red">No Teacher</Tag>
+          <Tag color="gold">Optional</Tag>
+        ),
+    },
+    {
+      title: "Incharge",
+      render: (_: any, row: PreviewItem) =>
+        row.hasIncharge ? (
+          <Tag color="geekblue">{row.inchargeName}</Tag>
+        ) : (
+          <Tag color="default">Optional</Tag>
         ),
     },
     {
       title: "Status",
       render: (_: any, row: PreviewItem) =>
-        row.conflict ? <Tag color="red">Conflict</Tag> : <Tag color="blue">OK</Tag>,
+        row.conflict || row.inchargeConflict ? (
+          <Tag color="red">Conflict</Tag>
+        ) : (
+          <Tag color="blue">OK</Tag>
+        ),
     },
   ];
 
@@ -247,16 +271,25 @@ export default function AddScheduleForm({
       <Form
         form={form}
         onFinish={onFinish}
-        layout="inline"
-        style={{ gap: 10, rowGap: 10 }}
+        layout="vertical"
+        style={{
+          display: "grid",
+          gap: 12,
+          gridTemplateColumns: isMobile ? "1fr" : "repeat(6, minmax(0, 1fr))",
+          alignItems: "end",
+        }}
       >
-        <Form.Item name="classId" rules={[{ required: true }]} style={{ marginBottom: 0 }}>
+        <Form.Item name="classId" rules={[{ required: true }]} style={{ marginBottom: 0, gridColumn: isMobile ? "auto" : "span 1" }}>
           <Select
             placeholder="Select class"
-            style={{ width: 180 }}
+            style={{ width: "100%" }}
             onChange={(value) => {
               setSelectedClass(value);
-              form.setFieldsValue({ subjectId: undefined, sectionId: undefined });
+              form.setFieldsValue({
+                subjectId: undefined,
+                sectionId: undefined,
+                inchargeTeacherId: undefined,
+              });
               setPreviewData([]);
               setSuggestions([]);
             }}
@@ -267,10 +300,10 @@ export default function AddScheduleForm({
           />
         </Form.Item>
 
-        <Form.Item name="subjectId" rules={[{ required: true }]} style={{ marginBottom: 0 }}>
+        <Form.Item name="subjectId" rules={[{ required: true }]} style={{ marginBottom: 0, gridColumn: isMobile ? "auto" : "span 1" }}>
           <Select
             placeholder="Select subject"
-            style={{ width: 180 }}
+            style={{ width: "100%" }}
             disabled={!selectedClass}
             options={subjects.map((subject: any) => ({
               label: subject.name,
@@ -279,15 +312,29 @@ export default function AddScheduleForm({
           />
         </Form.Item>
 
+        <Form.Item name="inchargeTeacherId" style={{ marginBottom: 0, gridColumn: isMobile ? "auto" : "span 1" }}>
+          <Select
+            placeholder="Exam incharge (optional)"
+            allowClear
+            showSearch
+            optionFilterProp="label"
+            style={{ width: "100%" }}
+            options={teachers.map((teacher: any) => ({
+              label: `${teacher.firstName || ""} ${teacher.lastName || ""}`.trim(),
+              value: teacher._id,
+            }))}
+          />
+        </Form.Item>
+
         {showSectionField ? (
           <Form.Item
             name="sectionId"
             rules={[{ required: true, message: "Select section" }]}
-            style={{ marginBottom: 0 }}
+            style={{ marginBottom: 0, gridColumn: isMobile ? "auto" : "span 1" }}
           >
             <Select
               placeholder="Select section"
-              style={{ width: 180 }}
+              style={{ width: "100%" }}
               disabled={!selectedClass}
               options={classSections.map((section: any) => ({
                 label: section.name,
@@ -297,31 +344,31 @@ export default function AddScheduleForm({
           </Form.Item>
         ) : null}
 
-        <Form.Item name="date" rules={[{ required: true }]} style={{ marginBottom: 0 }}>
-          <DatePicker placeholder="Select exam date" style={{ width: 180 }} />
+        <Form.Item name="date" rules={[{ required: true }]} style={{ marginBottom: 0, gridColumn: isMobile ? "auto" : "span 1" }}>
+          <DatePicker placeholder="Select exam date" style={{ width: "100%" }} />
         </Form.Item>
 
-        <Form.Item name="startTime" rules={[{ required: true }]} style={{ marginBottom: 0 }}>
+        <Form.Item name="startTime" rules={[{ required: true }]} style={{ marginBottom: 0, gridColumn: isMobile ? "auto" : "span 1" }}>
           <TimePicker
             use12Hours
             format="h:mm A"
             minuteStep={1}
             placeholder="Start time"
-            style={{ width: 160 }}
+            style={{ width: "100%" }}
           />
         </Form.Item>
 
-        <Form.Item name="endTime" rules={[{ required: true }]} style={{ marginBottom: 0 }}>
+        <Form.Item name="endTime" rules={[{ required: true }]} style={{ marginBottom: 0, gridColumn: isMobile ? "auto" : "span 1" }}>
           <TimePicker
             use12Hours
             format="h:mm A"
             minuteStep={1}
             placeholder="End time"
-            style={{ width: 160 }}
+            style={{ width: "100%" }}
           />
         </Form.Item>
 
-        <Space wrap size={8} style={{ marginTop: 2 }}>
+        <Space wrap size={8} style={{ marginTop: 2, gridColumn: isMobile ? "auto" : "1 / -1" }}>
           <Button onClick={handlePreview} loading={previewLoading} disabled={!isPreviewReady}>
             Preview
           </Button>
@@ -334,10 +381,7 @@ export default function AddScheduleForm({
             type="primary"
             htmlType="submit"
             loading={isLoading}
-            disabled={
-              !isPreviewReady ||
-              previewData.some((item) => item.conflict || !item.hasTeacher)
-            }
+            disabled={!isPreviewReady || previewData.some((item) => item.conflict || item.inchargeConflict)}
           >
             Save Schedule
           </Button>

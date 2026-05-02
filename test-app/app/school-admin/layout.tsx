@@ -414,7 +414,17 @@ export default function SchoolAdminLayout({
             )}
 
             {loading ? (
-              <BrandLoader compact />
+              <div
+                style={{
+                  alignItems: "center",
+                  display: "flex",
+                  flex: 1,
+                  justifyContent: "center",
+                  minHeight: 44,
+                }}
+              >
+                <BrandLoader compact />
+              </div>
             ) : school ? (
               <>
                 <Avatar

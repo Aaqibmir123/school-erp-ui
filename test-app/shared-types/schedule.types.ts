@@ -19,6 +19,7 @@ export interface ICreateSchedule {
   classId: string;
   sectionId?: string;
   subjectId: string;
+  inchargeTeacherId?: string;
   date: string;
   startTime: string;
   endTime: string;

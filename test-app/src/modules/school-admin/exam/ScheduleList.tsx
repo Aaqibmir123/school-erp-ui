@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, DatePicker, Popconfirm, Table, Tag, TimePicker } from "antd";
+import { Button, Card, DatePicker, Grid, Popconfirm, Select, Space, Table, Tag, TimePicker, Typography } from "antd";
 import dayjs from "dayjs";
 import { useMemo, useState } from "react";
 
@@ -11,12 +11,18 @@ import {
 } from "./exam.api";
 
 import { showToast } from "@/src/utils/toast";
+import { useGetTeachersQuery } from "../api/teacherApi";
+
+const { Text } = Typography;
 
 export default function ScheduleList({ examId }: any) {
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [formData, setFormData] = useState<any>({});
 
   const { data: res } = useGetSchedulesQuery(examId);
+  const { data: teachers = [] } = useGetTeachersQuery();
 
   /* ================= GROUP DATA ================= */
   const schedules = useMemo(() => {
@@ -33,10 +39,17 @@ export default function ScheduleList({ examId }: any) {
           rawItems: [],
           className: item.classId?.name,
           subjectName: item.subjectId?.name,
+          teacherName: item.teacherId
+            ? `${item.teacherId.firstName || ""} ${item.teacherId.lastName || ""}`.trim()
+            : null,
+          inchargeName: item.inchargeTeacherId
+            ? `${item.inchargeTeacherId.firstName || ""} ${item.inchargeTeacherId.lastName || ""}`.trim()
+            : null,
           sections: [],
           date: item.date,
           startTime: item.startTime,
           endTime: item.endTime,
+          inchargeTeacherId: item.inchargeTeacherId?._id || item.inchargeTeacherId || null,
         });
       }
 
@@ -64,6 +77,7 @@ export default function ScheduleList({ examId }: any) {
       date: dayjs(record.date),
       startTime: dayjs(record.startTime, "HH:mm"),
       endTime: dayjs(record.endTime, "HH:mm"),
+      inchargeTeacherId: record.inchargeTeacherId || undefined,
     });
   };
 
@@ -78,6 +92,7 @@ export default function ScheduleList({ examId }: any) {
             date: formData.date.format("YYYY-MM-DD"),
             startTime: formData.startTime.format("HH:mm"),
             endTime: formData.endTime.format("HH:mm"),
+            inchargeTeacherId: formData.inchargeTeacherId || undefined,
           },
         }).unwrap(),
       );
@@ -87,7 +102,7 @@ export default function ScheduleList({ examId }: any) {
       showToast.success("✅ Updated all sections");
       setEditingKey(null);
     } catch (err: any) {
-      showToast.error("❌ Update failed");
+      showToast.apiError(err, "❌ Update failed");
     }
   };
 
@@ -132,6 +147,18 @@ export default function ScheduleList({ examId }: any) {
     },
 
     {
+      title: "Teacher",
+      render: (_: any, r: any) =>
+        r.teacherName ? <Tag color="green">{r.teacherName}</Tag> : <Tag color="gold">Optional</Tag>,
+    },
+
+    {
+      title: "Incharge",
+      render: (_: any, r: any) =>
+        r.inchargeName ? <Tag color="geekblue">{r.inchargeName}</Tag> : <Tag>Optional</Tag>,
+    },
+
+    {
       title: "Date",
       render: (_: any, r: any) =>
         editingKey === r.key ? (
@@ -148,20 +175,35 @@ export default function ScheduleList({ examId }: any) {
       title: "Time",
       render: (_: any, r: any) =>
         editingKey === r.key ? (
-          <div style={{ display: "flex", gap: 6 }}>
-            <TimePicker
-              use12Hours
-              format="h:mm A"
-              value={formData.startTime}
-              onChange={(v) => setFormData({ ...formData, startTime: v })}
+          <Space direction="vertical" size={8}>
+            <Space wrap size={6}>
+              <TimePicker
+                use12Hours
+                format="h:mm A"
+                value={formData.startTime}
+                onChange={(v) => setFormData({ ...formData, startTime: v })}
+              />
+              <TimePicker
+                use12Hours
+                format="h:mm A"
+                value={formData.endTime}
+                onChange={(v) => setFormData({ ...formData, endTime: v })}
+              />
+            </Space>
+            <Select
+              allowClear
+              showSearch
+              placeholder="Exam incharge"
+              optionFilterProp="label"
+              style={{ minWidth: 220 }}
+              value={formData.inchargeTeacherId}
+              onChange={(value) => setFormData({ ...formData, inchargeTeacherId: value })}
+              options={teachers.map((teacher: any) => ({
+                label: `${teacher.firstName || ""} ${teacher.lastName || ""}`.trim(),
+                value: teacher._id,
+              }))}
             />
-            <TimePicker
-              use12Hours
-              format="h:mm A"
-              value={formData.endTime}
-              onChange={(v) => setFormData({ ...formData, endTime: v })}
-            />
-          </div>
+          </Space>
         ) : (
           <Tag color="green">
             {dayjs(r.startTime, "HH:mm").format("h:mm A")} -{" "}
@@ -194,23 +236,115 @@ export default function ScheduleList({ examId }: any) {
   ];
 
   return (
-    <Table
-      rowKey="key"
-      columns={columns}
-      dataSource={schedules}
-      pagination={false}
-      locale={{
-        emptyText: (
-          <div style={{ padding: "22px 0", color: "#94a3b8" }}>
-            No schedule added yet
-          </div>
-        ),
-      }}
-      style={{
-        marginTop: 8,
-        borderRadius: 16,
-        overflow: "hidden",
-      }}
-    />
+    <>
+      {isMobile ? (
+        <Space direction="vertical" size={12} style={{ width: "100%", marginTop: 8 }}>
+          {schedules.length ? (
+            schedules.map((item: any, index: number) => (
+              <Card
+                key={item.key}
+                size="small"
+                style={{ borderRadius: 16 }}
+                styles={{ body: { padding: 14 } }}
+              >
+                <Space direction="vertical" size={10} style={{ width: "100%" }}>
+                  <Space align="start" style={{ justifyContent: "space-between", width: "100%" }}>
+                    <div>
+                      <Text strong>{index + 1}. {item.className}</Text>
+                      <div style={{ color: "#64748b", marginTop: 2 }}>{item.subjectName}</div>
+                    </div>
+                    <Tag color="blue">{dayjs(item.date).format("DD MMM YYYY")}</Tag>
+                  </Space>
+
+                  <Space wrap size={6}>
+                    {item.sections.map((s: string) => <Tag key={s}>{s}</Tag>)}
+                    {item.teacherName ? <Tag color="green">{item.teacherName}</Tag> : <Tag color="gold">Optional</Tag>}
+                    {item.inchargeName ? <Tag color="geekblue">{item.inchargeName}</Tag> : <Tag>Optional</Tag>}
+                  </Space>
+
+                  <Tag color="green" style={{ width: "fit-content" }}>
+                    {dayjs(item.startTime, "HH:mm").format("h:mm A")} - {dayjs(item.endTime, "HH:mm").format("h:mm A")}
+                  </Tag>
+
+                  {editingKey === item.key ? (
+                    <Space direction="vertical" size={8} style={{ width: "100%" }}>
+                      <DatePicker
+                        value={formData.date}
+                        onChange={(v) => setFormData({ ...formData, date: v })}
+                        style={{ width: "100%" }}
+                      />
+                      <Space wrap size={6} style={{ width: "100%" }}>
+                        <TimePicker
+                          use12Hours
+                          format="h:mm A"
+                          value={formData.startTime}
+                          onChange={(v) => setFormData({ ...formData, startTime: v })}
+                          style={{ width: "calc(50% - 3px)" }}
+                        />
+                        <TimePicker
+                          use12Hours
+                          format="h:mm A"
+                          value={formData.endTime}
+                          onChange={(v) => setFormData({ ...formData, endTime: v })}
+                          style={{ width: "calc(50% - 3px)" }}
+                        />
+                      </Space>
+                      <Select
+                        allowClear
+                        showSearch
+                        placeholder="Exam incharge"
+                        optionFilterProp="label"
+                        value={formData.inchargeTeacherId}
+                        onChange={(value) => setFormData({ ...formData, inchargeTeacherId: value })}
+                        options={teachers.map((teacher: any) => ({
+                          label: `${teacher.firstName || ""} ${teacher.lastName || ""}`.trim(),
+                          value: teacher._id,
+                        }))}
+                      />
+                      <Space>
+                        <Button type="primary" onClick={() => handleSave(item)}>
+                          Save
+                        </Button>
+                        <Button onClick={() => setEditingKey(null)}>Cancel</Button>
+                      </Space>
+                    </Space>
+                  ) : (
+                    <Space>
+                      <Button onClick={() => handleEdit(item)}>Edit</Button>
+                      <Popconfirm title="Delete?" onConfirm={() => handleDelete(item)}>
+                        <Button danger>Delete</Button>
+                      </Popconfirm>
+                    </Space>
+                  )}
+                </Space>
+              </Card>
+            ))
+          ) : (
+            <div style={{ padding: "22px 0", color: "#94a3b8", textAlign: "center" }}>
+              No schedule added yet
+            </div>
+          )}
+        </Space>
+      ) : (
+        <Table
+          rowKey="key"
+          columns={columns}
+          dataSource={schedules}
+          pagination={false}
+          locale={{
+            emptyText: (
+              <div style={{ padding: "22px 0", color: "#94a3b8" }}>
+                No schedule added yet
+              </div>
+            ),
+          }}
+          style={{
+            marginTop: 8,
+            borderRadius: 16,
+            overflow: "hidden",
+          }}
+        />
+      )}
+    </>
   );
 }

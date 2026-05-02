@@ -4,9 +4,10 @@ import {
   CalendarOutlined,
   DeleteOutlined,
   EditOutlined,
+  IdcardOutlined,
   UploadOutlined,
 } from "@ant-design/icons";
-import { Button, Empty, Popconfirm, Space, Table, Tag } from "antd";
+import { Button, Empty, Popconfirm, Space, Table, Tag, Tooltip } from "antd";
 import dayjs from "dayjs";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -79,6 +80,10 @@ const ExamListScreen = () => {
     router.push(`/school-admin/exams/${record._id}/schedule`);
   };
 
+  const handleAdmitCards = (record: IExam) => {
+    router.push(`/school-admin/exams/${record._id}/admit-cards`);
+  };
+
   /* ================= TABLE ================= */
 
   const columns = [
@@ -123,28 +128,43 @@ const ExamListScreen = () => {
       title: "Actions",
       render: (_: any, record: IExam) => (
         <Space>
-          <Button
-            type="primary"
-            icon={<CalendarOutlined />}
-            onClick={() => handleSchedule(record)}
-          />
-
-          <Button icon={<EditOutlined />} onClick={() => handleEdit(record)} />
-
-          {!record.isPublished && (
+          <Tooltip title="Add or edit exam schedule">
             <Button
               type="primary"
-              icon={<UploadOutlined />}
-              onClick={() => handlePublish(record._id)}
+              icon={<CalendarOutlined />}
+              onClick={() => handleSchedule(record)}
             />
+          </Tooltip>
+
+          <Tooltip title="Preview or release admit cards">
+            <Button
+              icon={<IdcardOutlined />}
+              onClick={() => handleAdmitCards(record)}
+            />
+          </Tooltip>
+
+          <Tooltip title="Edit exam details">
+            <Button icon={<EditOutlined />} onClick={() => handleEdit(record)} />
+          </Tooltip>
+
+          {!record.isPublished && (
+            <Tooltip title="Publish exam">
+              <Button
+                type="primary"
+                icon={<UploadOutlined />}
+                onClick={() => handlePublish(record._id)}
+              />
+            </Tooltip>
           )}
 
-          <Popconfirm
-            title="Delete exam?"
-            onConfirm={() => handleDelete(record._id)}
-          >
-            <Button danger icon={<DeleteOutlined />} />
-          </Popconfirm>
+          <Tooltip title="Delete exam">
+            <Popconfirm
+              title="Delete exam?"
+              onConfirm={() => handleDelete(record._id)}
+            >
+              <Button danger icon={<DeleteOutlined />} />
+            </Popconfirm>
+          </Tooltip>
         </Space>
       ),
     },

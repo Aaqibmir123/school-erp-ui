@@ -2,10 +2,11 @@
 
 import dayjs, { type Dayjs } from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
-import { Button, Col, Form, Row, Spin, Typography } from "antd";
+import { Button, Col, Form, Row, Typography } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import BrandLoader from "@/src/components/BrandLoader";
 import SchoolTimingSection from "./components/SchoolTimingSection";
 import { createSchoolApi } from "./school.api";
 import { useSchool } from "./useSchool";
@@ -175,7 +176,13 @@ export default function SchoolSettingsPage() {
             </Col>
           </Row>
 
-          {loading ? <Spin /> : <SchoolTimingSection />}
+          {loading ? (
+            <div style={{ display: "flex", justifyContent: "center", padding: "24px 0" }}>
+              <BrandLoader compact />
+            </div>
+          ) : (
+            <SchoolTimingSection />
+          )}
 
           <div className={styles.footerRow}>
             <Button
