@@ -7,32 +7,60 @@ const expoHostUri =
 
 const inferredExpoHost = expoHostUri?.split(":")?.[0];
 
-const configuredApiUrl =
+const configuredApiUrl = String(
   process.env.EXPO_PUBLIC_API_URL ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  Constants.expoConfig?.extra?.apiUrl;
+    process.env.NEXT_PUBLIC_API_URL ||
+    Constants.expoConfig?.extra?.apiUrl ||
+    "",
+).trim();
 
-const isProductionRuntime = !__DEV__ || process.env.NODE_ENV === "production";
+const isDevRuntime = __DEV__ || Boolean(expoHostUri);
+const isLocalhostApi = /localhost|127\.0\.0\.1/i.test(configuredApiUrl);
 
-const shouldInferExpoHost =
-  !configuredApiUrl || /localhost|127\.0\.0\.1/i.test(configuredApiUrl);
+const getApiUrl = () => {
+  if (!configuredApiUrl) {
+    if (isDevRuntime && inferredExpoHost) {
+      return `http://${inferredExpoHost}:5000`;
+    }
 
-const rawApiUrl =
-  shouldInferExpoHost && inferredExpoHost
-    ? `http://${inferredExpoHost}:5000`
-    : configuredApiUrl || (isProductionRuntime ? "" : "http://localhost:5000");
+    if (isDevRuntime) {
+      return "http://localhost:5000";
+    }
 
-if (isProductionRuntime && !rawApiUrl) {
-  throw new Error(
-    "EXPO_PUBLIC_API_URL must be set for production builds. It should point to your live backend host.",
-  );
-}
+    throw new Error(
+      "EXPO_PUBLIC_API_URL is required for production builds. Localhost fallbacks are disabled outside development.",
+    );
+  }
+
+  if (isLocalhostApi) {
+    if (isDevRuntime && inferredExpoHost) {
+      return `http://${inferredExpoHost}:5000`;
+    }
+
+    if (!isDevRuntime) {
+      throw new Error(
+        "Production build cannot use a localhost API URL. Set EXPO_PUBLIC_API_URL to your deployed backend.",
+      );
+    }
+  }
+
+  return configuredApiUrl;
+};
+
+const rawApiUrl = getApiUrl();
 
 const normalizedServerUrl = rawApiUrl.replace(/\/api\/?$/, "").replace(/\/$/, "");
+const configuredCountryCode = String(
+  process.env.EXPO_PUBLIC_PHONE_COUNTRY_CODE || "+91",
+).trim();
+const normalizedCountryCode = configuredCountryCode.startsWith("+")
+  ? configuredCountryCode
+  : `+${configuredCountryCode.replace(/\D/g, "")}`;
 
 export const APP_ENV = {
   // WHY: Expo apps often run on a real device where `localhost` points to the
   // phone itself, so we infer the dev machine host when possible.
   API_URL: `${normalizedServerUrl}/api`,
+  PHONE_COUNTRY_CODE: normalizedCountryCode || "+91",
   SERVER_URL: normalizedServerUrl,
 };

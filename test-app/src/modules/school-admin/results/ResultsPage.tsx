@@ -230,7 +230,7 @@ function ResultsPage() {
           current: page,
           pageSize: 20,
           total: historyData?.meta?.total || 0,
-          onChange: (nextPage) => setPage(nextPage),
+          onChange: (nextPage: number) => setPage(nextPage),
         }}
         locale={{
           emptyText: (

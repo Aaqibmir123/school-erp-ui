@@ -1,21 +1,11 @@
 import { useAuth } from "@/src/context/AuthContext";
+import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
-import {
-  FlatList,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-const COLORS = {
-  primary: "#6366F1",
-  secondary: "#8B5CF6",
-  bg: "#F5F7FF",
-  text: "#111827",
-  sub: "#6B7280",
-};
+import { COLORS, RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from "@/src/theme";
+import { STUDENT_GLAS_CARD, STUDENT_THEME } from "./studentTheme";
 
 const ChildSelectorScreen = () => {
   const { students, setSelectedStudent } = useAuth();
@@ -24,39 +14,29 @@ const ChildSelectorScreen = () => {
     setSelectedStudent(student);
   };
 
-  const renderItem = ({ item, index }: any) => {
-    const initials = item.firstName?.charAt(0) + item.lastName?.charAt(0);
+  const renderItem = ({ item }: any) => {
+    const initials = `${item.firstName?.charAt(0) || "S"}${
+      item.lastName?.charAt(0) || ""
+    }`;
 
     return (
       <TouchableOpacity
         style={styles.cardWrapper}
         onPress={() => handleSelect(item)}
-        activeOpacity={0.8}
+        activeOpacity={0.85}
       >
-        <LinearGradient
-          colors={[COLORS.primary, COLORS.secondary]}
-          style={styles.card}
-        >
-          {/* 🔥 GLASS OVERLAY */}
+        <LinearGradient colors={STUDENT_THEME.heroGradient} style={styles.card}>
           <View style={styles.glass}>
-            {/* AVATAR */}
             <View style={styles.avatar}>
               <Text style={styles.avatarText}>{initials}</Text>
             </View>
 
-            {/* INFO */}
             <View style={{ flex: 1 }}>
               <Text style={styles.name}>
                 {item.firstName} {item.lastName}
               </Text>
-
-              <Text style={styles.meta}>
-                🎓 Class: {item.classId?.name || "N/A"}
-              </Text>
-
-              <Text style={styles.meta}>
-                🏫 Section: {item.sectionId?.name || "N/A"}
-              </Text>
+              <Text style={styles.meta}>🎓 Class: {item.classId?.name || "N/A"}</Text>
+              <Text style={styles.meta}>🏫 Section: {item.sectionId?.name || "N/A"}</Text>
             </View>
           </View>
         </LinearGradient>
@@ -66,75 +46,83 @@ const ChildSelectorScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.heading}>👨‍👩‍👧 Select Child</Text>
+      <View style={styles.header}>
+        <Ionicons name="people-outline" size={18} color={COLORS.primary} />
+        <Text style={styles.heading}>Select Child</Text>
+      </View>
 
       <FlatList
         data={students}
         keyExtractor={(item: any) => item._id}
         renderItem={renderItem}
-        contentContainerStyle={{ paddingBottom: 20 }}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
       />
     </View>
   );
 };
 
 export default ChildSelectorScreen;
+
 const styles = StyleSheet.create({
   container: {
+    backgroundColor: STUDENT_THEME.background,
     flex: 1,
-    backgroundColor: "#F5F7FF",
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 18,
   },
-
-  heading: {
-    fontSize: 22,
-    fontWeight: "800",
+  header: {
+    alignItems: "center",
+    flexDirection: "row",
     marginBottom: 16,
-    color: "#111827",
   },
-
+  heading: {
+    color: COLORS.textPrimary,
+    fontSize: 22,
+    fontWeight: "900",
+    marginLeft: 8,
+  },
+  listContent: {
+    paddingBottom: 20,
+  },
   cardWrapper: {
     marginBottom: 16,
-    borderRadius: 20,
+    borderRadius: 22,
     overflow: "hidden",
   },
-
   card: {
-    borderRadius: 20,
+    borderRadius: 22,
+    ...SHADOWS.card,
   },
-
   glass: {
+    backgroundColor: "rgba(255,255,255,0.14)",
+    borderColor: "rgba(255,255,255,0.18)",
+    borderWidth: 1,
     flexDirection: "row",
     alignItems: "center",
     padding: 16,
-    backgroundColor: "rgba(255,255,255,0.15)",
   },
-
   avatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
     backgroundColor: "#fff",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
   },
-
   avatarText: {
-    fontWeight: "800",
-    color: "#6366F1",
+    fontWeight: "900",
+    color: COLORS.primary,
     fontSize: 18,
   },
-
   name: {
-    fontSize: 16,
-    fontWeight: "700",
+    ...TYPOGRAPHY.title,
     color: "#fff",
   },
-
   meta: {
-    fontSize: 13,
-    color: "#E0E7FF",
-    marginTop: 2,
+    ...TYPOGRAPHY.caption,
+    color: "rgba(255,255,255,0.86)",
+    marginTop: 4,
   },
 });

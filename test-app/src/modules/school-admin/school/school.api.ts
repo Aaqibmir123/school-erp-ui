@@ -29,9 +29,6 @@ export const schoolApi = baseApi.injectEndpoints({
       transformResponse: (response: ApiEnvelope<SchoolProfile | null>) =>
         response.data ?? null,
       providesTags: ["Dashboard"],
-      refetchOnMountOrArgChange: false,
-      refetchOnFocus: false,
-      refetchOnReconnect: false,
       keepUnusedDataFor: 300,
     }),
 

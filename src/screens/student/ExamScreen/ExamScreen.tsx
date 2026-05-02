@@ -1,99 +1,145 @@
+import { Ionicons } from "@expo/vector-icons";
+import { memo, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  FlatList,
+  Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
 
 import { useAuth } from "@/src/context/AuthContext";
-import { LinearGradient } from "expo-linear-gradient";
 import { useGetStudentExamsQuery } from "../../../api/student/student.api";
+import { COLORS, RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from "@/src/theme";
+import { STUDENT_GLAS_CARD } from "../studentTheme";
 
-export default function ExamScreen() {
+type ExamItem = {
+  className?: string;
+  category?: "class" | "school";
+  date?: string;
+  endDate?: string;
+  endTime?: string;
+  examType?: string;
+  id: string;
+  sectionName?: string;
+  startDate?: string;
+  startTime?: string;
+  status?: string;
+  subject?: string;
+  title?: string;
+  totalMarks?: number;
+};
+
+const formatDate = (value?: string | Date) => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  return date.toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+};
+
+const formatType = (type?: string) =>
+  String(type || "exam")
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+
+const formatWindow = (
+  startDate?: string | Date,
+  endDate?: string | Date,
+) => {
+  const startLabel = formatDate(startDate);
+  const endLabel = formatDate(endDate);
+
+  if (!startLabel && !endLabel) return "N/A";
+  if (!endLabel || startLabel === endLabel) return startLabel || endLabel;
+
+  return `${startLabel} → ${endLabel}`;
+};
+
+function ExamScreen() {
   const { selectedStudent } = useAuth();
-
-  const {
-    data = [],
-    isLoading,
-    isError,
-    refetch,
-  } = useGetStudentExamsQuery(
+  const { data = [], isLoading, isError, refetch } = useGetStudentExamsQuery(
     { studentId: selectedStudent?._id! },
     { skip: !selectedStudent?._id },
   );
+  const [selectedTab, setSelectedTab] = useState<"school" | "class">("school");
+  const filteredExams = useMemo(
+    () =>
+      data.filter((item: ExamItem) =>
+        selectedTab === "class" ? item.category === "class" : item.category !== "class",
+      ),
+    [data, selectedTab],
+  );
 
-  /* ================= HELPERS ================= */
-
-  const formatDate = (date: string) => {
-    const d = new Date(date);
-    return `${d.getDate()} ${d.toLocaleString("default", {
-      month: "short",
-    })}`;
-  };
-
-  const formatType = (type: string) => {
-    return type?.replace("_", " ");
-  };
-
-  /* ================= COLOR VARIANTS ================= */
-
-  const gradients = [
-    ["#667eea", "#764ba2"],
-    ["#00c9a7", "#92fe9d"],
-    ["#f7971e", "#ffd200"],
-  ] as const;
-
-  /* ================= ITEM ================= */
-
-  const renderItem = ({ item, index }: any) => {
-    const colors = gradients[index % gradients.length];
+  const renderItem = ({ item }: { item: ExamItem }) => {
     const isPublished = item.status === "published";
+    const dateLabel = formatWindow(item.startDate || item.date, item.endDate || item.date);
+    const isClassExam = item.category === "class";
 
     return (
-      <View style={styles.cardWrapper}>
-        <LinearGradient colors={colors} style={styles.gradientCard}>
-          {/* GLASS OVERLAY */}
-          <View style={styles.glass}>
-            {/* HEADER */}
-            <View style={styles.topRow}>
-              <Text style={styles.subject}>{item.subject}</Text>
-              <Text style={styles.date}>{formatDate(item.date)}</Text>
-            </View>
-
-            {/* CLASS + SECTION */}
-            <Text style={styles.classText}>
-              🎓 {item.className}{" "}
-              {item.section !== "All" ? `- ${item.section}` : ""}
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <View style={styles.titleWrap}>
+            <Text style={styles.title}>{item.title || "Exam"}</Text>
+            <Text style={styles.meta}>
+              {item.className || "N/A"}
+              {item.sectionName && item.sectionName !== "All"
+                ? ` - ${item.sectionName}`
+                : ""}
             </Text>
-
-            {/* TYPE */}
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{formatType(item.examType)}</Text>
-            </View>
-
-            {/* FOOTER */}
-            <View style={styles.footer}>
-              <Text style={styles.marks}>📝 {item.totalMarks} Marks</Text>
-
-              <View
-                style={[
-                  styles.statusBadge,
-                  isPublished ? styles.greenBg : styles.orangeBg,
-                ]}
-              >
-                <Text style={styles.statusText}>
-                  {isPublished ? "Published" : "Upcoming"}
-                </Text>
-              </View>
-            </View>
           </View>
-        </LinearGradient>
+
+          <View style={[styles.statusPill, isPublished ? styles.published : styles.upcoming]}>
+            <Text style={styles.statusText}>
+              {isPublished ? "Published" : "Upcoming"}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.chipRow}>
+          <View style={styles.examTypeChip}>
+            <Ionicons name="calendar-outline" size={14} color={COLORS.primary} />
+            <Text style={styles.examTypeText}>{formatType(item.examType)}</Text>
+          </View>
+          {isClassExam ? (
+            <View style={styles.examTypeChip}>
+              <Ionicons name="book-outline" size={14} color={COLORS.primary} />
+              <Text style={styles.examTypeText}>{item.subject || "Subject"}</Text>
+            </View>
+          ) : null}
+        </View>
+
+        <View style={styles.infoGrid}>
+          <View style={styles.infoBox}>
+            <Text style={styles.infoLabel}>Date</Text>
+            <Text style={styles.infoValue}>{dateLabel}</Text>
+          </View>
+        </View>
+
+        <View style={styles.statusRow}>
+          <View style={[styles.statusPill, isPublished ? styles.published : styles.upcoming]}>
+            <Text style={styles.statusText}>
+              {isPublished ? "Published" : "Upcoming"}
+            </Text>
+          </View>
+            <Text style={styles.statusHint}>
+              {isClassExam
+                ? item.totalMarks
+                  ? `${item.totalMarks} marks`
+                  : "Class exam"
+                : item.totalMarks
+                  ? `${item.totalMarks} marks`
+                  : "School exam"}
+            </Text>
+        </View>
       </View>
     );
   };
-
-  /* ================= STATES ================= */
 
   if (isLoading) {
     return <ActivityIndicator size="large" style={{ marginTop: 50 }} />;
@@ -107,119 +153,222 @@ export default function ExamScreen() {
     );
   }
 
-  /* ================= UI ================= */
-
   return (
-    <FlatList
-      data={data}
-      keyExtractor={(item) => item.id}
-      renderItem={renderItem}
+    <ScrollView
       showsVerticalScrollIndicator={false}
-      contentContainerStyle={{ paddingBottom: 40 }}
-      ListEmptyComponent={
-        <Text style={styles.empty}>📚 No exams scheduled</Text>
-      }
-    />
+      contentContainerStyle={styles.list}
+    >
+      <View style={styles.tabRow}>
+        <Pressable
+          onPress={() => setSelectedTab("school")}
+          style={({ pressed }) => [
+            styles.tabButton,
+            selectedTab === "school" && styles.tabButtonActive,
+            pressed && styles.tabButtonPressed,
+          ]}
+        >
+          <Text
+            style={[
+              styles.tabText,
+              selectedTab === "school" && styles.tabTextActive,
+            ]}
+          >
+            School Exams
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => setSelectedTab("class")}
+          style={({ pressed }) => [
+            styles.tabButton,
+            selectedTab === "class" && styles.tabButtonActive,
+            pressed && styles.tabButtonPressed,
+          ]}
+        >
+          <Text
+            style={[
+              styles.tabText,
+              selectedTab === "class" && styles.tabTextActive,
+            ]}
+          >
+            Class Exams
+          </Text>
+        </Pressable>
+      </View>
+
+      <View style={styles.sectionBlock}>
+        {filteredExams.length ? (
+          filteredExams.map((item: ExamItem) => (
+            <View key={`${selectedTab}-${item.id}`}>{renderItem({ item })}</View>
+          ))
+        ) : (
+          <Text style={styles.emptySection}>
+            {selectedTab === "class"
+              ? "No class exams yet."
+              : "No school exams yet."}
+          </Text>
+        )}
+      </View>
+    </ScrollView>
   );
 }
 
-/* ================= STYLES ================= */
+export default memo(ExamScreen);
 
 const styles = StyleSheet.create({
-  cardWrapper: {
+  list: {
+    paddingBottom: 40,
+    paddingTop: 8,
+  },
+  tabRow: {
+    flexDirection: "row",
+    gap: 10,
     marginHorizontal: 14,
-    marginVertical: 10,
-    borderRadius: 20,
-    overflow: "hidden",
-    elevation: 6,
+    marginBottom: 14,
   },
-
-  gradientCard: {
-    borderRadius: 20,
+  sectionBlock: {
+    marginBottom: 18,
   },
-
-  glass: {
-    backgroundColor: "rgba(255,255,255,0.15)",
-    padding: 16,
-    borderRadius: 20,
-  },
-
-  topRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-
-  subject: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: "#fff",
-  },
-
-  date: {
-    fontSize: 13,
-    color: "#e0e0e0",
-  },
-
-  classText: {
-    marginTop: 6,
-    fontSize: 13,
-    color: "#f1f5f9",
-    fontWeight: "600",
-  },
-
-  badge: {
-    marginTop: 12,
-    alignSelf: "flex-start",
-    backgroundColor: "rgba(255,255,255,0.2)",
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 20,
-  },
-
-  badgeText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#fff",
-    textTransform: "capitalize",
-  },
-
-  footer: {
-    marginTop: 14,
-    flexDirection: "row",
-    justifyContent: "space-between",
+  tabButton: {
     alignItems: "center",
+    backgroundColor: "#fff",
+    borderColor: "#dbeafe",
+    borderRadius: RADIUS.full,
+    borderWidth: 1,
+    flex: 1,
+    justifyContent: "center",
+    minHeight: 42,
   },
-
-  marks: {
+  tabButtonActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  tabButtonPressed: {
+    opacity: 0.92,
+  },
+  tabText: {
+    color: COLORS.textSecondary,
     fontSize: 13,
+    fontWeight: "800",
+  },
+  tabTextActive: {
     color: "#fff",
-    fontWeight: "600",
   },
-
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 20,
+  card: {
+    ...STUDENT_GLAS_CARD,
+    ...SHADOWS.card,
+    backgroundColor: "#fbfdff",
+    borderColor: "#e5eefc",
+    borderRadius: RADIUS.xl,
+    marginHorizontal: 14,
+    marginBottom: 12,
+    padding: 16,
   },
-
-  statusText: {
+  cardHeader: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  titleWrap: {
+    flex: 1,
+  },
+  title: {
+    ...TYPOGRAPHY.title,
+    color: COLORS.textPrimary,
+    fontSize: 18,
+  },
+  meta: {
+    color: COLORS.textSecondary,
     fontSize: 12,
     fontWeight: "700",
-    color: "#fff",
+    marginTop: 4,
   },
-
-  greenBg: {
-    backgroundColor: "#22c55e",
+  statusPill: {
+    borderRadius: RADIUS.full,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
   },
-
-  orangeBg: {
-    backgroundColor: "#f59e0b",
+  published: {
+    backgroundColor: "rgba(34, 197, 94, 0.12)",
   },
-
+  upcoming: {
+    backgroundColor: "rgba(245, 158, 11, 0.12)",
+  },
+  statusText: {
+    color: COLORS.textPrimary,
+    fontSize: 11,
+    fontWeight: "800",
+  },
+  chipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 14,
+  },
+  examTypeChip: {
+    alignItems: "center",
+    backgroundColor: COLORS.primarySoft,
+    borderRadius: RADIUS.full,
+    flexDirection: "row",
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  examTypeText: {
+    color: COLORS.primary,
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  infoGrid: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 14,
+  },
+  infoBox: {
+    backgroundColor: COLORS.cardMuted,
+    borderRadius: RADIUS.lg,
+    flex: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  infoLabel: {
+    color: COLORS.textTertiary,
+    fontSize: 11,
+    fontWeight: "800",
+    textTransform: "uppercase",
+  },
+  infoValue: {
+    color: COLORS.textPrimary,
+    fontSize: 13,
+    fontWeight: "800",
+    marginTop: 4,
+  },
+  statusRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 10,
+    marginTop: 14,
+  },
+  statusHint: {
+    color: COLORS.textSecondary,
+    flex: 1,
+    fontSize: 12,
+    fontWeight: "700",
+    textAlign: "right",
+  },
   empty: {
-    textAlign: "center",
-    marginTop: 60,
+    color: COLORS.textSecondary,
     fontSize: 14,
-    color: "#888",
+    marginTop: 60,
+    textAlign: "center",
+  },
+  emptySection: {
+    color: COLORS.textTertiary,
+    fontSize: 12,
+    marginHorizontal: 14,
+    marginBottom: 10,
+    marginTop: 4,
   },
 });

@@ -1,4 +1,3 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, {
   createContext,
   ReactNode,
@@ -7,7 +6,9 @@ import React, {
   useState,
 } from "react";
 
-import { setAuthToken } from "../api/baseQuery";
+import { setAuthExpiredHandler, setAuthSession } from "../api/baseQuery";
+import { ALLOWED_AUTH_ROLES } from "../api/auth";
+import { storage } from "../utils/secureStorage";
 
 export interface AuthUser {
   _id: string;
@@ -16,18 +17,23 @@ export interface AuthUser {
   email?: string;
   image?: string;
   phone?: string;
+  teacherId?: string;
 }
 
 export interface Student {
   _id: string;
   firstName: string;
   lastName: string;
+  image?: string;
+  profileImage?: string;
   classId?: any;
   sectionId?: any;
+  rollNumber?: number;
 }
 
 interface AuthContextType {
   token: string | null;
+  refreshToken: string | null;
   role: string | null;
   user: AuthUser | null;
   loading: boolean;
@@ -35,9 +41,11 @@ interface AuthContextType {
   selectedStudent: Student | null;
   login: (data: {
     token: string;
+    refreshToken?: string | null;
     user: AuthUser;
     students?: Student[];
   }) => Promise<void>;
+  updateUser: (patch: Partial<AuthUser>) => Promise<void>;
   logout: () => Promise<void>;
   setSelectedStudent: (student: Student) => void;
 }
@@ -46,13 +54,18 @@ export const AuthContext = createContext<AuthContextType | null>(null);
 
 const STORAGE_KEYS = {
   TOKEN: "token",
+  REFRESH_TOKEN: "refreshToken",
   USER: "user",
   STUDENTS: "students",
   SELECTED: "selectedStudent",
 };
 
+const isAllowedRole = (role: string | undefined | null) =>
+  ALLOWED_AUTH_ROLES.has(String(role || "").toUpperCase());
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [token, setToken] = useState<string | null>(null);
+  const [refreshToken, setRefreshToken] = useState<string | null>(null);
   const [role, setRole] = useState<string | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
@@ -64,29 +77,52 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const loadAuth = async () => {
       try {
-        const storedToken = await AsyncStorage.getItem(STORAGE_KEYS.TOKEN);
-        const storedUser = await AsyncStorage.getItem(STORAGE_KEYS.USER);
-        const storedStudents = await AsyncStorage.getItem(
+        const storedToken = await storage.getItem(STORAGE_KEYS.TOKEN);
+        const storedRefreshToken = await storage.getItem(
+          STORAGE_KEYS.REFRESH_TOKEN,
+        );
+        const storedUser = await storage.getItem(STORAGE_KEYS.USER);
+        const storedStudents = await storage.getItem(
           STORAGE_KEYS.STUDENTS,
         );
-        const storedSelected = await AsyncStorage.getItem(
+        const storedSelected = await storage.getItem(
           STORAGE_KEYS.SELECTED,
         );
 
         if (storedToken && storedUser) {
           const parsedUser: AuthUser = JSON.parse(storedUser);
+          const normalizedUser = {
+            ...parsedUser,
+            role: String(parsedUser.role || "").toUpperCase(),
+          };
+
+          if (!isAllowedRole(normalizedUser.role)) {
+            await storage.multiRemove([
+              STORAGE_KEYS.TOKEN,
+              STORAGE_KEYS.REFRESH_TOKEN,
+              STORAGE_KEYS.USER,
+              STORAGE_KEYS.STUDENTS,
+              STORAGE_KEYS.SELECTED,
+            ]);
+            setAuthSession(null, null);
+            return;
+          }
 
           setToken(storedToken);
-          setUser(parsedUser);
-          setRole(parsedUser.role);
-          setAuthToken(storedToken);
+          setRefreshToken(storedRefreshToken);
+          setUser(normalizedUser);
+          setRole(normalizedUser.role);
+          setAuthSession(storedToken, storedRefreshToken);
 
-          if (parsedUser.role === "PARENT") {
+          if (normalizedUser.role === "PARENT") {
             if (storedStudents) setStudents(JSON.parse(storedStudents));
             if (storedSelected) {
               setSelectedStudentState(JSON.parse(storedSelected));
             }
           }
+        }
+        if (!storedToken || !storedUser) {
+          setAuthSession(null, null);
         }
       } catch {
         // WHY: Authentication hydration should fail silently so a stale cache
@@ -99,37 +135,71 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     loadAuth();
   }, []);
 
+  useEffect(() => {
+    setAuthExpiredHandler(() => {
+      void logout();
+    });
+
+    return () => {
+      setAuthExpiredHandler(null);
+    };
+  }, []);
+
   const login = async (data: {
     token: string;
+    refreshToken?: string | null;
     user: AuthUser;
     students?: Student[];
   }) => {
+    const normalizedUser = {
+      ...data.user,
+      role: String(data.user.role || "").toUpperCase(),
+    };
+
+    if (!isAllowedRole(normalizedUser.role)) {
+      throw new Error("User not found");
+    }
+
     try {
       setStudents([]);
       setSelectedStudentState(null);
 
       setToken(data.token);
-      setUser(data.user);
-      setRole(data.user.role);
-      setAuthToken(data.token);
+      setRefreshToken(data.refreshToken || null);
+      setUser(normalizedUser);
+      setRole(normalizedUser.role);
+      setAuthSession(data.token, data.refreshToken || null);
 
-      await AsyncStorage.setItem(STORAGE_KEYS.TOKEN, data.token);
-      await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(data.user));
+      await storage.setItem(STORAGE_KEYS.TOKEN, data.token);
+      if (data.refreshToken) {
+        await storage.setItem(
+          STORAGE_KEYS.REFRESH_TOKEN,
+          data.refreshToken,
+        );
+      } else {
+        await storage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+      }
+      await storage.setItem(STORAGE_KEYS.USER, JSON.stringify(normalizedUser));
 
-      if (data.user.role === "PARENT") {
+      if (normalizedUser.role === "PARENT") {
         const list = data.students || [];
 
         setStudents(list);
 
         if (list.length === 1) {
           setSelectedStudentState(list[0]);
-          await AsyncStorage.setItem(
+          await storage.setItem(
             STORAGE_KEYS.SELECTED,
             JSON.stringify(list[0]),
           );
         }
 
-        await AsyncStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(list));
+        await storage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(list));
+      } else {
+        await storage.multiRemove([
+          STORAGE_KEYS.STUDENTS,
+          STORAGE_KEYS.SELECTED,
+        ]);
       }
     } catch {
       // WHY: Login state persistence is best-effort; API errors already surface
@@ -137,21 +207,39 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const updateUser = async (patch: Partial<AuthUser>) => {
+    setUser((current) => {
+      if (!current) return current;
+
+      const nextUser = { ...current, ...patch };
+
+      storage.setItem(STORAGE_KEYS.USER, JSON.stringify(nextUser)).catch(
+        () => {
+          // WHY: Profile updates should not fail just because local cache write failed.
+        },
+      );
+
+      return nextUser;
+    });
+  };
+
   const setSelectedStudent = async (student: Student) => {
     setSelectedStudentState(student);
-    await AsyncStorage.setItem(STORAGE_KEYS.SELECTED, JSON.stringify(student));
+    await storage.setItem(STORAGE_KEYS.SELECTED, JSON.stringify(student));
   };
 
   const logout = async () => {
     setToken(null);
+    setRefreshToken(null);
     setUser(null);
     setRole(null);
     setStudents([]);
     setSelectedStudentState(null);
-    setAuthToken(null);
+    setAuthSession(null, null);
 
-    await AsyncStorage.multiRemove([
+    await storage.multiRemove([
       STORAGE_KEYS.TOKEN,
+      STORAGE_KEYS.REFRESH_TOKEN,
       STORAGE_KEYS.USER,
       STORAGE_KEYS.STUDENTS,
       STORAGE_KEYS.SELECTED,
@@ -162,12 +250,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     <AuthContext.Provider
       value={{
         token,
+        refreshToken,
         role,
         user,
         loading,
         students,
         selectedStudent,
         login,
+        updateUser,
         logout,
         setSelectedStudent,
       }}

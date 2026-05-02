@@ -1,18 +1,23 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { DrawerActions } from "@react-navigation/native";
 import React from "react";
 import { StyleSheet } from "react-native";
 
 import AppHeader from "../components/ui/AppHeader";
 import TeacherTabNavigator from "./TeacherTabNavigator";
+import { COLORS } from "../theme";
 
 // Screens
 import ActionScreen from "../screens/teacher/ActionScreen";
 import AttendanceScreen from "../screens/teacher/AttendanceScreen";
+import AttendanceHistoryScreen from "../screens/teacher/AttendanceHistoryScreen";
+import ProfileScreen from "../screens/teacher/ProfileScreen";
 import StudentProgressScreen from "../screens/teacher/StudentProgressScreen";
 import StudentsScreen from "../screens/teacher/StudentsScreen";
 import SubjectScreen from "../screens/teacher/SubjectScreen";
 import TimelineScreen from "../screens/TimelineScreen";
+import RecordsScreen from "../screens/teacher/RecordsScreen";
+import NoticeFeedScreen from "../screens/notices/NoticeFeedScreen";
+import NoticesHeaderButton from "../components/ui/NoticesHeaderButton";
 
 import CreateHomeworkScreen from "../screens/homework/CreateHomeworkScreen";
 
@@ -32,6 +37,36 @@ import ResultPreviewScreen from "../screens/teacher/results/ResultPreviewScreen"
 import SelectExamScreen from "../screens/teacher/results/SelectExamScreen";
 const Stack = createNativeStackNavigator();
 
+const formatTitle = (name?: string) => {
+  if (!name) return "Teacher Home";
+
+  const titles: Record<string, string> = {
+    Main: "Teacher Home",
+    Dashboard: "Home",
+    Homework: "Homework",
+    HomeworkList: "Homework",
+    CreateHomework: "Create Homework",
+    HomeworkCheck: "Check Homework",
+    HomeworkDetails: "Homework Details",
+      Attendance: "Attendance",
+      AttendanceHistory: "Attendance History",
+      Profile: "My Profile",
+      Records: "Records",
+    CreateExam: "Exams",
+    AcademicExams: "Academic Exams",
+    ExamAction: "Exam Options",
+    ExamAttendance: "Exam Attendance",
+    ExamMarks: "Enter Marks",
+    ResultHome: "Results",
+    ResultList: "Results",
+    ResultPreview: "Result Preview",
+    EditResult: "Edit Result",
+    Notices: "Notices",
+  };
+
+  return titles[name] || name;
+};
+
 const TeacherStack = () => {
   return (
     <Stack.Navigator
@@ -41,14 +76,22 @@ const TeacherStack = () => {
             title={
               typeof options.title === "string"
                 ? options.title
-                : route.name === "Main"
-                  ? "Teacher Dashboard"
-                  : route.name
+                : formatTitle(route.name)
             }
-            onBack={back ? () => navigation.goBack() : undefined}
+            rightElement={
+              typeof options.headerRight === "function"
+                ? (options.headerRight as any)({ tintColor: COLORS.textPrimary })
+                : undefined
+            }
+            onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined}
             onMenu={
               route.name === "Main"
-                ? () => navigation.dispatch(DrawerActions.toggleDrawer())
+                ? () =>
+                    (
+                      navigation.getParent() as
+                        | { toggleDrawer?: () => void }
+                        | undefined
+                    )?.toggleDrawer?.()
                 : undefined
             }
           />
@@ -61,31 +104,59 @@ const TeacherStack = () => {
       <Stack.Screen
         name="Main"
         component={TeacherTabNavigator}
-        options={{
-          headerTitle: "",
-        }}
+        options={({ navigation }) => ({
+          title: "Teacher Home",
+          headerRight: () => (
+            <NoticesHeaderButton
+              onPress={() => navigation.navigate("Notices")}
+            />
+          ),
+        })}
       />
 
       {/* CORE */}
       <Stack.Screen name="Timeline" component={TimelineScreen} />
+      <Stack.Screen
+        name="Notices"
+        component={NoticeFeedScreen}
+        options={{ title: "Notices", headerShown: false }}
+      />
       <Stack.Screen name="SubjectScreen" component={SubjectScreen} />
       <Stack.Screen name="ActionScreen" component={ActionScreen} />
       <Stack.Screen name="Students" component={StudentsScreen} />
+      <Stack.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{ title: "My Profile" }}
+      />
       <Stack.Screen name="Attendance" component={AttendanceScreen} />
+      <Stack.Screen
+        name="AttendanceHistory"
+        component={AttendanceHistoryScreen}
+        options={{ title: "Attendance History" }}
+      />
+      <Stack.Screen
+        name="Records"
+        component={RecordsScreen}
+        options={{ title: "Records" }}
+      />
       <Stack.Screen name="StudentProgress" component={StudentProgressScreen} />
 
       {/* HOMEWORK */}
       <Stack.Screen
         name="CreateHomework"
         component={CreateHomeworkScreen}
-        options={{ title: "Create Homework" }}
+        options={{
+          headerShown: false,
+          presentation: "modal",
+        }}
       />
 
       {/* EXAMS */}
       <Stack.Screen
         name="CreateExam"
         component={CreateExamScreen}
-        options={{ title: "Create Exam" }}
+        options={{ title: "Exams" }}
       />
 
       <Stack.Screen
@@ -132,6 +203,6 @@ export default TeacherStack;
 
 const styles = StyleSheet.create({
   content: {
-    backgroundColor: "#F4F7FB",
+    backgroundColor: "#EAF1FF",
   },
 });

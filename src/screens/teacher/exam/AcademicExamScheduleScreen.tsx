@@ -2,7 +2,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import React from "react";
 import {
-  ActivityIndicator,
   FlatList,
   StyleSheet,
   Text,
@@ -10,10 +9,9 @@ import {
   View,
 } from "react-native";
 
+import BrandLoader from "@/src/components/BrandLoader";
 import EmptyState from "@/src/components/EmptyState";
-import { COLORS } from "@/src/theme/colors";
-import { RADIUS } from "@/src/theme/radius";
-import { SPACING } from "@/src/theme/spacing";
+import { COLORS, RADIUS, SPACING } from "@/src/theme";
 import { useGetTeacherAcademicExamsQuery } from "../../../api/teacher/teacherApi";
 
 const AcademicExamScheduleScreen = () => {
@@ -42,7 +40,7 @@ const AcademicExamScheduleScreen = () => {
   if (isLoading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+        <BrandLoader />
       </View>
     );
   }

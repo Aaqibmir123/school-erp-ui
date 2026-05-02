@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import CurrentClassCard from "../components/CurrentClassCard";
@@ -31,11 +32,17 @@ const TeacherTabNavigator = () => {
           marginBottom: 0,
         },
         tabBarStyle: {
-          borderTopColor: "#E2E8F0",
-          borderTopWidth: 1,
+          backgroundColor: "rgba(255,255,255,0.9)",
+          borderTopColor: "rgba(217,226,236,0.95)",
+          borderTopWidth: StyleSheet.hairlineWidth,
           height: 60 + insets.bottom,
           paddingBottom: Math.max(insets.bottom, 8),
           paddingTop: 6,
+          shadowColor: "#0F172A",
+          shadowOffset: { width: 0, height: -8 },
+          shadowOpacity: 0.08,
+          shadowRadius: 20,
+          elevation: 12,
         },
 
         tabBarIcon: ({ color, size, focused }) => {
@@ -73,7 +80,7 @@ const TeacherTabNavigator = () => {
         name="Dashboard"
         component={CurrentClassCard}
         options={{
-          title: "Dashboard",
+          title: "Home",
         }}
       />
       <Tab.Screen

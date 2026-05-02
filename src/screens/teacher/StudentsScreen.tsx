@@ -2,17 +2,20 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
+import BrandLoader from "@/src/components/BrandLoader";
 import FallbackBanner from "@/src/components/FallbackBanner";
+import AppInput from "@/src/theme/Input";
 import { COLORS, RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from "@/src/theme";
 import {
+  useGetCurrentClassQuery,
   useGetClassAttendanceQuery,
   useGetStudentsByClassQuery,
   useMarkAttendanceMutation,
@@ -23,7 +26,18 @@ const StudentsScreen = ({ route }: any) => {
   const { classId, sectionId, subjectId, periodId, mode } = route.params || {};
 
   const screenMode = mode || "attendance";
-  const date = new Date().toISOString().split("T")[0];
+  const [attendanceMode, setAttendanceMode] = useState<"AUTO" | "MANUAL">(
+    "AUTO",
+  );
+  const [manualReason, setManualReason] = useState("");
+  const [modeTouched, setModeTouched] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(8);
+  const date = new Date().toLocaleDateString("en-CA");
+
+  const { data: currentClassData } = useGetCurrentClassQuery(undefined, {
+    pollingInterval: 30000,
+  });
+  const currentClass = currentClassData?.currentClass || null;
 
   const queryParams = useMemo(
     () => ({
@@ -84,6 +98,25 @@ const StudentsScreen = ({ route }: any) => {
     setIsEditMode(true);
   }, [existingAttendance]);
 
+  useEffect(() => {
+    setVisibleCount(8);
+  }, [classId, sectionId, subjectId, periodId, apiStudents.length]);
+
+  useEffect(() => {
+    if (modeTouched) return;
+    setAttendanceMode("AUTO");
+  }, [classId, currentClass, modeTouched, periodId, sectionId, subjectId]);
+
+  useEffect(() => {
+    if (visibleCount >= students.length) return;
+
+    const timer = setTimeout(() => {
+      setVisibleCount((current) => Math.min(current + 8, students.length));
+    }, 35);
+
+    return () => clearTimeout(timer);
+  }, [students.length, visibleCount]);
+
   const toggle = (id: string) => {
     if (screenMode === "view") return;
 
@@ -105,12 +138,24 @@ const StudentsScreen = ({ route }: any) => {
         return showToast.warning("No students found");
       }
 
+      if (!liveMatch) {
+        return showToast.warning(
+          "Attendance can only be saved when the live class matches the timetable",
+        );
+      }
+
+      if (attendanceMode === "MANUAL" && !manualReason.trim()) {
+        return showToast.warning("Please add a manual reason");
+      }
+
       const payload = {
         classId,
         sectionId,
         subjectId,
         periodId,
         date,
+        attendanceMode,
+        reason: manualReason.trim(),
         students: students.map((student) => ({
           studentId: student._id,
           status: student.status,
@@ -132,24 +177,113 @@ const StudentsScreen = ({ route }: any) => {
   const presentCount = students.filter((student) => student.status === "PRESENT")
     .length;
   const absentCount = students.length - presentCount;
+  const visibleStudents = students.slice(0, visibleCount);
+  const liveMatch =
+    !!currentClass &&
+    String(currentClass.classId) === String(classId) &&
+    String(currentClass.periodId) === String(periodId) &&
+    String(currentClass.subjectId) === String(subjectId) &&
+    String(currentClass.sectionId || "") === String(sectionId || "");
+  const attendanceLocked = !liveMatch;
+  const canSaveAttendance = liveMatch;
 
   if (isLoading || attendanceLoading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+        <BrandLoader />
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.kicker}>Teacher action</Text>
+      <Text style={styles.kicker}>Attendance</Text>
       <Text style={styles.title}>
         {isEditMode ? "Edit Attendance" : "Mark Attendance"}
       </Text>
-      <Text style={styles.subtitle}>
-        Tap a student card to toggle attendance before saving.
-      </Text>
+
+      <View style={styles.modeBanner}>
+        <Ionicons
+          name={attendanceMode === "AUTO" ? "radio" : "create-outline"}
+          size={16}
+          color={attendanceMode === "AUTO" ? COLORS.primary : COLORS.warning}
+        />
+        <Text style={styles.modeBannerText}>
+          {attendanceMode === "AUTO"
+            ? liveMatch
+              ? "Live mode active for the current class"
+              : "Live mode selected, but attendance is locked"
+            : liveMatch
+              ? "Manual mode active for this class"
+              : "Manual mode selected, but attendance is locked"}
+        </Text>
+      </View>
+
+      <View style={styles.modeRow}>
+        <TouchableOpacity
+          onPress={() => {
+            if (attendanceLocked) {
+              showToast.warning("Attendance is locked to timetable");
+              return;
+            }
+            setModeTouched(true);
+            setAttendanceMode("AUTO");
+          }}
+          style={[
+            styles.modeChip,
+            attendanceMode === "AUTO" && styles.modeChipActive,
+          ]}
+        >
+          <Text
+            style={[
+              styles.modeChipText,
+              attendanceMode === "AUTO" && styles.modeChipTextActive,
+            ]}
+          >
+            Live mode
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => {
+            if (attendanceLocked) {
+              showToast.warning("Attendance is locked to timetable");
+              return;
+            }
+            setModeTouched(true);
+            setAttendanceMode("MANUAL");
+          }}
+          style={[
+            styles.modeChip,
+            attendanceMode === "MANUAL" && styles.modeChipActive,
+            attendanceLocked && styles.modeChipDisabled,
+          ]}
+          disabled={attendanceLocked}
+        >
+          <Text
+            style={[
+              styles.modeChipText,
+              attendanceMode === "MANUAL" && styles.modeChipTextActive,
+              attendanceLocked && styles.modeChipTextDisabled,
+            ]}
+          >
+            Manual mode
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {attendanceMode === "MANUAL" ? (
+        <AppInput
+          compact
+          label="Manual reason"
+          placeholder="Teacher late, network issue, or after-class entry"
+          value={manualReason}
+          onChangeText={setManualReason}
+          multiline
+          numberOfLines={3}
+          style={styles.reasonInput}
+        />
+      ) : null}
 
       <View style={styles.summary}>
         <View style={styles.summaryItem}>
@@ -163,7 +297,7 @@ const StudentsScreen = ({ route }: any) => {
       </View>
 
       <FlatList
-        data={students}
+        data={visibleStudents}
         keyExtractor={(item) => item._id}
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={
@@ -172,6 +306,11 @@ const StudentsScreen = ({ route }: any) => {
             subtitle="This class is empty."
           />
         }
+        initialNumToRender={8}
+        maxToRenderPerBatch={8}
+        windowSize={5}
+        removeClippedSubviews
+        updateCellsBatchingPeriod={35}
         renderItem={({ item }) => {
           const isPresent = item.status === "PRESENT";
 
@@ -217,17 +356,31 @@ const StudentsScreen = ({ route }: any) => {
             </TouchableOpacity>
           );
         }}
+        ListFooterComponent={
+          <View style={styles.footerSpacer}>
+            {visibleCount < students.length ? (
+              <Text style={styles.loadingMoreText}>
+                Loading more students...
+              </Text>
+            ) : null}
+          </View>
+        }
       />
 
       <TouchableOpacity
         onPress={handleSave}
-        style={styles.saveBtn}
-        disabled={saving}
+        style={[
+          styles.saveBtn,
+          (!canSaveAttendance || saving) && styles.saveBtnDisabled,
+        ]}
+        disabled={!canSaveAttendance || saving}
       >
         <Text style={styles.saveText}>
           {saving
             ? "Saving..."
-            : isEditMode
+            : !canSaveAttendance
+              ? "Locked to Schedule"
+              : isEditMode
               ? "Update Attendance"
               : "Save Attendance"}
         </Text>
@@ -244,6 +397,39 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     paddingHorizontal: SPACING.lg,
     paddingTop: SPACING.lg,
+  },
+  modeRow: {
+    flexDirection: "row",
+    marginBottom: SPACING.md,
+    gap: SPACING.sm,
+  },
+  modeChip: {
+    flex: 1,
+    alignItems: "center",
+    backgroundColor: COLORS.card,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.full,
+    borderWidth: 1,
+    paddingVertical: SPACING.sm,
+  },
+  modeChipActive: {
+    backgroundColor: COLORS.primarySoft,
+    borderColor: COLORS.primary,
+  },
+  modeChipDisabled: {
+    backgroundColor: COLORS.card,
+    borderColor: COLORS.border,
+    opacity: 0.7,
+  },
+  modeChipText: {
+    color: COLORS.textSecondary,
+    fontWeight: "700",
+  },
+  modeChipTextActive: {
+    color: COLORS.primary,
+  },
+  modeChipTextDisabled: {
+    color: COLORS.textTertiary,
   },
   title: {
     ...TYPOGRAPHY.headline,
@@ -278,6 +464,29 @@ const styles = StyleSheet.create({
   },
   summaryText: {
     color: COLORS.textPrimary,
+    fontWeight: "700",
+  },
+  loadingMoreText: {
+    color: COLORS.textSecondary,
+    fontSize: 12,
+    textAlign: "center",
+  },
+  modeBanner: {
+    alignItems: "center",
+    backgroundColor: COLORS.card,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: SPACING.md,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+  },
+  modeBannerText: {
+    color: COLORS.textPrimary,
+    flex: 1,
+    fontSize: 13,
     fontWeight: "700",
   },
   dot: {
@@ -332,11 +541,19 @@ const styles = StyleSheet.create({
   saveBtn: {
     backgroundColor: COLORS.primary,
     borderRadius: RADIUS.lg,
-    bottom: SPACING.md,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    marginBottom: SPACING.md,
     left: SPACING.lg,
     padding: SPACING.md,
     position: "absolute",
     right: SPACING.lg,
+    bottom: SPACING.md,
+  },
+  saveBtnDisabled: {
+    backgroundColor: "#B9C7E8",
+    borderColor: "#9EB1DA",
+    opacity: 1,
   },
   saveText: {
     color: COLORS.textInverse,
@@ -344,12 +561,19 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     textAlign: "center",
   },
+  reasonInput: {
+    minHeight: 84,
+    textAlignVertical: "top",
+  },
   center: {
     alignItems: "center",
     flex: 1,
     justifyContent: "center",
   },
   listContent: {
-    paddingBottom: 120,
+    paddingBottom: 170,
+  },
+  footerSpacer: {
+    height: 12,
   },
 });

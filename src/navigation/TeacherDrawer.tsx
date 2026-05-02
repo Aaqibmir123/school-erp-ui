@@ -18,7 +18,7 @@ const TeacherDrawer = () => {
         headerShown: false,
         drawerStyle: {
           width: "86%",
-          backgroundColor: "#F4F7FB",
+          backgroundColor: "#EAF1FF",
         },
         drawerType: "front",
         drawerActiveTintColor: "#6366F1",

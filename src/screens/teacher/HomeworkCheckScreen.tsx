@@ -1,5 +1,7 @@
 "use client";
 
+import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 import React, { useEffect, useState } from "react";
 import {
   FlatList,
@@ -12,7 +14,7 @@ import {
 } from "react-native";
 
 import FallbackBanner from "@/src/components/FallbackBanner";
-import { COLORS, RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from "@/src/theme";
+import { COLORS, RADIUS, SHADOWS, SPACING } from "@/src/theme";
 import { showToast } from "@/src/utils/toast";
 import {
   useGetHomeworkCheckQuery,
@@ -21,54 +23,69 @@ import {
 } from "../../api/teacher/teacherApi";
 
 const HomeworkCheckScreen = ({ route }: any) => {
+  const navigation = useNavigation<any>();
   const { homeworkId, classId, subjectId, sectionId } = route.params;
 
   const [students, setStudents] = useState<any[]>([]);
+  const [visibleCount, setVisibleCount] = useState(8);
 
   const { data: apiStudents = [] } = useGetStudentsByClassQuery({
     classId,
     sectionId,
   });
 
-  const { data: existingData = [] } = useGetHomeworkCheckQuery(homeworkId);
+  const { data: homeworkCheckData } = useGetHomeworkCheckQuery(homeworkId);
   const [markHomeworkCheck, { isLoading }] = useMarkHomeworkCheckMutation();
+  const existingData = homeworkCheckData?.checks || [];
+  const maxMarks = Number(
+    homeworkCheckData?.homework?.maxMarks || route.params?.maxMarks || 0,
+  );
 
   useEffect(() => {
     if (!apiStudents.length) return;
 
     const formatted = apiStudents.map((s: any) => {
-      const found = existingData.find((e: any) => e.studentId === s._id);
+      const found = existingData.find(
+        (e: any) => String(e.studentId) === String(s._id),
+      );
 
       return {
         ...s,
         feedback: found ? found.feedback : "",
         marks: found ? String(found.marks) : "",
-        status: found ? found.status : "NOT_DONE",
+        updatedAt: found?.updatedAt || null,
       };
     });
 
     setStudents(formatted);
   }, [apiStudents, existingData]);
 
-  const toggleStatus = (id: string) => {
-    setStudents((prev) =>
-      prev.map((student) =>
-        student._id === id
-          ? {
-              ...student,
-              status: student.status === "DONE" ? "NOT_DONE" : "DONE",
-            }
-          : student,
-      ),
-    );
-  };
+  useEffect(() => {
+    setVisibleCount(8);
+  }, [homeworkId, classId, sectionId, subjectId, apiStudents.length]);
+
+  useEffect(() => {
+    if (visibleCount >= students.length) return;
+
+    const timer = setTimeout(() => {
+      setVisibleCount((current) => Math.min(current + 8, students.length));
+    }, 40);
+
+    return () => clearTimeout(timer);
+  }, [students.length, visibleCount]);
 
   const updateMarks = (id: string, value: string) => {
     if (!/^\d*$/.test(value)) return;
 
+    const numericValue = Number(value);
+    const nextValue =
+      maxMarks > 0 && value !== "" && numericValue > maxMarks
+        ? String(maxMarks)
+        : value;
+
     setStudents((prev) =>
       prev.map((student) =>
-        student._id === id ? { ...student, marks: value } : student,
+        student._id === id ? { ...student, marks: nextValue } : student,
       ),
     );
   };
@@ -89,7 +106,6 @@ const HomeworkCheckScreen = ({ route }: any) => {
 
       const filteredStudents = students.filter(
         (student) =>
-          student.status === "DONE" ||
           student.marks !== "" ||
           student.feedback !== "",
       );
@@ -106,7 +122,6 @@ const HomeworkCheckScreen = ({ route }: any) => {
         students: filteredStudents.map((student) => ({
           feedback: student.feedback || "",
           marks: Number(student.marks) || 0,
-          status: student.status,
           studentId: student._id,
         })),
       };
@@ -121,24 +136,31 @@ const HomeworkCheckScreen = ({ route }: any) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.kicker}>Homework review</Text>
-      <Text style={styles.title}>Check submissions</Text>
-      <Text style={styles.subtitle}>
-        Keep marks and feedback aligned with the student list below.
-      </Text>
+      <View style={styles.topRow}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.closeBtn}
+          accessibilityRole="button"
+          accessibilityLabel="Go back to homework"
+        >
+          <Ionicons name="close" size={24} color={COLORS.textPrimary} />
+        </TouchableOpacity>
+      </View>
 
       <FlatList
-        data={students}
+        data={students.slice(0, visibleCount)}
         keyExtractor={(item) => item._id}
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={
           <FallbackBanner title="No students found" subtitle="This class is empty." />
         }
         renderItem={({ item }) => {
-          const isDone = item.status === "DONE";
+          const currentMarks = Number(item.marks || 0);
+          const isComplete = item.marks !== "" || item.feedback !== "";
+          const limit = maxMarks > 0 ? maxMarks : null;
 
           return (
-            <View style={[styles.card, isDone && styles.doneCard]}>
+            <View style={[styles.card, isComplete && styles.doneCard]}>
               <View style={styles.header}>
                 <View style={styles.rollBadge}>
                   <Text style={styles.rollText}>
@@ -151,18 +173,11 @@ const HomeworkCheckScreen = ({ route }: any) => {
                     {item.firstName} {item.lastName}
                   </Text>
                 </View>
-
-                <TouchableOpacity
-                  onPress={() => toggleStatus(item._id)}
-                  style={[
-                    styles.statusBtn,
-                    isDone ? styles.doneBtn : styles.notDoneBtn,
-                  ]}
-                >
-                  <Text style={styles.statusText}>
-                    {isDone ? "DONE" : "NOT DONE"}
+                <View style={styles.maxBadge}>
+                  <Text style={styles.maxBadgeText}>
+                    {limit ? `Max ${limit}` : "Max N/A"}
                   </Text>
-                </TouchableOpacity>
+                </View>
               </View>
 
               <View style={styles.inputRow}>
@@ -170,22 +185,42 @@ const HomeworkCheckScreen = ({ route }: any) => {
                   placeholder="Marks"
                   keyboardType={Platform.OS === "web" ? "default" : "numeric"}
                   value={item.marks}
-                  editable={isDone}
+                  editable
                   onChangeText={(value) => updateMarks(item._id, value)}
-                  style={[styles.inputSmall, !isDone && styles.disabledInput]}
+                  style={styles.inputSmall}
                 />
 
                 <TextInput
                   placeholder="Feedback"
                   value={item.feedback}
-                  editable={isDone}
+                  editable
                   onChangeText={(value) => updateFeedback(item._id, value)}
-                  style={[styles.inputFlex, !isDone && styles.disabledInput]}
+                  style={styles.inputFlex}
                 />
+              </View>
+
+              <View style={styles.footerRow}>
+                <Text style={styles.footerText}>
+                  {item.marks !== ""
+                    ? `Entered ${currentMarks}`
+                    : "Enter marks and feedback"}
+                </Text>
+                {item.updatedAt ? (
+                  <Text style={styles.footerDate}>
+                    Updated {new Date(item.updatedAt).toLocaleDateString()}
+                  </Text>
+                ) : null}
               </View>
             </View>
           );
         }}
+        ListFooterComponent={
+          <View style={styles.footerSpacer}>
+            {visibleCount < students.length ? (
+              <Text style={styles.loadingMoreText}>Loading more students...</Text>
+            ) : null}
+          </View>
+        }
       />
 
       <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
@@ -202,7 +237,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     flex: 1,
     paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.lg,
+    paddingTop: SPACING.xs,
   },
   card: {
     ...SHADOWS.soft,
@@ -216,6 +251,20 @@ const styles = StyleSheet.create({
   doneCard: {
     borderLeftColor: COLORS.success,
     borderLeftWidth: 4,
+  },
+  closeBtn: {
+    alignItems: "center",
+    backgroundColor: COLORS.card,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.full,
+    borderWidth: 1,
+    height: 44,
+    justifyContent: "center",
+    width: 44,
+  },
+  topRow: {
+    alignItems: "flex-start",
+    marginBottom: SPACING.sm,
   },
   header: {
     alignItems: "center",
@@ -243,24 +292,10 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingRight: SPACING.sm,
   },
-  statusBtn: {
-    borderRadius: RADIUS.full,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: 6,
-  },
-  doneBtn: {
-    backgroundColor: COLORS.success,
-  },
-  notDoneBtn: {
-    backgroundColor: COLORS.danger,
-  },
-  statusText: {
-    color: COLORS.textInverse,
-    fontSize: 11,
-    fontWeight: "800",
-  },
   inputRow: {
     flexDirection: "row",
+    gap: SPACING.sm,
+    marginTop: SPACING.sm,
   },
   inputSmall: {
     borderColor: COLORS.border,
@@ -277,11 +312,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     color: COLORS.textPrimary,
     flex: 1,
-    marginLeft: SPACING.sm,
     padding: 10,
   },
-  disabledInput: {
-    backgroundColor: COLORS.cardMuted,
+  maxBadge: {
+    backgroundColor: COLORS.primarySoft,
+    borderRadius: RADIUS.full,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 5,
+  },
+  maxBadgeText: {
+    color: COLORS.primary,
+    fontSize: 11,
+    fontWeight: "800",
   },
   saveBtn: {
     backgroundColor: COLORS.primary,
@@ -298,24 +340,31 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     textAlign: "center",
   },
-  kicker: {
-    color: COLORS.primary,
-    fontSize: 12,
-    fontWeight: "800",
-    letterSpacing: 0.6,
-    textTransform: "uppercase",
-  },
   listContent: {
-    paddingBottom: 120,
+    paddingBottom: 160,
   },
-  subtitle: {
+  footerRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: SPACING.sm,
+  },
+  footerText: {
     color: COLORS.textSecondary,
-    marginBottom: SPACING.md,
-    marginTop: SPACING.xs,
+    fontSize: 12,
+    fontWeight: "700",
   },
-  title: {
-    ...TYPOGRAPHY.headline,
-    color: COLORS.textPrimary,
-    marginTop: 2,
+  footerDate: {
+    color: COLORS.textTertiary,
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  loadingMoreText: {
+    color: COLORS.textSecondary,
+    fontSize: 12,
+    textAlign: "center",
+  },
+  footerSpacer: {
+    height: 12,
   },
 });

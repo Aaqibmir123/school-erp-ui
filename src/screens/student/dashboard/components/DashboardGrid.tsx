@@ -12,22 +12,34 @@ import {
 import { COLORS, RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from "@/src/theme";
 
 const menu = [
-  { color: COLORS.success, icon: "book-outline", screen: "Homework", title: "Homework" },
   {
-    color: COLORS.warning,
     icon: "checkmark-circle-outline",
     screen: "Attendance",
     title: "Attendance",
   },
-  { color: COLORS.info, icon: "calendar-outline", screen: "Timetable", title: "Timetable" },
-  { color: COLORS.primary, icon: "document-text-outline", screen: "ExamScreen", title: "Exams" },
-  { color: COLORS.primaryDark, icon: "wallet-outline", screen: "FeesScreen", title: "My Fees" },
-  { color: COLORS.danger, icon: "bar-chart-outline", screen: "ResultScreen", title: "Results" },
+  {
+    icon: "document-text-outline",
+    screen: "ExamScreen",
+    title: "Exams",
+  },
+  {
+    icon: "reader-outline",
+    screen: "TestRecordsScreen",
+    title: "Test Records",
+  },
+  {
+    icon: "card-outline",
+    screen: "AdmitCardsScreen",
+    title: "Admit Cards",
+  },
+  { icon: "calendar-outline", screen: "Timetable", title: "Timetable" },
+  { icon: "wallet-outline", screen: "FeesScreen", title: "My Fees" },
 ] as const;
 
 function DashboardGrid() {
   const navigation = useNavigation<any>();
   const { width } = useWindowDimensions();
+  const accent = COLORS.primary;
 
   const cardWidth = useMemo(() => {
     // WHY: Tablets have more horizontal space, so widening the grid keeps
@@ -49,8 +61,8 @@ function DashboardGrid() {
             pressed && styles.cardPressed,
           ]}
         >
-          <View style={[styles.iconWrapper, { backgroundColor: `${item.color}18` }]}>
-            <Ionicons name={item.icon as any} size={22} color={item.color} />
+          <View style={styles.iconWrapper}>
+            <Ionicons name={item.icon as any} size={22} color={accent} />
           </View>
 
           <Text style={styles.text}>{item.title}</Text>
@@ -66,15 +78,17 @@ export default memo(DashboardGrid);
 const styles = StyleSheet.create({
   card: {
     ...SHADOWS.soft,
-    backgroundColor: COLORS.card,
-    borderRadius: RADIUS.lg,
+    backgroundColor: "#fbfdff",
+    borderColor: "rgba(37, 99, 235, 0.08)",
+    borderRadius: RADIUS.xl,
+    borderWidth: 1,
     marginBottom: SPACING.md,
-    minHeight: 118,
+    minHeight: 116,
     padding: SPACING.lg,
   },
   cardPressed: {
     opacity: 0.94,
-    transform: [{ scale: 0.98 }],
+    transform: [{ scale: 0.985 }],
   },
   container: {
     flexDirection: "row",
@@ -84,14 +98,15 @@ const styles = StyleSheet.create({
   helper: {
     ...TYPOGRAPHY.caption,
     color: COLORS.textTertiary,
-    marginTop: SPACING.xs,
+    marginTop: 6,
   },
   iconWrapper: {
     alignItems: "center",
+    backgroundColor: "rgba(37, 99, 235, 0.06)",
     borderRadius: RADIUS.full,
-    height: 48,
+    height: 50,
     justifyContent: "center",
-    width: 48,
+    width: 50,
   },
   text: {
     ...TYPOGRAPHY.body,

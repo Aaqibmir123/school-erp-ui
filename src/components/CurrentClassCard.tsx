@@ -2,24 +2,32 @@ import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 import { useGetCurrentClassQuery } from "../api/teacher/teacherApi";
-import { useUpcomingAlert } from "../hooks/useUpcomingAlert";
 import { COLORS, RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from "../theme";
 import { formatTo12Hour } from "../utils/timeFormat";
+import BrandLoader from "./BrandLoader";
+import FallbackBanner from "./FallbackBanner";
 
 const QUICK_ACTIONS = [
-  { icon: "create-outline", label: "Homework", color: COLORS.success },
-  { icon: "book-outline", label: "Class Tests", color: COLORS.warning },
-  { icon: "school-outline", label: "Academic Exams", color: COLORS.primary },
+  { icon: "create-outline", label: "My Homework", color: COLORS.success },
+  { icon: "book-outline", label: "Tests", color: COLORS.warning },
+  { icon: "school-outline", label: "Exams", color: COLORS.primary },
   { icon: "stats-chart-outline", label: "Results", color: COLORS.danger },
 ] as const;
 
-const TeacherDashboard = () => {
+const TeacherHome = () => {
   const navigation = useNavigation<any>();
 
-  const { data, isLoading, isError, refetch } = useGetCurrentClassQuery(
+  const { data, isLoading, isFetching, isError, refetch } = useGetCurrentClassQuery(
     undefined,
     {
       pollingInterval: 30000,
@@ -29,14 +37,12 @@ const TeacherDashboard = () => {
   const currentClass = data?.currentClass || null;
   const upcomingClasses = data?.upcomingClasses || [];
   const students = data?.students || [];
-  const firstUpcoming = upcomingClasses?.[0] || null;
-  const { timeLeft } = useUpcomingAlert(firstUpcoming);
+  const showLiveClassCard = !!currentClass && students.length > 0;
 
   if (isLoading) {
     return (
       <View style={styles.centeredState}>
-        <Text style={styles.stateTitle}>Loading teacher dashboard</Text>
-        <Text style={styles.stateSubtitle}>Preparing your class overview.</Text>
+        <BrandLoader />
       </View>
     );
   }
@@ -44,14 +50,12 @@ const TeacherDashboard = () => {
   if (isError) {
     return (
       <View style={styles.centeredState}>
-        <Ionicons name="alert-circle-outline" size={36} color={COLORS.danger} />
-        <Text style={styles.stateTitle}>Unable to load dashboard</Text>
-        <Text style={styles.stateSubtitle}>
-          Pull down to refresh or try again in a moment.
-        </Text>
-        <Pressable style={styles.retryButton} onPress={refetch}>
-          <Text style={styles.retryText}>Retry</Text>
-        </Pressable>
+        <FallbackBanner
+          title="Unable to load home"
+          subtitle="Pull down to refresh or try again in a moment."
+          actionLabel="Retry"
+          onRetry={refetch}
+        />
       </View>
     );
   }
@@ -72,23 +76,22 @@ const TeacherDashboard = () => {
     <ScrollView
       contentContainerStyle={styles.container}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl refreshing={isFetching} onRefresh={refetch} />
+      }
     >
-      <View style={styles.heroCopy}>
-        <Text style={styles.kicker}>Teacher Workspace</Text>
-        <Text style={styles.pageTitle}>Focus on today&apos;s classes</Text>
-        <Text style={styles.pageSubtitle}>
-          Fast access to attendance, homework, timetable, and class progress.
-        </Text>
-      </View>
-
-      {currentClass ? (
+      {showLiveClassCard ? (
         <LinearGradient
-          colors={[COLORS.primaryDark, COLORS.primary]}
+          colors={["#EAF2FF", "#E8F0FF", "#F1EAFE"]}
           style={styles.heroCard}
         >
+          <LinearGradient
+            colors={["#2563EB", "#7C3AED"]}
+            style={styles.heroAccent}
+          />
           <View style={styles.heroTopRow}>
-            <View style={styles.livePill}>
-              <Text style={styles.livePillText}>Live class</Text>
+            <View style={[styles.livePill, styles.livePillTint]}>
+              <Text style={styles.livePillText}>Live now</Text>
             </View>
             <Text style={styles.heroMeta}>{students.length} students</Text>
           </View>
@@ -116,7 +119,7 @@ const TeacherDashboard = () => {
                 size={16}
                 color={COLORS.primary}
               />
-              <Text style={styles.metricText}>Attendance ready</Text>
+              <Text style={styles.metricText}>Ready for attendance</Text>
             </View>
           </View>
 
@@ -128,19 +131,45 @@ const TeacherDashboard = () => {
             onPress={attendanceAction}
           >
             <Text style={styles.heroButtonText}>Mark Attendance</Text>
-          </Pressable>
-        </LinearGradient>
-      ) : (
-        <View style={styles.emptyHero}>
-          <View style={styles.emptyIcon}>
-            <Ionicons name="school-outline" size={30} color={COLORS.primary} />
+            </Pressable>
+          </LinearGradient>
+      ) : null}
+
+      <Pressable
+        onPress={() => navigation.navigate("Attendance")}
+        style={({ pressed }) => [styles.attendanceCard, pressed && styles.pressed]}
+      >
+        <View style={styles.attendanceLeft}>
+          <View style={styles.attendanceIcon}>
+            <Ionicons name="time-outline" size={18} color={COLORS.primary} />
           </View>
-          <Text style={styles.emptyTitle}>No active class</Text>
-          <Text style={styles.emptySubtitle}>
-            You are free right now. Your next schedule will appear here.
-          </Text>
+          <View style={styles.attendanceTextWrap}>
+            <Text style={styles.attendanceTitle}>My Attendance</Text>
+            <Text style={styles.attendanceSub}>
+              Check in and check out for today.
+            </Text>
+          </View>
         </View>
-      )}
+        <Ionicons name="chevron-forward" size={18} color={COLORS.textTertiary} />
+      </Pressable>
+
+      <Pressable
+        onPress={() => navigation.navigate("AttendanceHistory")}
+        style={({ pressed }) => [styles.historyCard, pressed && styles.pressed]}
+      >
+        <View style={styles.attendanceLeft}>
+          <View style={styles.historyIcon}>
+            <Ionicons name="documents-outline" size={18} color={COLORS.primary} />
+          </View>
+          <View style={styles.attendanceTextWrap}>
+            <Text style={styles.recordsTitle}>Attendance history</Text>
+            <Text style={styles.attendanceSub}>
+              Open your daily check-in and check-out log.
+            </Text>
+          </View>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={COLORS.textTertiary} />
+      </Pressable>
 
       <Text style={styles.sectionTitle}>Quick actions</Text>
       <View style={styles.grid}>
@@ -151,10 +180,10 @@ const TeacherDashboard = () => {
             icon={item.icon}
             label={item.label}
             onPress={() => {
-              if (item.label === "Homework") navigation.navigate("Homework");
-              if (item.label === "Class Tests")
+              if (item.label === "My Homework") navigation.navigate("Homework");
+              if (item.label === "Tests")
                 navigation.navigate("CreateExam");
-              if (item.label === "Academic Exams")
+              if (item.label === "Exams")
                 navigation.navigate("AcademicExams");
               if (item.label === "Results") navigation.navigate("ResultHome");
             }}
@@ -162,24 +191,29 @@ const TeacherDashboard = () => {
         ))}
       </View>
 
-      {firstUpcoming ? (
-        <View style={styles.nextCard}>
-          <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>Next class</Text>
-            <Text style={styles.sectionHint}>
-              {timeLeft ? `Starts in ${timeLeft}` : "Coming up soon"}
+      <Pressable
+        onPress={() =>
+          navigation.navigate("Records", {
+            classId: currentClass?.classId,
+            sectionId: currentClass?.sectionId,
+            tab: "attendance",
+          })
+        }
+        style={({ pressed }) => [styles.recordsCard, pressed && styles.pressed]}
+      >
+        <View style={styles.recordsLeft}>
+          <View style={styles.recordsIcon}>
+            <Ionicons name="time-outline" size={18} color={COLORS.primary} />
+          </View>
+          <View style={styles.recordsTextWrap}>
+            <Text style={styles.recordsTitle}>Records</Text>
+            <Text style={styles.recordsSub}>
+              Attendance history and marks history in one place.
             </Text>
           </View>
-
-          <Text style={styles.nextTitle}>
-            {firstUpcoming.className} - {firstUpcoming.subjectName}
-          </Text>
-          <Text style={styles.nextTime}>
-            {formatTo12Hour(firstUpcoming.startTime)} -{" "}
-            {formatTo12Hour(firstUpcoming.endTime)}
-          </Text>
         </View>
-      ) : null}
+        <Ionicons name="chevron-forward" size={18} color={COLORS.textTertiary} />
+      </Pressable>
     </ScrollView>
   );
 };
@@ -210,19 +244,19 @@ const ActionCard = ({
   </Pressable>
 );
 
-export default React.memo(TeacherDashboard);
+export default React.memo(TeacherHome);
 
 const styles = StyleSheet.create({
   container: {
     backgroundColor: COLORS.background,
     paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.md,
+    paddingTop: SPACING.sm,
     paddingBottom: SPACING.xxl,
   },
   card: {
     ...SHADOWS.soft,
-    backgroundColor: COLORS.card,
-    borderColor: COLORS.border,
+    backgroundColor: "#F2F7FF",
+    borderColor: "#D6E4FF",
     borderRadius: RADIUS.lg,
     borderWidth: 1,
     padding: SPACING.md,
@@ -235,16 +269,16 @@ const styles = StyleSheet.create({
     marginTop: SPACING.sm,
   },
   centeredState: {
-    alignItems: "center",
-    backgroundColor: COLORS.background,
     flex: 1,
     justifyContent: "center",
-    padding: SPACING.xl,
+    padding: SPACING.lg,
   },
   emptyHero: {
     ...SHADOWS.card,
     alignItems: "center",
-    backgroundColor: COLORS.card,
+    backgroundColor: "#F2F7FF",
+    borderColor: "#D6E4FF",
+    borderWidth: 1,
     borderRadius: RADIUS.xl,
     marginBottom: SPACING.lg,
     padding: SPACING.lg,
@@ -264,6 +298,18 @@ const styles = StyleSheet.create({
     marginTop: SPACING.xs,
     textAlign: "center",
   },
+  emptyChip: {
+    backgroundColor: COLORS.primarySoft,
+    borderRadius: RADIUS.full,
+    marginTop: SPACING.md,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.xs,
+  },
+  emptyChipText: {
+    color: COLORS.primary,
+    fontSize: 12,
+    fontWeight: "700",
+  },
   emptyTitle: {
     ...TYPOGRAPHY.sectionTitle,
     color: COLORS.textPrimary,
@@ -276,7 +322,7 @@ const styles = StyleSheet.create({
   },
   heroButton: {
     alignItems: "center",
-    backgroundColor: COLORS.textInverse,
+    backgroundColor: COLORS.card,
     borderRadius: RADIUS.full,
     marginTop: SPACING.md,
     paddingVertical: SPACING.md,
@@ -289,24 +335,79 @@ const styles = StyleSheet.create({
   heroCard: {
     borderRadius: RADIUS.xl,
     marginBottom: SPACING.lg,
-    padding: SPACING.md,
+    borderColor: "#C9D5FF",
+    borderWidth: 1,
+    overflow: "hidden",
+    padding: SPACING.lg,
   },
   heroCopy: {
+    borderColor: "#D6E4FF",
+    borderRadius: RADIUS.xl,
+    borderWidth: 1,
     marginBottom: SPACING.md,
+    overflow: "hidden",
+    padding: SPACING.md,
+  },
+  heroCopyBadge: {
+    alignItems: "center",
+    backgroundColor: COLORS.card,
+    borderRadius: RADIUS.full,
+    flexDirection: "row",
+    gap: 6,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 6,
+  },
+  heroCopyBadgeText: {
+    color: COLORS.primary,
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  heroCopyMeta: {
+    color: COLORS.primaryDark,
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  heroCopyTop: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: SPACING.sm,
+  },
+  heroStatsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginTop: SPACING.sm,
+  },
+  heroStatPill: {
+    alignItems: "center",
+    backgroundColor: COLORS.card,
+    borderColor: "#D6E4FF",
+    borderRadius: RADIUS.full,
+    borderWidth: 1,
+    flexDirection: "row",
+    marginRight: SPACING.xs,
+    marginTop: SPACING.xs,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: 7,
+  },
+  heroStatText: {
+    color: COLORS.primaryDark,
+    fontSize: 12,
+    fontWeight: "700",
+    marginLeft: 6,
   },
   heroMeta: {
-    color: COLORS.textInverse,
+    color: COLORS.primaryDark,
     fontSize: 12,
     fontWeight: "700",
   },
   heroTime: {
-    color: COLORS.textInverse,
+    color: COLORS.textSecondary,
     fontSize: 14,
     marginTop: SPACING.xs,
-    opacity: 0.9,
   },
   heroTitle: {
-    color: COLORS.textInverse,
+    color: COLORS.textPrimary,
     fontSize: 22,
     fontWeight: "800",
     lineHeight: 28,
@@ -317,6 +418,63 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
+  nextHeroCard: {
+    borderRadius: RADIUS.xl,
+    marginBottom: SPACING.lg,
+    borderColor: "#D6E4FF",
+    borderWidth: 1,
+    overflow: "hidden",
+    padding: SPACING.lg,
+  },
+  nextHeroTitle: {
+    color: COLORS.textPrimary,
+    fontSize: 22,
+    fontWeight: "800",
+    lineHeight: 28,
+    marginTop: SPACING.xs,
+  },
+  nextHeroTime: {
+    color: COLORS.textSecondary,
+    fontSize: 14,
+    marginTop: SPACING.xs,
+  },
+  nextInfoRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginTop: SPACING.sm,
+  },
+  nextInfoChip: {
+    alignItems: "center",
+    backgroundColor: COLORS.card,
+    borderRadius: RADIUS.full,
+    flexDirection: "row",
+    marginRight: SPACING.sm,
+    marginTop: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.xs,
+  },
+  nextInfoText: {
+    color: COLORS.primaryDark,
+    fontSize: 12,
+    fontWeight: "700",
+    marginLeft: 6,
+  },
+  nextMeta: {
+    color: COLORS.primaryDark,
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  nextPill: {
+    backgroundColor: "#2E3A8C",
+    borderRadius: RADIUS.full,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: 6,
+  },
+  nextPillText: {
+    color: COLORS.textInverse,
+    fontSize: 12,
+    fontWeight: "700",
+  },
   iconBox: {
     alignItems: "center",
     borderRadius: RADIUS.md,
@@ -324,27 +482,121 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     width: 40,
   },
-  kicker: {
-    color: COLORS.primary,
+  recordsCard: {
+    ...SHADOWS.soft,
+    alignItems: "center",
+    backgroundColor: "#F2F7FF",
+    borderColor: "#D6E4FF",
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: SPACING.sm,
+    padding: SPACING.md,
+  },
+  recordsIcon: {
+    alignItems: "center",
+    backgroundColor: COLORS.card,
+    borderRadius: RADIUS.md,
+    height: 36,
+    justifyContent: "center",
+    width: 36,
+  },
+  recordsLeft: {
+    alignItems: "center",
+    flexDirection: "row",
+    flex: 1,
+  },
+  recordsSub: {
+    color: COLORS.textSecondary,
     fontSize: 12,
+    marginTop: 2,
+  },
+  recordsTextWrap: {
+    flex: 1,
+    marginLeft: SPACING.md,
+  },
+  recordsTitle: {
+    color: COLORS.textPrimary,
+    fontSize: 14,
     fontWeight: "800",
-    letterSpacing: 0.6,
-    textTransform: "uppercase",
+  },
+  attendanceCard: {
+    ...SHADOWS.soft,
+    alignItems: "center",
+    backgroundColor: "#F2F7FF",
+    borderColor: "#D6E4FF",
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: SPACING.md,
+    padding: SPACING.md,
+  },
+  historyCard: {
+    ...SHADOWS.soft,
+    alignItems: "center",
+    backgroundColor: "#F2F7FF",
+    borderColor: "#D6E4FF",
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: SPACING.md,
+    padding: SPACING.md,
+  },
+  attendanceIcon: {
+    alignItems: "center",
+    backgroundColor: COLORS.card,
+    borderRadius: RADIUS.md,
+    height: 36,
+    justifyContent: "center",
+    width: 36,
+  },
+  attendanceLeft: {
+    alignItems: "center",
+    flexDirection: "row",
+    flex: 1,
+  },
+  attendanceSub: {
+    color: COLORS.textSecondary,
+    fontSize: 12,
+    marginTop: 2,
+  },
+  attendanceTextWrap: {
+    flex: 1,
+    marginLeft: SPACING.md,
+  },
+  attendanceTitle: {
+    color: COLORS.textPrimary,
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  historyIcon: {
+    alignItems: "center",
+    backgroundColor: COLORS.card,
+    borderRadius: RADIUS.md,
+    height: 36,
+    justifyContent: "center",
+    width: 36,
   },
   livePill: {
-    backgroundColor: "rgba(255,255,255,0.16)",
+    backgroundColor: COLORS.card,
     borderRadius: RADIUS.full,
     paddingHorizontal: SPACING.md,
     paddingVertical: 6,
   },
+  livePillTint: {
+    backgroundColor: "rgba(255,255,255,0.85)",
+  },
   livePillText: {
-    color: COLORS.textInverse,
+    color: COLORS.primary,
     fontSize: 12,
     fontWeight: "700",
   },
   metricPill: {
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.14)",
+    backgroundColor: COLORS.card,
     borderRadius: RADIUS.full,
     flexDirection: "row",
     marginRight: SPACING.sm,
@@ -358,61 +610,70 @@ const styles = StyleSheet.create({
     marginTop: SPACING.sm,
   },
   metricText: {
-    color: COLORS.textInverse,
+    color: COLORS.textPrimary,
     fontSize: 12,
     fontWeight: "700",
     marginLeft: 6,
   },
-  nextCard: {
-    ...SHADOWS.soft,
-    backgroundColor: COLORS.card,
-    borderRadius: RADIUS.xl,
-    padding: SPACING.lg,
-  },
-  nextTime: {
-    color: COLORS.textSecondary,
-    marginTop: SPACING.xs,
-  },
-  nextTitle: {
-    color: COLORS.textPrimary,
-    fontSize: 16,
-    fontWeight: "800",
-    marginTop: SPACING.xs,
-  },
   pageSubtitle: {
     ...TYPOGRAPHY.body,
     color: COLORS.textSecondary,
-    marginTop: SPACING.xs,
+    marginTop: 4,
   },
   pageTitle: {
-    ...TYPOGRAPHY.title,
     color: COLORS.textPrimary,
+    fontSize: 28,
+    fontWeight: "900",
+    lineHeight: 32,
   },
   pressed: {
     opacity: 0.9,
     transform: [{ scale: 0.99 }],
   },
-  retryButton: {
-    backgroundColor: COLORS.primary,
-    borderRadius: RADIUS.full,
-    marginTop: SPACING.md,
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.sm,
+  heroAccent: {
+    height: 6,
+    borderRadius: 999,
+    marginBottom: SPACING.md,
+    width: 88,
   },
-  retryText: {
-    color: COLORS.textInverse,
-    fontWeight: "700",
+  nextAccent: {
+    backgroundColor: "rgba(139,92,246,0.24)",
+    borderRadius: 999,
+    height: 6,
+    marginBottom: SPACING.md,
+    width: 84,
   },
-  sectionHeaderRow: {
-    alignItems: "center",
+  nextBody: {
+    alignItems: "flex-start",
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: SPACING.xs,
+    gap: SPACING.md,
   },
-  sectionHint: {
-    color: COLORS.textTertiary,
+  nextTimerBlock: {
+    flex: 1,
+  },
+  nextTimerLabel: {
+    color: COLORS.primary,
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "800",
+    letterSpacing: 0.4,
+    textTransform: "uppercase",
+  },
+  nextTimerPill: {
+    alignItems: "center",
+    backgroundColor: COLORS.card,
+    borderColor: "#D6E4FF",
+    borderRadius: RADIUS.xl,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 8,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+  },
+  nextTimerPillText: {
+    color: COLORS.primaryDark,
+    fontSize: 13,
+    fontWeight: "800",
   },
   sectionTitle: {
     color: COLORS.textPrimary,

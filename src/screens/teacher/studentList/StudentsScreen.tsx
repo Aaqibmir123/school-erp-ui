@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   StyleSheet,
   Text,
@@ -10,6 +9,7 @@ import {
   View,
 } from "react-native";
 
+import BrandLoader from "@/src/components/BrandLoader";
 import { useGetStudentsByClassQuery } from "../../../api/teacher/teacherApi";
 
 type Student = {
@@ -52,8 +52,7 @@ export default function StudentsScreen({ route }: any) {
   if (isLoading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" />
-        <Text>Loading students...</Text>
+        <BrandLoader />
       </View>
     );
   }

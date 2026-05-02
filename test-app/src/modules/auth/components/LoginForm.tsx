@@ -149,6 +149,12 @@ function LoginForm() {
             <Link href="/apply-school" className={styles.footerLink}>
               Apply for School
             </Link>
+            <span style={{ color: "var(--color-text-muted)", margin: "0 8px" }}>
+              |
+            </span>
+            <Link href="/privacy-policy" className={styles.footerLink}>
+              Privacy Policy
+            </Link>
           </div>
         </Card>
       </section>

@@ -15,7 +15,7 @@ interface Props {
   classId: string;
 }
 
-export default function SubjectsList({ classId }: Props) {
+function SubjectsList({ classId }: Props) {
   const { message } = App.useApp();
   const [name, setName] = useState("");
 

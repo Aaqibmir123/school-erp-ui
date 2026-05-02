@@ -2,11 +2,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRoute } from "@react-navigation/native";
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  RefreshControl,
   StyleSheet,
   Text,
   TextInput,
@@ -14,28 +14,53 @@ import {
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
+import BrandLoader from "@/src/components/BrandLoader";
 import { COLORS, RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from "@/src/theme";
 import { showToast } from "@/src/utils/toast";
 import {
   useGetMarksByExamQuery,
+  useGetMyExamsQuery,
   useGetStudentsByClassQuery,
   useSaveBulkMarksMutation,
 } from "../../../api/teacher/teacherApi";
 
-const MAX_MARKS = 100;
+type MarksMap = Record<string, string>;
+type FeedbackMap = Record<string, string>;
 
 const ExamMarksScreen = () => {
   const route = useRoute<any>();
-  const { classId, sectionId, examId, subjectId } = route.params;
   const insets = useSafeAreaInsets();
 
-  const { data: students = [], isLoading: studentsLoading } =
+  const {
+    classId,
+    sectionId,
+    examId,
+    subjectId,
+    totalMarks: routeTotalMarks,
+    examName: routeExamName,
+    className: routeClassName,
+    sectionName: routeSectionName,
+  } = route.params || {};
+
+  const shouldLookupExam = routeTotalMarks == null;
+  const { data: exams = [], isLoading: examsLoading } = useGetMyExamsQuery(undefined, {
+    skip: !shouldLookupExam,
+  });
+  const currentExam = useMemo(
+    () => exams.find((item: any) => String(item._id) === String(examId)),
+    [exams, examId],
+  );
+
+  const maxMarks = Number(routeTotalMarks ?? currentExam?.totalMarks ?? 100);
+  const maxDigits = String(Math.max(maxMarks, 1)).length;
+
+  const { data: students = [], isLoading: studentsLoading, isFetching: studentsFetching, refetch: refetchStudents } =
     useGetStudentsByClassQuery({
       classId,
       sectionId: sectionId || "",
     });
 
-  const { data: existingMarks = [], isLoading: marksLoading } =
+  const { data: existingMarks = [], isLoading: marksLoading, isFetching: marksFetching, refetch: refetchMarks } =
     useGetMarksByExamQuery({
       examId,
       subjectId,
@@ -43,22 +68,32 @@ const ExamMarksScreen = () => {
     });
 
   const [saveMarks, { isLoading: saving }] = useSaveBulkMarksMutation();
-  const [marks, setMarks] = useState<Record<string, string>>({});
+  const [marks, setMarks] = useState<MarksMap>({});
+  const [feedback, setFeedback] = useState<FeedbackMap>({});
 
   useEffect(() => {
-    if (!existingMarks.length) return;
+    if (!existingMarks.length) {
+      setMarks({});
+      setFeedback({});
+      return;
+    }
 
-    const map: Record<string, string> = {};
+    const marksMap: MarksMap = {};
+    const feedbackMap: FeedbackMap = {};
+
     existingMarks.forEach((item: any) => {
-      map[item.studentId] = item.marks?.toString() || "";
+      marksMap[item.studentId] = item.marks?.toString() || "";
+      feedbackMap[item.studentId] = item.feedback?.toString() || "";
     });
 
-    setMarks(map);
+    setMarks(marksMap);
+    setFeedback(feedbackMap);
   }, [existingMarks]);
 
   const updateMarks = (id: string, value: string) => {
-    if (!/^\d{0,3}$/.test(value)) return;
-    if (value && Number(value) > MAX_MARKS) return;
+    const pattern = new RegExp(`^\\d{0,${maxDigits}}$`);
+    if (!pattern.test(value)) return;
+    if (value && Number(value) > maxMarks) return;
 
     setMarks((prev) => ({
       ...prev,
@@ -66,10 +101,21 @@ const ExamMarksScreen = () => {
     }));
   };
 
+  const updateFeedback = (id: string, value: string) => {
+    setFeedback((prev) => ({
+      ...prev,
+      [id]: value,
+    }));
+  };
+
   const filledCount = useMemo(
-    () => Object.values(marks).filter((mark) => mark !== "").length,
-    [marks],
+    () => students.filter((student: any) => marks[student._id] !== "").length,
+    [marks, students],
   );
+
+  const headerExamName = routeExamName || currentExam?.name || "Exam Marks";
+  const headerClass = routeClassName || currentExam?.classIds?.[0]?.name || "All classes";
+  const headerSection = routeSectionName || currentExam?.sectionId?.name || "All sections";
 
   const handleSave = async () => {
     if (!students.length) {
@@ -89,23 +135,24 @@ const ExamMarksScreen = () => {
         marks: students.map((student: any) => ({
           studentId: student._id,
           marks: marks[student._id] ? Number(marks[student._id]) : null,
+          feedback: feedback[student._id] || "",
         })),
       };
 
       await saveMarks(payload).unwrap();
       showToast.success("Marks saved successfully");
+      await Promise.all([refetchStudents(), refetchMarks()]);
     } catch (error: any) {
       showToast.error(error?.data?.message || "Failed to save marks");
     }
   };
 
-  const isLoading = studentsLoading || marksLoading;
+  const isLoading = studentsLoading || marksLoading || (shouldLookupExam && examsLoading);
 
   if (isLoading) {
     return (
       <View style={styles.loadingWrap}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>Loading marks</Text>
+        <BrandLoader />
       </View>
     );
   }
@@ -135,9 +182,9 @@ const ExamMarksScreen = () => {
         <View style={styles.container}>
           <View style={styles.headerCard}>
             <Text style={styles.kicker}>Marks entry</Text>
-            <Text style={styles.title}>Exam Marks</Text>
+            <Text style={styles.title}>{headerExamName}</Text>
             <Text style={styles.subtitle}>
-              Fill compact marks fields and save only the scores you need.
+              {headerClass} • {headerSection}
             </Text>
 
             <View style={styles.summaryRow}>
@@ -147,7 +194,7 @@ const ExamMarksScreen = () => {
                 </Text>
               </View>
               <View style={styles.summaryPillSoft}>
-                <Text style={styles.summaryTextSoft}>Max {MAX_MARKS}</Text>
+                <Text style={styles.summaryTextSoft}>Max {maxMarks}</Text>
               </View>
             </View>
           </View>
@@ -158,55 +205,81 @@ const ExamMarksScreen = () => {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={[
               styles.listContent,
-              { paddingBottom: 120 + insets.bottom },
+              { paddingBottom: 24 + insets.bottom },
             ]}
+            refreshControl={
+              <RefreshControl
+                refreshing={studentsFetching || marksFetching}
+                onRefresh={async () => {
+                  await Promise.all([refetchStudents(), refetchMarks()]);
+                }}
+              />
+            }
             renderItem={({ item }: any) => {
               const value = marks[item._id] || "";
+              const note = feedback[item._id] || "";
 
               return (
                 <View style={styles.card}>
-                  <View style={styles.left}>
-                    <View style={styles.rollBadge}>
-                      <Text style={styles.rollText}>#{item.rollNumber}</Text>
+                  <View style={styles.cardTop}>
+                    <View style={styles.studentInfo}>
+                      <View style={styles.rollBadge}>
+                        <Text style={styles.rollText}>#{item.rollNumber}</Text>
+                      </View>
+                      <Text style={styles.name}>
+                        {item.firstName} {item.lastName}
+                      </Text>
+                      <Text style={styles.studentMeta}>
+                        Class {headerClass} • Section {headerSection}
+                      </Text>
                     </View>
-                    <Text style={styles.name}>
-                      {item.firstName} {item.lastName}
-                    </Text>
+
+                    <View style={styles.scoreWrap}>
+                      <Text style={styles.label}>Marks</Text>
+                      <View style={styles.inputRow}>
+                        <TextInput
+                          keyboardType="numeric"
+                          placeholder={`0-${maxMarks}`}
+                          placeholderTextColor={COLORS.textTertiary}
+                          maxLength={maxDigits}
+                          value={value}
+                          onChangeText={(val) => updateMarks(item._id, val)}
+                          style={styles.input}
+                        />
+                        <Text style={styles.max}>/{maxMarks}</Text>
+                      </View>
+                    </View>
                   </View>
 
-                  <View style={styles.right}>
-                    <Text style={styles.label}>Marks</Text>
-                    <View style={styles.inputRow}>
-                      <TextInput
-                        keyboardType="numeric"
-                        placeholder="0-100"
-                        placeholderTextColor={COLORS.textTertiary}
-                        maxLength={3}
-                        value={value}
-                        onChangeText={(val) => updateMarks(item._id, val)}
-                        style={styles.input}
-                      />
-                      <Text style={styles.max}>/100</Text>
-                    </View>
+                  <View style={styles.feedbackBlock}>
+                    <Text style={styles.label}>Feedback</Text>
+                    <TextInput
+                      value={note}
+                      onChangeText={(val) => updateFeedback(item._id, val)}
+                      multiline
+                      placeholder="Add feedback"
+                      placeholderTextColor={COLORS.textTertiary}
+                      style={styles.feedbackInput}
+                    />
                   </View>
                 </View>
               );
             }}
+            ListFooterComponent={
+              <Pressable
+                onPress={handleSave}
+                style={({ pressed }) => [
+                  styles.saveBtn,
+                  pressed && styles.pressed,
+                ]}
+                disabled={saving}
+              >
+                <Text style={styles.saveBtnText}>
+                  {saving ? "Saving..." : "Save Marks"}
+                </Text>
+              </Pressable>
+            }
           />
-
-          <Pressable
-            onPress={handleSave}
-            style={({ pressed }) => [
-              styles.footerBtn,
-              pressed && styles.pressed,
-              { paddingBottom: Math.max(insets.bottom, SPACING.md) },
-            ]}
-            disabled={saving}
-          >
-            <Text style={styles.footerText}>
-              {saving ? "Saving..." : "Save Marks"}
-            </Text>
-          </Pressable>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -225,17 +298,13 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.lg,
+    paddingHorizontal: SPACING.md,
+    paddingTop: 0,
   },
   loadingWrap: {
     alignItems: "center",
     flex: 1,
     justifyContent: "center",
-  },
-  loadingText: {
-    color: COLORS.textSecondary,
-    marginTop: SPACING.sm,
   },
   headerCard: {
     ...SHADOWS.soft,
@@ -243,7 +312,8 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     borderRadius: RADIUS.xl,
     borderWidth: 1,
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.sm,
+    marginTop: 0,
     padding: SPACING.lg,
   },
   kicker: {
@@ -293,20 +363,22 @@ const styles = StyleSheet.create({
   },
   card: {
     ...SHADOWS.soft,
-    alignItems: "center",
     backgroundColor: COLORS.card,
     borderColor: COLORS.border,
     borderRadius: RADIUS.lg,
     borderWidth: 1,
-    flexDirection: "row",
     marginBottom: SPACING.sm,
     padding: SPACING.md,
   },
-  left: {
-    flex: 1,
-    paddingRight: SPACING.md,
+  cardTop: {
+    flexDirection: "row",
+    gap: SPACING.md,
+    justifyContent: "space-between",
   },
-  right: {
+  studentInfo: {
+    flex: 1,
+  },
+  scoreWrap: {
     alignItems: "flex-end",
   },
   rollBadge: {
@@ -324,8 +396,12 @@ const styles = StyleSheet.create({
   name: {
     color: COLORS.textPrimary,
     fontSize: 16,
-    fontWeight: "700",
+    fontWeight: "800",
     marginTop: SPACING.xs,
+  },
+  studentMeta: {
+    color: COLORS.textSecondary,
+    marginTop: 4,
   },
   label: {
     color: COLORS.textSecondary,
@@ -343,34 +419,42 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.md,
     borderWidth: 1,
     color: COLORS.textPrimary,
-    fontWeight: "700",
+    fontWeight: "800",
     paddingHorizontal: SPACING.md,
     paddingVertical: 10,
     textAlign: "center",
-    width: 78,
+    width: 82,
   },
   max: {
     color: COLORS.textSecondary,
     fontSize: 12,
-    fontWeight: "700",
+    fontWeight: "800",
     marginLeft: 6,
   },
-  footerBtn: {
-    backgroundColor: COLORS.primary,
-    borderTopLeftRadius: RADIUS.lg,
-    borderTopRightRadius: RADIUS.lg,
-    bottom: 0,
-    left: 0,
-    paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.md,
-    position: "absolute",
-    right: 0,
+  feedbackBlock: {
+    marginTop: SPACING.md,
   },
-  footerText: {
+  feedbackInput: {
+    backgroundColor: COLORS.cardMuted,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    color: COLORS.textPrimary,
+    minHeight: 58,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: 10,
+    textAlignVertical: "top",
+  },
+  saveBtn: {
+    backgroundColor: COLORS.primary,
+    borderRadius: RADIUS.lg,
+    marginTop: SPACING.md,
+  },
+  saveBtnText: {
     color: COLORS.textInverse,
     fontSize: 16,
     fontWeight: "800",
-    paddingVertical: SPACING.sm,
+    paddingVertical: 14,
     textAlign: "center",
   },
   empty: {

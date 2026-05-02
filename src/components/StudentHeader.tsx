@@ -1,68 +1,103 @@
-import { useEffect, useState } from "react";
-import { Text, TextInput, TouchableOpacity, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 
-const StudentHeader = ({ onSearch, onAllPresent, onAllAbsent }: any) => {
+import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from "@/src/theme";
+
+type Props = {
+  onSearch: (value: string) => void;
+  onAllPresent: () => void;
+  onAllAbsent: () => void;
+};
+
+export default function StudentHeader({
+  onSearch,
+  onAllPresent,
+  onAllAbsent,
+}: Props) {
   const [search, setSearch] = useState("");
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      onSearch(search);
-    }, 500);
+    if (timerRef.current) clearTimeout(timerRef.current);
 
-    return () => clearTimeout(timer);
+    timerRef.current = setTimeout(() => {
+      onSearch(search);
+    }, 450);
+
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
   }, [onSearch, search]);
 
   return (
-    <View style={{ marginBottom: 15 }}>
-      {/* 🔍 Search */}
+    <View style={styles.container}>
       <TextInput
         placeholder="Search by name or roll..."
         value={search}
         onChangeText={setSearch}
-        style={{
-          backgroundColor: "#fff",
-          padding: 12,
-          borderRadius: 10,
-          borderWidth: 1,
-          borderColor: "#ddd",
-          marginBottom: 12,
-        }}
+        style={styles.search}
+        placeholderTextColor={COLORS.textTertiary}
       />
 
-      {/* 🔥 Buttons */}
-      <View style={{ flexDirection: "row", gap: 10 }}>
-        <TouchableOpacity
-          onPress={onAllPresent}
-          style={{
-            flex: 1,
-            backgroundColor: "#e6f4ea",
-            padding: 12,
-            borderRadius: 10,
-            alignItems: "center",
-          }}
-        >
-          <Text style={{ color: "#2e7d32", fontWeight: "600" }}>
-            All Present
-          </Text>
-        </TouchableOpacity>
+      <View style={styles.actions}>
+        <Pressable onPress={onAllPresent} style={styles.presentBtn}>
+          <Text style={styles.presentText}>Mark all present</Text>
+        </Pressable>
 
-        <TouchableOpacity
-          onPress={onAllAbsent}
-          style={{
-            flex: 1,
-            backgroundColor: "#fdecea",
-            padding: 12,
-            borderRadius: 10,
-            alignItems: "center",
-          }}
-        >
-          <Text style={{ color: "#c62828", fontWeight: "600" }}>
-            All Absent
-          </Text>
-        </TouchableOpacity>
+        <Pressable onPress={onAllAbsent} style={styles.absentBtn}>
+          <Text style={styles.absentText}>Mark all absent</Text>
+        </Pressable>
       </View>
     </View>
   );
-};
+}
 
-export default StudentHeader;
+const styles = StyleSheet.create({
+  container: {
+    gap: SPACING.md,
+    marginBottom: SPACING.md,
+  },
+  search: {
+    backgroundColor: COLORS.card,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    color: COLORS.textPrimary,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.md,
+  },
+  actions: {
+    flexDirection: "row",
+    gap: SPACING.sm,
+  },
+  presentBtn: {
+    alignItems: "center",
+    backgroundColor: COLORS.successSoft,
+    borderRadius: RADIUS.md,
+    flex: 1,
+    paddingVertical: SPACING.md,
+  },
+  presentText: {
+    ...TYPOGRAPHY.body,
+    color: COLORS.success,
+    fontWeight: "700",
+  },
+  absentBtn: {
+    alignItems: "center",
+    backgroundColor: COLORS.dangerSoft,
+    borderRadius: RADIUS.md,
+    flex: 1,
+    paddingVertical: SPACING.md,
+  },
+  absentText: {
+    ...TYPOGRAPHY.body,
+    color: COLORS.danger,
+    fontWeight: "700",
+  },
+});

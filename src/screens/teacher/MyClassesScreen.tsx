@@ -1,14 +1,9 @@
 import React, { useMemo } from "react";
-import {
-  ActivityIndicator,
-  FlatList,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { FlatList, StyleSheet, Text, View } from "react-native";
 
+import BrandLoader from "@/src/components/BrandLoader";
 import FallbackBanner from "@/src/components/FallbackBanner";
-import { COLORS, RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from "@/src/theme";
+import { COLORS, RADIUS, SHADOWS, SPACING } from "@/src/theme";
 import { useGetMyClassesQuery } from "../../api/teacher/teacherApi";
 
 const capitalize = (str: string) =>
@@ -53,13 +48,31 @@ const MyClassesScreen = () => {
   }, [classes]);
 
   const renderItem = ({ item }: any) => {
+    const subjectCount = Object.keys(item.subjectMap || {}).length;
+    const sectionCount = Object.values(item.subjectMap || {}).reduce(
+      (count: number, sub: any) => count + (sub.sections?.length || 0),
+      0,
+    );
+
     return (
       <View style={styles.card}>
-        <Text style={styles.className}>{capitalize(item.className)}</Text>
+        <View style={styles.cardHeader}>
+          <View style={styles.cardTitleWrap}>
+            <Text style={styles.className}>{capitalize(item.className)}</Text>
+            <Text style={styles.cardMeta}>
+              {subjectCount} subjects • {sectionCount} sections
+            </Text>
+          </View>
+          <View style={styles.countPill}>
+            <Text style={styles.countPillText}>{subjectCount}</Text>
+          </View>
+        </View>
 
         {Object.values(item.subjectMap).map((sub: any, i: number) => (
           <View key={i} style={styles.row}>
-            <Text style={styles.subject}>{capitalize(sub.subjectName)}:</Text>
+            <View style={styles.subjectPill}>
+              <Text style={styles.subject}>{capitalize(sub.subjectName)}</Text>
+            </View>
 
             <View style={styles.sectionWrap}>
               {sub.sections.map((sec: any) => (
@@ -77,20 +90,13 @@ const MyClassesScreen = () => {
   if (isLoading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>Loading classes</Text>
+        <BrandLoader />
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.kicker}>Teaching load</Text>
-      <Text style={styles.heading}>My Classes</Text>
-      <Text style={styles.subtitle}>
-        Subjects and sections grouped for a cleaner scan on mobile.
-      </Text>
-
       <FlatList
         data={grouped}
         keyExtractor={(item: any) => item.classId}
@@ -114,55 +120,77 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
     paddingTop: SPACING.lg,
   },
-  heading: {
-    ...TYPOGRAPHY.headline,
-    color: COLORS.textPrimary,
-  },
-  kicker: {
-    color: COLORS.primary,
-    fontSize: 12,
-    fontWeight: "800",
-    letterSpacing: 0.6,
-    textTransform: "uppercase",
-  },
-  subtitle: {
-    color: COLORS.textSecondary,
-    marginBottom: SPACING.md,
-    marginTop: SPACING.xs,
-  },
   card: {
     ...SHADOWS.soft,
-    backgroundColor: COLORS.card,
-    borderColor: COLORS.border,
+    backgroundColor: "#F2F7FF",
+    borderColor: "#D6E4FF",
     borderRadius: RADIUS.xl,
     borderWidth: 1,
     marginBottom: SPACING.md,
     padding: SPACING.lg,
   },
+  cardHeader: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: SPACING.md,
+  },
+  cardTitleWrap: {
+    flex: 1,
+    paddingRight: SPACING.sm,
+  },
   className: {
     color: COLORS.textPrimary,
     fontSize: 18,
     fontWeight: "800",
-    marginBottom: SPACING.sm,
+  },
+  cardMeta: {
+    color: COLORS.textSecondary,
+    fontSize: 12,
+    marginTop: 4,
+  },
+  countPill: {
+    alignItems: "center",
+    backgroundColor: COLORS.primary,
+    borderRadius: RADIUS.full,
+    height: 34,
+    justifyContent: "center",
+    width: 34,
+  },
+  countPillText: {
+    color: COLORS.textInverse,
+    fontSize: 13,
+    fontWeight: "800",
   },
   row: {
     flexDirection: "row",
     alignItems: "flex-start",
-    flexWrap: "wrap", // 💣 important
+    flexWrap: "wrap",
     marginBottom: SPACING.sm,
+  },
+  subjectPill: {
+    backgroundColor: "rgba(255,255,255,0.75)",
+    borderColor: "rgba(191,219,254,0.85)",
+    borderRadius: RADIUS.full,
+    borderWidth: 1,
+    marginRight: SPACING.xs,
+    marginBottom: 6,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 4,
   },
   subject: {
     color: COLORS.textSecondary,
     fontSize: 14,
     fontWeight: "700",
-    marginRight: SPACING.xs,
   },
   sectionWrap: {
     flexDirection: "row",
-    flexWrap: "wrap", // 💣 wrap fix
+    flexWrap: "wrap",
   },
   badge: {
-    backgroundColor: COLORS.primarySoft,
+    backgroundColor: "rgba(29,78,216,0.10)",
+    borderColor: "rgba(29,78,216,0.16)",
+    borderWidth: 1,
     borderRadius: RADIUS.full,
     marginRight: SPACING.xs,
     marginBottom: 4,
@@ -176,14 +204,10 @@ const styles = StyleSheet.create({
   },
   center: {
     flex: 1,
-    justifyContent: "center",
     alignItems: "center",
+    justifyContent: "center",
   },
   listContent: {
     paddingBottom: SPACING.xl,
-  },
-  loadingText: {
-    color: COLORS.textSecondary,
-    marginTop: SPACING.sm,
   },
 });

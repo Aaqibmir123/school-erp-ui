@@ -1,6 +1,7 @@
 import React from "react";
-import { ActivityIndicator, View } from "react-native";
+import { View } from "react-native";
 
+import BrandLoader from "../components/BrandLoader";
 import { useAuth } from "../context/AuthContext";
 
 import LoginScreen from "../screens/LoginScreen";
@@ -10,22 +11,21 @@ import TeacherDrawer from "./TeacherDrawer";
 
 const Loader = () => (
   <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-    <ActivityIndicator size="large" />
+    <BrandLoader />
   </View>
 );
 
 const AppNavigator = () => {
-  const { token, role, loading, students, selectedStudent } = useAuth();
+  const { token, role, user, loading, students, selectedStudent } = useAuth();
+  const normalizedRole = (role || user?.role || "").toUpperCase();
 
   if (loading) return <Loader />;
 
   if (!token) return <LoginScreen />;
 
-  /* 🔥 TEACHER */
-  if (role === "TEACHER") return <TeacherDrawer />;
+  if (normalizedRole === "TEACHER") return <TeacherDrawer />;
 
-  /* 🔥 PARENT */
-  if (role === "PARENT") {
+  if (normalizedRole === "PARENT") {
     if (!students) return <Loader />;
 
     if (students.length > 1 && !selectedStudent) {
@@ -35,10 +35,7 @@ const AppNavigator = () => {
     return <StudentDrawer />;
   }
 
-  /* 🔥 STUDENT */
-  if (role === "STUDENT") return <StudentDrawer />;
-
-  return <Loader />;
+  return <LoginScreen />;
 };
 
 export default AppNavigator;

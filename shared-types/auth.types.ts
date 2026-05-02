@@ -16,8 +16,21 @@ export interface LoginDTO {
 export interface LoginResponse {
   user: {
     _id: string;
-    email: string;
+    email?: string;
+    name?: string;
+    phone?: string;
+    image?: string;
+    isFirstLogin?: boolean;
+    schoolId?: string;
     role: "SUPER_ADMIN" | "SCHOOL_ADMIN" | "TEACHER" | "PARENT" | "STUDENT";
   };
   token: string;
+  refreshToken?: string;
+  students?: {
+    _id: string;
+    firstName?: string;
+    lastName?: string;
+    rollNumber?: number;
+    schoolId?: string;
+  }[];
 }

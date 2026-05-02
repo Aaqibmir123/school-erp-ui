@@ -2,15 +2,16 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRoute } from "@react-navigation/native";
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   Pressable,
+  RefreshControl,
   StyleSheet,
   Text,
   View,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
+import BrandLoader from "@/src/components/BrandLoader";
 import { COLORS, RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from "@/src/theme";
 import { showToast } from "@/src/utils/toast";
 import {
@@ -24,13 +25,13 @@ const ExamAttendanceScreen = () => {
   const { classId, sectionId, examId, subjectId } = route.params;
   const insets = useSafeAreaInsets();
 
-  const { data: students = [], isLoading: studentsLoading } =
+  const { data: students = [], isLoading: studentsLoading, isFetching: studentsFetching, refetch: refetchStudents } =
     useGetStudentsByClassQuery({
       classId,
       sectionId: sectionId || "",
     });
 
-  const { data: existing = [], isLoading: attendanceLoading } =
+  const { data: existing = [], isLoading: attendanceLoading, isFetching: attendanceFetching, refetch: refetchAttendance } =
     useGetAttendanceByExamQuery({ examId, subjectId });
 
   const [saveAttendance, { isLoading: saving }] =
@@ -86,6 +87,7 @@ const ExamAttendanceScreen = () => {
 
       await saveAttendance(payload).unwrap();
       showToast.success("Attendance saved successfully");
+      await Promise.all([refetchStudents(), refetchAttendance()]);
     } catch (error: any) {
       showToast.error(error?.data?.message || "Failed to save attendance");
     }
@@ -96,8 +98,7 @@ const ExamAttendanceScreen = () => {
   if (isLoading) {
     return (
       <View style={styles.loadingWrap}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>Loading attendance</Text>
+        <BrandLoader />
       </View>
     );
   }
@@ -148,9 +149,17 @@ const ExamAttendanceScreen = () => {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={[
             styles.listContent,
-            { paddingBottom: 120 + insets.bottom },
+            { paddingBottom: 208 + insets.bottom },
           ]}
-          renderItem={({ item }: any) => {
+            refreshControl={
+              <RefreshControl
+                refreshing={studentsFetching || attendanceFetching}
+                onRefresh={async () => {
+                  await Promise.all([refetchStudents(), refetchAttendance()]);
+                }}
+              />
+            }
+            renderItem={({ item }: any) => {
             const isPresent = !!attendance[item._id];
 
             return (
@@ -210,7 +219,9 @@ const ExamAttendanceScreen = () => {
           style={({ pressed }) => [
             styles.footerBtn,
             pressed && styles.pressed,
-            { paddingBottom: Math.max(insets.bottom, SPACING.md) },
+            {
+              bottom: Math.max(insets.bottom, SPACING.md) + 20,
+            },
           ]}
         >
           <Text style={styles.footerText}>
@@ -359,7 +370,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     borderTopLeftRadius: RADIUS.lg,
     borderTopRightRadius: RADIUS.lg,
-    bottom: 0,
     left: 0,
     paddingHorizontal: SPACING.lg,
     paddingTop: SPACING.md,

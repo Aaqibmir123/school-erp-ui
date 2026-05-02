@@ -60,8 +60,8 @@ function MarksCardsPage() {
   const activeStudentId = selectedStudentId;
   const marksCardApproved = preview?.exam?.marksCardStatus === "approved";
   const canToggleApproval = Boolean(preview?.exam?._id);
-  const previewImageUrl = resolveAssetUrl(preview?.previewUrl || preview?.pdfUrl);
-  const pdfUrl = resolveAssetUrl(preview?.pdfUrl);
+  const previewImageUrl = resolveAssetUrl(preview?.exam?.previewUrl || preview?.exam?.pdfUrl);
+  const pdfUrl = resolveAssetUrl(preview?.exam?.pdfUrl);
   const previewLoading = Boolean(selectedStudentId) && isFetching && Boolean(preview);
   const showInitialLoading = isLoading && !preview;
   const showPreviewError = Boolean(error) && !preview;

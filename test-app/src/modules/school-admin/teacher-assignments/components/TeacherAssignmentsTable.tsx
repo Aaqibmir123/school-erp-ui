@@ -45,8 +45,6 @@ function TeacherAssignmentsTable({
         const err = error?.data || error;
 
         if (err?.requiresConfirmation) {
-          modal.destroyAll();
-
           return modal.confirm({
             title: "Warning",
             content:
@@ -243,7 +241,7 @@ function TeacherAssignmentsTable({
             pageSize: 10,
             total: total || data.length,
             showSizeChanger: false,
-            onChange: (nextPage) => onPageChange(nextPage),
+            onChange: (nextPage: number) => onPageChange(nextPage),
           }}
         />
       )}

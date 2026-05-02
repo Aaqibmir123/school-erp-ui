@@ -3,7 +3,17 @@ import { baseApi } from "../baseQuery";
 /* ================= API ================= */
 
 export const teacherApi = baseApi.injectEndpoints({
+  overrideExisting: true,
   endpoints: (builder) => ({
+    /* ================= SCHOOL ================= */
+    getSchoolProfile: builder.query<any, void>({
+      query: () => ({
+        url: "/school",
+      }),
+      transformResponse: (res: any) => res?.data || res || null,
+      providesTags: ["Teachers"],
+    }),
+
     /* ================= TIMETABLE ================= */
     getTeacherTimetable: builder.query<any, string>({
       query: (date) => ({
@@ -28,6 +38,25 @@ export const teacherApi = baseApi.injectEndpoints({
       }),
       transformResponse: (res: any) => res.data,
       providesTags: ["Timetable"],
+    }),
+
+    /* ================= PROFILE ================= */
+    getTeacherProfile: builder.query<any, void>({
+      query: () => ({
+        url: "/school-admin/teacher/me",
+      }),
+      transformResponse: (res: any) => res?.data || null,
+      providesTags: ["Teachers"],
+    }),
+
+    updateTeacherProfile: builder.mutation<any, FormData>({
+      query: (body) => ({
+        url: "/school-admin/teacher/me",
+        method: "PUT",
+        body,
+      }),
+      transformResponse: (res: any) => res?.data || null,
+      invalidatesTags: ["Teachers"],
     }),
 
     /* ================= STUDENTS ================= */
@@ -69,6 +98,7 @@ export const teacherApi = baseApi.injectEndpoints({
       query: () => ({
         url: "/homework/teacher",
       }),
+      transformResponse: (res: any) => res?.data || [],
       providesTags: ["Homework"],
     }),
 
@@ -150,6 +180,7 @@ export const teacherApi = baseApi.injectEndpoints({
         method: "POST",
         body,
       }),
+      invalidatesTags: ["Results"],
     }),
 
     updateResult: builder.mutation<any, { id: string; body: any }>({
@@ -202,7 +233,7 @@ export const teacherApi = baseApi.injectEndpoints({
     }),
 
     getMarksByExam: builder.query<
-      { studentId: string; marks: number | null }[],
+      { studentId: string; marks: number | null; feedback?: string }[],
       { examId: string; subjectId: string; classId: string }
     >({
       query: ({ examId, subjectId, classId }) => ({
@@ -244,11 +275,11 @@ export const teacherApi = baseApi.injectEndpoints({
       invalidatesTags: ["Homework"],
     }),
 
-    getHomeworkCheck: builder.query<any[], string>({
+    getHomeworkCheck: builder.query<any, string>({
       query: (homeworkId) => ({
         url: `/homework/${homeworkId}`,
       }),
-      transformResponse: (res: any) => res?.data || [],
+      transformResponse: (res: any) => res?.data || { homework: null, checks: [] },
       providesTags: ["Homework"],
     }),
     markAttendance: builder.mutation<
@@ -290,6 +321,132 @@ export const teacherApi = baseApi.injectEndpoints({
       transformResponse: (res: any) => res?.data || [],
       providesTags: ["Attendance"],
     }),
+
+    getAttendanceHistory: builder.query<
+      { data: any[]; meta: { page: number; limit: number; total: number; totalPages: number } },
+      {
+        page?: number;
+        limit?: number;
+        classId?: string;
+        sectionId?: string;
+        subjectId?: string;
+        studentId?: string;
+        mode?: string;
+        from?: string;
+        to?: string;
+        search?: string;
+      }
+    >({
+      query: (params) => ({
+        url: "/attendance/history",
+        params,
+      }),
+      transformResponse: (res: any) => ({
+        data: res?.data || [],
+        meta: res?.meta || { page: 1, limit: 20, total: 0, totalPages: 0 },
+      }),
+      providesTags: ["Attendance"],
+    }),
+
+    markTeacherCheckIn: builder.mutation<any, any>({
+      query: (body) => ({
+        url: "/attendance/teacher/self/check-in",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Attendance"],
+    }),
+
+    markTeacherCheckOut: builder.mutation<any, any>({
+      query: (body) => ({
+        url: "/attendance/teacher/self/check-out",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Attendance"],
+    }),
+
+    markTeacherLeave: builder.mutation<any, any>({
+      query: (body) => ({
+        url: "/attendance/teacher/self/leave",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Attendance"],
+    }),
+
+    getTeacherAttendanceHistory: builder.query<
+      { data: any[]; meta: { page: number; limit: number; total: number; totalPages: number } },
+      {
+        page?: number;
+        limit?: number;
+        from?: string;
+        to?: string;
+        status?: string;
+      }
+    >({
+      query: (params) => ({
+        url: "/attendance/teacher/self/history",
+        params,
+      }),
+      transformResponse: (res: any) => ({
+        data: res?.data || [],
+        meta: res?.meta || { page: 1, limit: 20, total: 0, totalPages: 0 },
+      }),
+      providesTags: ["Attendance"],
+    }),
+
+    getMarksHistory: builder.query<
+      { data: any[]; meta: { page: number; limit: number; total: number; totalPages: number } },
+      {
+        page?: number;
+        limit?: number;
+        classId?: string;
+        sectionId?: string;
+        subjectId?: string;
+        studentId?: string;
+        examId?: string;
+        from?: string;
+        to?: string;
+        search?: string;
+      }
+    >({
+      query: (params) => ({
+        url: "/teacher/marks/history",
+        params,
+      }),
+      transformResponse: (res: any) => ({
+        data: res?.data || [],
+        meta: res?.meta || { page: 1, limit: 20, total: 0, totalPages: 0 },
+      }),
+      providesTags: ["Exam"],
+    }),
+
+    getResultHistory: builder.query<
+      { data: any[]; meta: { page: number; limit: number; total: number; totalPages: number } },
+      {
+        page?: number;
+        limit?: number;
+        classId?: string;
+        sectionId?: string;
+        subjectId?: string;
+        studentId?: string;
+        examId?: string;
+        from?: string;
+        to?: string;
+        search?: string;
+      }
+    >({
+      query: (params) => ({
+        url: "/result/history",
+        params,
+      }),
+      transformResponse: (res: any) => ({
+        data: res?.data || [],
+        meta: res?.meta || { page: 1, limit: 20, total: 0, totalPages: 0 },
+      }),
+      providesTags: ["Results"],
+    }),
   }),
 });
 
@@ -299,6 +456,9 @@ export const {
   useGetTeacherTimetableQuery,
   useGetTimetableQuery,
   useGetCurrentClassQuery,
+  useGetSchoolProfileQuery,
+  useGetTeacherProfileQuery,
+  useUpdateTeacherProfileMutation,
   useGetStudentsByClassQuery,
   useGetMyClassesQuery,
   useGetStudentProgressQuery,
@@ -329,4 +489,11 @@ export const {
   useGetHomeworkCheckQuery,
   useMarkAttendanceMutation,
   useGetClassAttendanceQuery,
+  useGetAttendanceHistoryQuery,
+  useMarkTeacherCheckInMutation,
+  useMarkTeacherCheckOutMutation,
+  useMarkTeacherLeaveMutation,
+  useGetTeacherAttendanceHistoryQuery,
+  useGetMarksHistoryQuery,
+  useGetResultHistoryQuery,
 } = teacherApi;

@@ -70,7 +70,7 @@ export const useUpcomingAlert = (classData: any) => {
         Vibration.vibrate([300, 100, 300, 100, 300]);
         triggeredRef.current.oneMin = true;
       }
-    }, 1000000000);
+    }, 1000);
 
     return () => clearInterval(interval);
   }, [classData?.startTime]); // 🔥 FIXED DEPENDENCY

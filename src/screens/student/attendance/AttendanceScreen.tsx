@@ -1,61 +1,58 @@
 import { useAuth } from "@/src/context/AuthContext";
+import { COLORS } from "@/src/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 import {
   ActivityIndicator,
+  Pressable,
+  RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
   useWindowDimensions,
 } from "react-native";
+import { RADIUS, STUDENT_GLAS_CARD, STUDENT_THEME } from "../studentTheme";
 
 import {
   useGetAttendanceSummaryQuery,
   useGetTodayAttendanceQuery,
 } from "../../../api/student/student.api";
 
-export default function AttendanceScreen() {
+function AttendanceScreen() {
   const navigation = useNavigation<any>();
   const { width } = useWindowDimensions();
-
   const isTablet = width > 600;
-
-  /* ================= API ================= */
-
   const { selectedStudent } = useAuth();
 
-  /* ================= TODAY ================= */
+  const studentId = selectedStudent?._id;
 
   const {
     data: todayData = [],
     isLoading: todayLoading,
+    isFetching: todayFetching,
     isError: todayError,
     refetch: refetchToday,
   } = useGetTodayAttendanceQuery(
-    { studentId: selectedStudent?._id! },
-    { skip: !selectedStudent?._id },
+    { studentId: studentId! },
+    { skip: !studentId },
   );
-
-  /* ================= SUMMARY ================= */
 
   const {
     data: summary = {},
     isLoading: summaryLoading,
+    isFetching: summaryFetching,
     isError: summaryError,
     refetch: refetchSummary,
   } = useGetAttendanceSummaryQuery(
-    { studentId: selectedStudent?._id! },
-    { skip: !selectedStudent?._id },
+    { studentId: studentId! },
+    { skip: !studentId },
   );
-
-  /* ================= DERIVED (OPTIMIZED) ================= */
 
   const todayStatus = useMemo(() => {
     if (!todayData.length) return "N/A";
-
     return todayData.some((item: any) => item.status === "PRESENT")
       ? "PRESENT"
       : "ABSENT";
@@ -65,24 +62,23 @@ export default function AttendanceScreen() {
   const absent = summary?.absent ?? 0;
   const percentage = summary?.percentage ?? 0;
 
-  /* ================= LOADING ================= */
+  const isLoading = todayLoading || summaryLoading;
+  const isError = todayError || summaryError;
 
-  if (todayLoading || summaryLoading) {
+  if (isLoading) {
     return (
       <View style={styles.loader}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color={STUDENT_THEME.heroGradient[1]} />
       </View>
     );
   }
 
-  /* ================= ERROR ================= */
-
-  if (todayError || summaryError) {
+  if (isError) {
     return (
       <View style={styles.loader}>
         <Text style={styles.errorText}>Something went wrong</Text>
 
-        <TouchableOpacity
+        <Pressable
           style={styles.retryBtn}
           onPress={() => {
             refetchToday();
@@ -90,29 +86,39 @@ export default function AttendanceScreen() {
           }}
         >
           <Text style={styles.retryText}>Retry</Text>
-        </TouchableOpacity>
+        </Pressable>
       </View>
     );
   }
 
-  /* ================= EMPTY ================= */
-
   const isEmpty = !present && !absent && !todayData.length;
 
-  /* ================= UI ================= */
-
   return (
-    <View style={styles.container}>
-      {/* 🔥 HEADER */}
-      <LinearGradient
-        colors={["#0f2027", "#2c5364", "#00c9a7"]}
-        style={styles.topBg}
-      >
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      refreshControl={
+        <RefreshControl
+          refreshing={todayFetching || summaryFetching}
+          onRefresh={() => {
+            refetchToday();
+            refetchSummary();
+          }}
+          tintColor={STUDENT_THEME.heroGradient[1]}
+        />
+      }
+      showsVerticalScrollIndicator={false}
+    >
+      <LinearGradient colors={STUDENT_THEME.heroGradient} style={styles.topBg}>
+        <View style={styles.heroBadge}>
+          <Ionicons name="calendar" size={14} color="#fff" />
+          <Text style={styles.heroBadgeText}>Attendance overview</Text>
+        </View>
+
         <Text style={styles.headerTitle}>Attendance</Text>
 
         <View style={styles.todayBox}>
           <Text style={styles.todayLabel}>Today</Text>
-
           <Text
             style={[
               styles.todayStatus,
@@ -125,19 +131,19 @@ export default function AttendanceScreen() {
         </View>
       </LinearGradient>
 
-      {/* 🔥 BODY */}
       <View style={styles.body}>
         {isEmpty ? (
-          <Text style={styles.emptyText}>No attendance data found</Text>
+          <View style={styles.emptyCard}>
+            <Ionicons
+              name="calendar-outline"
+              size={30}
+              color={STUDENT_THEME.heroGradient[1]}
+            />
+            <Text style={styles.emptyText}>No attendance data found</Text>
+          </View>
         ) : (
           <>
-            {/* STATS */}
-            <View
-              style={[
-                styles.row,
-                isTablet && { justifyContent: "space-around" },
-              ]}
-            >
+            <View style={[styles.row, isTablet && styles.rowTablet]}>
               <View style={styles.box}>
                 <Text style={styles.number}>{present}</Text>
                 <Text style={styles.label}>Present</Text>
@@ -149,166 +155,274 @@ export default function AttendanceScreen() {
               </View>
             </View>
 
-            {/* PERCENTAGE */}
             <View style={styles.percentCard}>
-              <Text style={styles.percentText}>{percentage}%</Text>
+              <View style={styles.percentTopRow}>
+                <Text style={styles.percentText}>{percentage}%</Text>
+                <View style={styles.pill}>
+                  <Text style={styles.pillText}>{todayStatus}</Text>
+                </View>
+              </View>
               <Text style={styles.label}>Overall Attendance</Text>
             </View>
 
-            {/* BUTTON */}
-            <TouchableOpacity
+            <Pressable
               style={styles.historyBtn}
-              activeOpacity={0.85}
               onPress={() => navigation.navigate("AttendanceHistory")}
             >
               <Text style={styles.historyText}>View Full Attendance</Text>
-
-              <Ionicons
-                name="arrow-forward"
-                size={18}
-                color="#fff"
-                style={{ marginLeft: 6 }}
-              />
-            </TouchableOpacity>
+              <Ionicons name="arrow-forward" size={18} color="#fff" />
+            </Pressable>
           </>
         )}
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
-/* ================= STYLES ================= */
+export default memo(AttendanceScreen);
 
 const styles = StyleSheet.create({
   container: {
+    backgroundColor: STUDENT_THEME.background,
     flex: 1,
-    backgroundColor: "#f5f7fb",
   },
-
+  content: {
+    paddingBottom: 36,
+  },
   topBg: {
-    paddingTop: 50,
-    paddingBottom: 30,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    paddingBottom: 32,
     paddingHorizontal: 16,
-    borderBottomLeftRadius: 25,
-    borderBottomRightRadius: 25,
+    paddingTop: 28,
   },
-
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "700",
+  heroBadge: {
+    alignSelf: "flex-start",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.16)",
+    borderRadius: RADIUS.full,
+    flexDirection: "row",
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  heroBadgeText: {
     color: "#fff",
+    fontSize: 12,
+    fontWeight: "800",
   },
-
+  headerTitle: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "800",
+    marginTop: 10,
+  },
   todayBox: {
     marginTop: 12,
   },
-
   todayLabel: {
-    color: "#cceeff",
+    color: "rgba(255,255,255,0.72)",
     fontSize: 13,
+    fontWeight: "700",
+    letterSpacing: 0.4,
+    textTransform: "uppercase",
   },
-
   todayStatus: {
-    fontSize: 22,
-    fontWeight: "800",
+    color: "#fff",
+    fontSize: 24,
+    fontWeight: "900",
     marginTop: 4,
   },
-
   present: {
-    color: "#00ffb3",
+    color: "#B7FFDF",
   },
-
   absent: {
-    color: "#ff6b6b",
+    color: "#FFD0D0",
   },
-
   body: {
+    marginTop: -18,
     padding: 16,
-    marginTop: -20,
   },
-
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 14,
   },
-
+  rowTablet: {
+    justifyContent: "space-around",
+  },
   box: {
-    width: "48%",
-    backgroundColor: "#fff",
-    padding: 14,
-    borderRadius: 14,
+    ...STUDENT_GLAS_CARD,
+    ...STUDENT_THEME.softShadow,
     alignItems: "center",
-    elevation: 3,
+    backgroundColor: STUDENT_GLAS_CARD.backgroundColor,
+    borderRadius: 18,
+    padding: 16,
+    width: "48%",
   },
-
   number: {
-    fontSize: 22,
-    fontWeight: "700",
+    color: STUDENT_THEME.heroGradient[1],
+    fontSize: 24,
+    fontWeight: "900",
   },
-
   label: {
+    color: COLORS.textSecondary,
     fontSize: 12,
-    color: "#777",
+    fontWeight: "700",
     marginTop: 4,
   },
-
   percentCard: {
-    backgroundColor: "#fff",
+    ...STUDENT_GLAS_CARD,
+    ...STUDENT_THEME.cardShadow,
+    backgroundColor: STUDENT_GLAS_CARD.backgroundColor,
+    borderRadius: 20,
     padding: 18,
-    borderRadius: 16,
+  },
+  percentTopRow: {
     alignItems: "center",
-    marginBottom: 14,
-    elevation: 4,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 6,
   },
-
   percentText: {
-    fontSize: 28,
-    fontWeight: "800",
-    color: "#1677ff",
+    color: STUDENT_THEME.heroGradient[1],
+    fontSize: 30,
+    fontWeight: "900",
   },
-
+  pill: {
+    backgroundColor: COLORS.primaryLight,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  pillText: {
+    color: COLORS.primary,
+    fontSize: 11,
+    fontWeight: "800",
+  },
   historyBtn: {
+    alignItems: "center",
+    backgroundColor: COLORS.primary,
+    borderRadius: 18,
     flexDirection: "row",
     justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#1677ff",
+    marginTop: 14,
     paddingVertical: 14,
-    borderRadius: 12,
   },
-
   historyText: {
     color: "#fff",
-    fontSize: 15,
-    fontWeight: "600",
+    fontWeight: "800",
+    marginRight: 8,
   },
-
+  recentWrap: {
+    marginTop: 16,
+  },
+  recentHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 10,
+  },
+  sectionTitle: {
+    color: COLORS.textPrimary,
+    fontSize: 16,
+    fontWeight: "800",
+  },
+  recentHint: {
+    color: COLORS.textTertiary,
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  historyCard: {
+    ...STUDENT_GLAS_CARD,
+    ...STUDENT_THEME.cardShadow,
+    backgroundColor: STUDENT_GLAS_CARD.backgroundColor,
+    borderRadius: 18,
+    marginBottom: 12,
+    padding: 16,
+  },
+  historyTopRow: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  historyMain: {
+    flex: 1,
+    paddingRight: 10,
+  },
+  historyDate: {
+    color: COLORS.textSecondary,
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  historySubject: {
+    color: COLORS.textPrimary,
+    fontSize: 16,
+    fontWeight: "800",
+    marginTop: 3,
+  },
+  historyBadge: {
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  historyMetaRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 10,
+  },
+  historyMeta: {
+    color: COLORS.textSecondary,
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  historyTeacher: {
+    color: COLORS.textTertiary,
+    fontSize: 12,
+    marginTop: 8,
+  },
+  presentBadge: {
+    backgroundColor: COLORS.successSoft,
+  },
+  absentBadge: {
+    backgroundColor: COLORS.dangerSoft,
+  },
+  badgeText: {
+    color: COLORS.textPrimary,
+    fontSize: 11,
+    fontWeight: "800",
+  },
+  emptyCard: {
+    ...STUDENT_GLAS_CARD,
+    alignItems: "center",
+    borderRadius: 20,
+    paddingVertical: 28,
+  },
+  emptyText: {
+    color: COLORS.textSecondary,
+    fontWeight: "700",
+    marginTop: 10,
+    textAlign: "center",
+  },
   loader: {
+    alignItems: "center",
     flex: 1,
     justifyContent: "center",
-    alignItems: "center",
   },
-
   errorText: {
-    marginBottom: 10,
-    fontSize: 14,
+    color: COLORS.textPrimary,
+    fontWeight: "700",
+    marginBottom: 12,
   },
-
   retryBtn: {
-    backgroundColor: "#1677ff",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
+    backgroundColor: COLORS.primary,
+    borderRadius: 14,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
   },
-
   retryText: {
     color: "#fff",
-    fontWeight: "600",
-  },
-
-  emptyText: {
-    textAlign: "center",
-    marginTop: 20,
-    color: "#888",
+    fontWeight: "700",
   },
 });

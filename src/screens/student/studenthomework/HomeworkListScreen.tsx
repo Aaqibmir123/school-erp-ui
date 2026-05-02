@@ -1,9 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
+import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Pressable,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -11,9 +13,20 @@ import {
 } from "react-native";
 
 import { useGetStudentHomeworkListQuery } from "../../../api/student/student.api";
+import { COLORS, RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from "@/src/theme";
+import { STUDENT_GLAS_CARD, STUDENT_THEME } from "../studentTheme";
+
+const formatDate = (date: string) => {
+  if (!date) return "-";
+  const d = new Date(date);
+  return `${d.getDate()} ${d.toLocaleString("default", {
+    month: "short",
+  })}`;
+};
 
 const HomeworkListScreen = () => {
   const navigation = useNavigation<any>();
+  const [filter, setFilter] = useState<"homework" | "reviewed">("homework");
 
   const {
     data = [],
@@ -22,15 +35,17 @@ const HomeworkListScreen = () => {
     refetch,
   } = useGetStudentHomeworkListQuery({});
 
-  const formatDate = (date: string) => {
-    if (!date) return "-";
-    const d = new Date(date);
-    return `${d.getDate()} ${d.toLocaleString("default", {
-      month: "short",
-    })}`;
-  };
+  const homeworkList = useMemo(() => data || [], [data]);
 
-  const renderItem = ({ item }: any) => {
+  const filteredHomeworkList = useMemo(
+    () =>
+      filter === "reviewed"
+        ? homeworkList.filter((item: any) => item.reviewStatus === "REVIEWED")
+        : homeworkList,
+    [filter, homeworkList],
+  );
+
+  const renderItem = useCallback(({ item }: any) => {
     const label =
       item.sectionName === "All"
         ? item.className
@@ -40,86 +55,113 @@ const HomeworkListScreen = () => {
       <TouchableOpacity
         style={styles.card}
         onPress={() => navigation.navigate("StudentHomeworkDetails", { item })}
+        activeOpacity={0.85}
       >
-        {/* HEADER */}
         <View style={styles.header}>
-          <Text style={styles.title}>{item.title}</Text>
-
-          <View
-            style={[
-              styles.badge,
-              item.isExpired ? styles.expired : styles.active,
-            ]}
-          >
-            <Text style={styles.badgeText}>
-              {item.isExpired ? "Expired" : "Active"}
-            </Text>
+          <View style={styles.titleWrap}>
+            <Text style={styles.title}>{item.title}</Text>
+            <Text style={styles.subject}>{item.subject}</Text>
           </View>
         </View>
 
-        {/* SUBJECT + CLASS */}
-        <Text style={styles.subject}>{item.subject}</Text>
         <Text style={styles.meta}>{label}</Text>
+        <Text style={styles.teacher}>Teacher: {item.teacher}</Text>
 
-        {/* TEACHER */}
-        <Text style={styles.teacher}>👨‍🏫 {item.teacher}</Text>
-
-        {/* DATES */}
         <View style={styles.footer}>
-          <Text style={styles.meta}>📅 {formatDate(item.createdAt)}</Text>
-          <Text style={styles.meta}>⏰ {formatDate(item.dueDate)}</Text>
+          <Text style={styles.meta}>Created: {formatDate(item.createdAt)}</Text>
+          <Text style={styles.meta}>Due: {formatDate(item.dueDate)}</Text>
         </View>
 
-        {/* MARKS */}
         {item.maxMarks > 0 && (
-          <Text style={styles.marks}>🎯 Max Marks: {item.maxMarks}</Text>
+          <View style={styles.marksPill}>
+            <Text style={styles.marksText}>Max {item.maxMarks}</Text>
+          </View>
         )}
+
       </TouchableOpacity>
     );
-  };
-
-  /* ================= STATES ================= */
+  }, [navigation]);
 
   if (isLoading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
 
   if (isError) {
     return (
-      <TouchableOpacity style={styles.center} onPress={refetch}>
-        <Ionicons name="refresh" size={24} color="#888" />
+      <TouchableOpacity style={styles.center} onPress={refetch} activeOpacity={0.8}>
+        <Ionicons name="refresh" size={24} color={COLORS.primary} />
         <Text style={styles.empty}>Tap to retry</Text>
       </TouchableOpacity>
     );
   }
 
-  if (!data.length) {
-    return (
-      <View style={styles.center}>
-        <Ionicons name="book-outline" size={40} color="#aaa" />
-        <Text style={styles.empty}>No homework found</Text>
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={["#0f2027", "#2c5364", "#00c9a7"]}
-        style={styles.headerBg}
-      >
+      <LinearGradient colors={STUDENT_THEME.heroGradient} style={styles.headerBg}>
+        <Text style={styles.headerEyebrow}>Homework</Text>
         <Text style={styles.headerText}>Homework</Text>
+        <Text style={styles.headerSub}>All homework is here.</Text>
       </LinearGradient>
 
+      <View style={styles.filterRow}>
+        <Pressable
+          onPress={() => setFilter("homework")}
+          style={({ pressed }) => [
+            styles.filterChip,
+            filter === "homework" && styles.filterChipActive,
+            pressed && styles.filterChipPressed,
+          ]}
+        >
+          <Text
+            style={[
+              styles.filterText,
+              filter === "homework" && styles.filterTextActive,
+            ]}
+          >
+            Homework
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => setFilter("reviewed")}
+          style={({ pressed }) => [
+            styles.filterChip,
+            filter === "reviewed" && styles.filterChipActive,
+            pressed && styles.filterChipPressed,
+          ]}
+        >
+          <Text
+            style={[
+              styles.filterText,
+              filter === "reviewed" && styles.filterTextActive,
+            ]}
+          >
+            Reviewed
+          </Text>
+        </Pressable>
+      </View>
+
       <FlatList
-        data={data}
-        keyExtractor={(item) => item.id}
+        data={filteredHomeworkList}
+        keyExtractor={(item, index) => String(item.id || item._id || index)}
         renderItem={renderItem}
-        contentContainerStyle={{ padding: 12, marginTop: -20 }}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        initialNumToRender={6}
+        maxToRenderPerBatch={8}
+        windowSize={5}
+        removeClippedSubviews
+        updateCellsBatchingPeriod={50}
+        ListEmptyComponent={
+          <View style={styles.emptyCard}>
+            <Ionicons name="book-outline" size={30} color={COLORS.primary} />
+            <Text style={styles.empty}>No homework found</Text>
+          </View>
+        }
       />
     </View>
   );
@@ -127,91 +169,162 @@ const HomeworkListScreen = () => {
 
 export default HomeworkListScreen;
 
-/* ================= STYLES ================= */
-
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f4f6fa" },
-
-  headerBg: {
-    paddingTop: 50,
-    paddingBottom: 20,
-    alignItems: "center",
+  container: {
+    backgroundColor: STUDENT_THEME.background,
+    flex: 1,
   },
-
+  headerBg: {
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    paddingBottom: 24,
+    paddingHorizontal: 16,
+    paddingTop: 30,
+  },
+  headerEyebrow: {
+    color: "rgba(255,255,255,0.72)",
+    fontSize: 12,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
+  },
   headerText: {
     color: "#fff",
-    fontSize: 18,
-    fontWeight: "700",
+    fontSize: 26,
+    fontWeight: "900",
+    marginTop: 2,
   },
-
-  card: {
+  headerSub: {
+    color: "rgba(255,255,255,0.84)",
+    marginTop: 4,
+  },
+  filterChip: {
+    alignItems: "center",
     backgroundColor: "#fff",
-    padding: 14,
-    borderRadius: 14,
-    marginBottom: 12,
-    elevation: 2,
+    borderColor: "#D6E4FF",
+    borderRadius: RADIUS.full,
+    borderWidth: 1,
+    flex: 1,
+    justifyContent: "center",
+    minHeight: 42,
   },
-
+  filterChipActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  filterChipPressed: {
+    opacity: 0.95,
+  },
+  filterRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginHorizontal: SPACING.lg,
+    marginTop: SPACING.md,
+  },
+  filterText: {
+    color: COLORS.textSecondary,
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  filterTextActive: {
+    color: "#fff",
+  },
+  listContent: {
+    paddingBottom: SPACING.xxl,
+    paddingHorizontal: SPACING.lg,
+    paddingTop: 14,
+  },
+  card: {
+    ...STUDENT_GLAS_CARD,
+    ...SHADOWS.card,
+    borderRadius: RADIUS.xl,
+    marginBottom: SPACING.md,
+    padding: SPACING.lg,
+  },
   header: {
+    alignItems: "flex-start",
     flexDirection: "row",
     justifyContent: "space-between",
+    gap: SPACING.md,
   },
-
+  titleWrap: {
+    flex: 1,
+    paddingRight: SPACING.sm,
+  },
   title: {
-    fontSize: 15,
-    fontWeight: "700",
+    ...TYPOGRAPHY.title,
+    color: COLORS.textPrimary,
+    fontSize: 17,
   },
-
   subject: {
-    fontSize: 14,
-    marginTop: 6,
-    fontWeight: "600",
+    ...TYPOGRAPHY.body,
+    color: COLORS.textSecondary,
+    marginTop: 4,
   },
-
   meta: {
-    fontSize: 12,
-    color: "#1677ff",
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textTertiary,
+    marginTop: SPACING.sm,
   },
-
   teacher: {
-    fontSize: 12,
-    color: "#666",
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textSecondary,
+    marginTop: 4,
   },
-
   footer: {
     flexDirection: "row",
     justifyContent: "space-between",
     marginTop: 10,
   },
-
   badge: {
+    borderRadius: RADIUS.full,
     paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 20,
+    paddingVertical: 5,
   },
-
-  active: { backgroundColor: "#e6f7ff" },
-  expired: { backgroundColor: "#ffeaea" },
-
+  active: {
+    backgroundColor: COLORS.successSoft,
+  },
+  expired: {
+    backgroundColor: COLORS.dangerSoft,
+  },
+  pending: {
+    backgroundColor: COLORS.warningSoft,
+  },
+  reviewed: {
+    backgroundColor: COLORS.successSoft,
+  },
   badgeText: {
+    color: COLORS.textPrimary,
     fontSize: 11,
-    fontWeight: "600",
+    fontWeight: "800",
   },
-
-  marks: {
-    marginTop: 6,
+  marksPill: {
+    alignSelf: "flex-start",
+    backgroundColor: COLORS.primaryLight,
+    borderRadius: RADIUS.full,
+    marginTop: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  marksText: {
+    color: COLORS.primary,
     fontSize: 12,
-    color: "#333",
+    fontWeight: "800",
   },
-
   center: {
+    alignItems: "center",
     flex: 1,
     justifyContent: "center",
-    alignItems: "center",
   },
-
   empty: {
+    color: COLORS.textTertiary,
     marginTop: 10,
-    color: "#999",
+  },
+  emptyCard: {
+    alignItems: "center",
+    backgroundColor: COLORS.card,
+    borderRadius: RADIUS.xl,
+    marginTop: 20,
+    paddingVertical: 28,
   },
 });

@@ -1,7 +1,6 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import { useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   StyleSheet,
   Text,
@@ -9,6 +8,8 @@ import {
   View,
 } from "react-native";
 
+import BrandLoader from "@/src/components/BrandLoader";
+import FallbackBanner from "@/src/components/FallbackBanner";
 import { useGetStudentProgressQuery } from "../../api/teacher/teacherApi";
 
 export default function StudentProgressScreen({ route }: any) {
@@ -80,7 +81,7 @@ export default function StudentProgressScreen({ route }: any) {
   if (isLoading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" />
+        <BrandLoader />
       </View>
     );
   }
@@ -89,7 +90,10 @@ export default function StudentProgressScreen({ route }: any) {
   if (!data.length) {
     return (
       <View style={styles.center}>
-        <Text>No student data found</Text>
+        <FallbackBanner
+          title="No student data found"
+          subtitle="Progress will appear once the class has recent activity."
+        />
       </View>
     );
   }
@@ -105,9 +109,7 @@ export default function StudentProgressScreen({ route }: any) {
         onEndReached={loadMore}
         onEndReachedThreshold={0.5}
         showsVerticalScrollIndicator={false}
-        ListFooterComponent={
-          isFetching ? <ActivityIndicator style={{ margin: 10 }} /> : null
-        }
+        ListFooterComponent={isFetching ? <BrandLoader compact /> : null}
         renderItem={({ item }) => {
           const isOpen = selectedId === item.studentId;
 

@@ -82,9 +82,6 @@ export const authApi = baseApi.injectEndpoints({
           // No-op: profile request is used as a session bootstrap.
         }
       },
-      refetchOnMountOrArgChange: false,
-      refetchOnFocus: false,
-      refetchOnReconnect: false,
       keepUnusedDataFor: 300,
       providesTags: ["Auth"],
     }),

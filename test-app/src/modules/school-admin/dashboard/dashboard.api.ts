@@ -11,9 +11,6 @@ export const dashboardApi = baseApi.injectEndpoints({
       query: () => ({
         url: "/school-admin/dashboard/overview",
       }),
-      refetchOnMountOrArgChange: false,
-      refetchOnFocus: false,
-      refetchOnReconnect: false,
       keepUnusedDataFor: 300,
       transformResponse: (res: ApiResponse<AdminDashboardOverview>) => res.data,
       providesTags: ["Dashboard"],
@@ -23,9 +20,6 @@ export const dashboardApi = baseApi.injectEndpoints({
       query: () => ({
         url: "/school-admin/dashboard/summary",
       }),
-      refetchOnMountOrArgChange: false,
-      refetchOnFocus: false,
-      refetchOnReconnect: false,
       keepUnusedDataFor: 300,
       transformResponse: (res: ApiResponse<AdminDashboardSummary>) => res.data,
       providesTags: ["Dashboard"],
