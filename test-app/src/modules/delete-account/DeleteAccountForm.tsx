@@ -90,8 +90,8 @@ export default function DeleteAccountForm() {
             Account deletion request
           </Typography.Title>
           <Typography.Paragraph className={styles.formLead}>
-            Please provide the details below so we can verify and process your
-            request.
+            Please provide the exact registered details so we can verify your
+            account and process the request without delays.
           </Typography.Paragraph>
 
           {feedback ? (
@@ -134,7 +134,7 @@ export default function DeleteAccountForm() {
               name="registeredPhoneNumber"
               rules={[{ required: true, message: "Phone number is required" }]}
             >
-              <Input placeholder="+91XXXXXXXXXX" size="large" />
+              <Input inputMode="numeric" placeholder="+91XXXXXXXXXX" size="large" />
             </Form.Item>
 
             <Form.Item
