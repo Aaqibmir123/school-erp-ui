@@ -28,8 +28,19 @@ function AppBootstrap() {
   const { loading } = useAuth();
 
   useEffect(() => {
+    console.log("[startup] App mounted");
+  }, []);
+
+  useEffect(() => {
     if (!loading) {
+      console.log("[startup] Splash hide requested");
       SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [loading]);
+
+  useEffect(() => {
+    if (!loading) {
+      console.log("[startup] Navigation ready gate open");
     }
   }, [loading]);
 

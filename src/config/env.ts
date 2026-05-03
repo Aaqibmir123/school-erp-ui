@@ -1,5 +1,7 @@
 import Constants from "expo-constants";
 
+const PRODUCTION_API_URL = "https://api.smartschoolerp.co.in";
+
 const expoHostUri =
   (Constants as any)?.expoConfig?.hostUri ||
   (Constants as any)?.expoGoConfig?.debuggerHost ||
@@ -27,9 +29,10 @@ const getApiUrl = () => {
       return "http://localhost:5000";
     }
 
-    throw new Error(
-      "EXPO_PUBLIC_API_URL is required for production builds. Localhost fallbacks are disabled outside development.",
+    console.log(
+      "[startup] EXPO_PUBLIC_API_URL missing in production, falling back to hosted API",
     );
+    return PRODUCTION_API_URL;
   }
 
   if (isLocalhostApi) {
@@ -38,9 +41,10 @@ const getApiUrl = () => {
     }
 
     if (!isDevRuntime) {
-      throw new Error(
-        "Production build cannot use a localhost API URL. Set EXPO_PUBLIC_API_URL to your deployed backend.",
+      console.log(
+        "[startup] localhost API URL detected in production, overriding with hosted API",
       );
+      return PRODUCTION_API_URL;
     }
   }
 

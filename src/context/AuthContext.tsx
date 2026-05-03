@@ -63,6 +63,17 @@ const STORAGE_KEYS = {
 const isAllowedRole = (role: string | undefined | null) =>
   ALLOWED_AUTH_ROLES.has(String(role || "").toUpperCase());
 
+const safeParse = <T,>(value: string | null, fallback: T): T => {
+  if (!value) return fallback;
+
+  try {
+    return JSON.parse(value) as T;
+  } catch (error) {
+    console.log("[startup] safeParse failed", error);
+    return fallback;
+  }
+};
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [token, setToken] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState<string | null>(null);
@@ -76,6 +87,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const loadAuth = async () => {
+      console.log("[startup] Auth restore start");
       try {
         const storedToken = await storage.getItem(STORAGE_KEYS.TOKEN);
         const storedRefreshToken = await storage.getItem(
@@ -90,7 +102,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         );
 
         if (storedToken && storedUser) {
-          const parsedUser: AuthUser = JSON.parse(storedUser);
+          const parsedUser = safeParse<AuthUser | null>(storedUser, null);
+          if (!parsedUser) {
+            throw new Error("Stored user payload is invalid");
+          }
           const normalizedUser = {
             ...parsedUser,
             role: String(parsedUser.role || "").toUpperCase(),
@@ -115,19 +130,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setAuthSession(storedToken, storedRefreshToken);
 
           if (normalizedUser.role === "PARENT") {
-            if (storedStudents) setStudents(JSON.parse(storedStudents));
+            if (storedStudents) {
+              setStudents(safeParse<Student[]>(storedStudents, []));
+            }
             if (storedSelected) {
-              setSelectedStudentState(JSON.parse(storedSelected));
+              setSelectedStudentState(
+                safeParse<Student | null>(storedSelected, null),
+              );
             }
           }
+
+          console.log("[startup] Auth restore success", normalizedUser.role);
         }
         if (!storedToken || !storedUser) {
           setAuthSession(null, null);
+          console.log("[startup] No stored auth, showing login");
         }
-      } catch {
+      } catch (error) {
+        console.log("[startup] Auth restore failed", error);
         // WHY: Authentication hydration should fail silently so a stale cache
         // does not block the app from rendering the login screen.
       } finally {
+        console.log("[startup] Auth restore complete");
         setLoading(false);
       }
     };
