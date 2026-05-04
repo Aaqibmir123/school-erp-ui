@@ -6,6 +6,11 @@ import type {
   LoginResponse,
 } from "@/shared-types/auth.types";
 
+/** Matches backend Zod schema (confirmPassword stripped server-side after check). */
+export type ApplySchoolRequestBody = ApplySchoolDTO & {
+  confirmPassword: string;
+};
+
 type ApiEnvelope<T> = {
   data: T;
   message: string;
@@ -103,24 +108,9 @@ export const authApi = baseApi.injectEndpoints({
       invalidatesTags: ["Auth"],
     }),
 
-    applySchool: builder.mutation<unknown, ApplySchoolDTO>({
+    applySchool: builder.mutation<unknown, ApplySchoolRequestBody>({
       query: (body) => ({
         url: "/auth/apply-school",
-        method: "POST",
-        body,
-      }),
-      transformResponse: (response: ApiEnvelope<unknown>) => response.data,
-    }),
-
-    setPassword: builder.mutation<
-      unknown,
-      {
-        token: string;
-        password: string;
-      }
-    >({
-      query: (body) => ({
-        url: "/auth/set-password",
         method: "POST",
         body,
       }),
@@ -135,5 +125,4 @@ export const {
   useLoginMutation,
   useLogoutMutation,
   useRefreshSessionMutation,
-  useSetPasswordMutation,
 } = authApi;
