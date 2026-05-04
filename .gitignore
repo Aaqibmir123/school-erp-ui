@@ -73,3 +73,6 @@ app-example
 /assets/
 /scripts/
 /mobile/
+
+# Backend API (local only; web repo uses deployed API URL in env)
+/backend/
