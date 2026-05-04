@@ -12,15 +12,20 @@ import { Button, Card, Col, Form, Input, Row, Typography } from "antd";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { ApplySchoolDTO } from "@/shared-types/auth.types";
 import { showToast } from "@/src/utils/toast";
 import { useApplySchool } from "../hooks/useApplySchool";
 import { getAuthErrorMessage } from "../utils/authError";
 
 const { Title, Text } = Typography;
 
-type ApplySchoolFormValues = ApplySchoolDTO & {
+type ApplySchoolFormValues = {
+  address?: string;
   confirmPassword: string;
+  email: string;
+  password: string;
+  phone: string;
+  principalName: string;
+  schoolName: string;
 };
 
 export default function ApplySchoolForm() {
@@ -30,16 +35,15 @@ export default function ApplySchoolForm() {
 
   const onFinish = async (values: ApplySchoolFormValues) => {
     try {
-      const payload: ApplySchoolDTO = {
+      await applySchool({
         address: values.address,
+        confirmPassword: values.confirmPassword,
         email: values.email,
         password: values.password,
         phone: values.phone,
         principalName: values.principalName,
         schoolName: values.schoolName,
-      };
-
-      await applySchool(payload);
+      });
       showToast.success("Application submitted");
       router.push("/application-pending");
     } catch (error: unknown) {

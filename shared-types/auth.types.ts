@@ -8,8 +8,7 @@ export interface ApplySchoolDTO {
 }
 
 export interface LoginDTO {
-  email?: string;
-  phone?: string;
+  phone: string;
   password: string;
 }
 
