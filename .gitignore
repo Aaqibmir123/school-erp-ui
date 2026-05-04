@@ -76,3 +76,7 @@ app-example
 
 # Backend API (local only; web repo uses deployed API URL in env)
 /backend/
+
+# Cursor / Codex agent blobs (local only)
+/.codex-index
+/.codex-objects/
