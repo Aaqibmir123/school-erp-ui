@@ -32,14 +32,13 @@ import {
   useToggleAdmitCardApprovalMutation,
 } from "./admitCard.api";
 import { showToast } from "@/src/utils/toast";
-import { APP_ENV } from "@/src/config/env";
+import { resolveProtectedDocumentUrl } from "@/src/utils/documents";
 
 const { Title, Text } = Typography;
 
 const resolvePdfUrl = (pdfUrl?: string | null) => {
   if (!pdfUrl) return "";
-  if (/^https?:\/\//i.test(pdfUrl)) return pdfUrl;
-  return `${APP_ENV.SERVER_URL}${pdfUrl.startsWith("/") ? "" : "/"}${pdfUrl}`;
+  return resolveProtectedDocumentUrl(pdfUrl);
 };
 
 export default function AdmitCardPage({ examId }: { examId: string }) {
@@ -72,8 +71,7 @@ export default function AdmitCardPage({ examId }: { examId: string }) {
 
   const resolvePreviewUrl = (url?: string | null) => {
     if (!url) return "";
-    if (/^https?:\/\//i.test(url)) return url;
-    return `${APP_ENV.SERVER_URL}${url.startsWith("/") ? "" : "/"}${url}`;
+    return resolveProtectedDocumentUrl(url);
   };
 
   const derivePreviewImageUrl = (url?: string | null) => {
@@ -101,7 +99,6 @@ export default function AdmitCardPage({ examId }: { examId: string }) {
       const res = await previewAdmitCard({ examId, studentId }).unwrap();
       const previewPayload = (res as any)?.data || res;
       const url = derivePreviewImageUrl(previewPayload?.previewUrl || previewPayload?.pdfUrl);
-      console.log("[AdmitCardPreview]", res);
       await preloadImage(url);
       setPreviewImage(url);
       setPreviewImageLoading(false);

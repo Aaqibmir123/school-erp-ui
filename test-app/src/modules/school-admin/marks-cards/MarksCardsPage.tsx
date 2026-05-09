@@ -15,8 +15,8 @@ import {
 import { memo, useMemo, useState } from "react";
 
 import BrandLoader from "@/src/components/BrandLoader";
-import { APP_ENV } from "@/src/config/env";
 import { WEB_THEME } from "@/src/theme/tokens";
+import { resolveProtectedDocumentUrl } from "@/src/utils/documents";
 import { showToast } from "@/src/utils/toast";
 
 import {
@@ -36,8 +36,7 @@ const getInitials = (name: string) =>
 
 const resolveAssetUrl = (value?: string | null) => {
   if (!value) return "";
-  if (/^https?:\/\//i.test(value)) return value;
-  return `${APP_ENV.SERVER_URL}${value.startsWith("/") ? "" : "/"}${value}`;
+  return resolveProtectedDocumentUrl(value);
 };
 
 function MarksCardsPage() {

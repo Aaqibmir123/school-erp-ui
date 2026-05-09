@@ -6,6 +6,20 @@ type ApiEnvelope<T> = {
   success?: boolean;
 };
 
+const unwrapSchoolResponse = (
+  response: ApiEnvelope<SchoolProfile | null> | SchoolProfile | null | undefined,
+): SchoolProfile | null => {
+  if (!response) {
+    return null;
+  }
+
+  if (typeof response === "object" && "data" in response) {
+    return response.data ?? null;
+  }
+
+  return response;
+};
+
 export type SchoolProfile = {
   address?: string;
   checkInCloseTime?: string;
@@ -26,8 +40,9 @@ export const schoolApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getSchool: builder.query<SchoolProfile | null, void>({
       query: () => "/school",
-      transformResponse: (response: ApiEnvelope<SchoolProfile | null>) =>
-        response.data ?? null,
+      transformResponse: (
+        response: ApiEnvelope<SchoolProfile | null> | SchoolProfile | null,
+      ) => unwrapSchoolResponse(response),
       providesTags: ["Dashboard"],
       keepUnusedDataFor: 300,
     }),
@@ -38,7 +53,9 @@ export const schoolApi = baseApi.injectEndpoints({
         method: "POST",
         body,
       }),
-      transformResponse: (response: ApiEnvelope<SchoolProfile>) => response.data,
+      transformResponse: (
+        response: ApiEnvelope<SchoolProfile> | SchoolProfile | null,
+      ) => unwrapSchoolResponse(response) ?? ({} as SchoolProfile),
       invalidatesTags: ["Dashboard", "Auth"],
     }),
   }),

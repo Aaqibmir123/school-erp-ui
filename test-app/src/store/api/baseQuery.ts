@@ -1,6 +1,10 @@
 import { fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 import { APP_ENV } from "@/src/config/env";
+import {
+  clearBrowserSession,
+  syncBrowserSession,
+} from "@/src/modules/auth/utils/session";
 
 import { startLoading, stopLoading } from "../uiSlice";
 
@@ -74,10 +78,10 @@ export const baseQueryWithInterceptor = async (
           : null);
 
       if (refreshedToken && typeof window !== "undefined") {
-        localStorage.setItem("token", refreshedToken);
-        if (refreshedRefreshToken) {
-          localStorage.setItem("refreshToken", refreshedRefreshToken);
-        }
+        syncBrowserSession({
+          token: refreshedToken,
+          refreshToken: refreshedRefreshToken,
+        });
 
         const retry = await rawBaseQuery(args, api, extraOptions);
         if (shouldToggleGlobalLoading) {
@@ -87,7 +91,7 @@ export const baseQueryWithInterceptor = async (
       }
 
       if (typeof window !== "undefined" && window.location.pathname !== "/") {
-        localStorage.removeItem("token");
+        clearBrowserSession();
         window.location.assign("/");
       }
     }

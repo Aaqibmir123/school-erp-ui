@@ -17,6 +17,10 @@ expo-env.d.ts
 *.p12
 *.key
 *.mobileprovision
+android/key.properties
+android/keystores/
+/.gradle-home/
+/.gradle-local/
 
 # Metro
 .metro-health-check*
@@ -52,27 +56,6 @@ app-example
 /ios
 /android
 .vercel
-
-# -----------------------------------------------------------------------------
-# Mobile / Expo (kept locally; not tracked in web-only remote)
-# Paths are repo-root–anchored so test-app/ is unaffected.
-# -----------------------------------------------------------------------------
-/App.tsx
-/index.js
-/babel.config.js
-/app.config.js
-/app.json
-/eas.json
-/google-services.json
-/package.json
-/package-lock.json
-/eslint.config.js
-/tsconfig.json
-/gradle-log.txt
-/src/
-/assets/
-/scripts/
-/mobile/
 
 # Backend API (local only; web repo uses deployed API URL in env)
 /backend/

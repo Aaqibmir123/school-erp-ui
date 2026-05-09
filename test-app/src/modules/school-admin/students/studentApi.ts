@@ -131,8 +131,8 @@ export const {
   useGetStudentsQuery,
   useGetStudentByIdQuery,
   useCreateStudentMutation,
-  useUpdateStudentMutation, // 💣 NEW
-  useDeleteStudentMutation, // 💣 NEW
+  useUpdateStudentMutation,
+  useDeleteStudentMutation,
   useDownloadTemplateMutation,
   usePreviewStudentsMutation,
   useImportStudentsMutation,

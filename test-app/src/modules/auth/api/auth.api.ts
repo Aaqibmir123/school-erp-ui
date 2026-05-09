@@ -1,4 +1,8 @@
 import { baseApi } from "@/src/store/api/baseApi";
+import {
+  clearBrowserSession,
+  syncBrowserSession,
+} from "@/src/modules/auth/utils/session";
 
 import type {
   ApplySchoolDTO,
@@ -17,20 +21,8 @@ type ApiEnvelope<T> = {
   success: boolean;
 };
 
-const syncSession = (session?: Pick<LoginResponse, "token" | "refreshToken">) => {
-  if (typeof window === "undefined" || !session?.token) return;
-
-  localStorage.setItem("token", session.token);
-
-  if (session.refreshToken) {
-    localStorage.setItem("refreshToken", session.refreshToken);
-  }
-};
-
 const clearToken = () => {
-  if (typeof window === "undefined") return;
-  localStorage.removeItem("token");
-  localStorage.removeItem("refreshToken");
+  clearBrowserSession();
 };
 
 export const authApi = baseApi.injectEndpoints({
@@ -46,7 +38,11 @@ export const authApi = baseApi.injectEndpoints({
       async onQueryStarted(_arg, { queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
-          syncSession(data);
+          syncBrowserSession({
+            token: data.token,
+            refreshToken: data.refreshToken,
+            role: data.user?.role,
+          });
         } catch {
           // Error handling happens in the UI layer.
         }
@@ -64,7 +60,11 @@ export const authApi = baseApi.injectEndpoints({
       async onQueryStarted(_arg, { queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
-          syncSession(data);
+          syncBrowserSession({
+            token: data.token,
+            refreshToken: data.refreshToken,
+            role: data.user?.role,
+          });
         } catch {
           clearToken();
         }
@@ -82,7 +82,11 @@ export const authApi = baseApi.injectEndpoints({
       async onQueryStarted(_arg, { queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
-          syncSession(data);
+          syncBrowserSession({
+            token: data.token,
+            refreshToken: data.refreshToken,
+            role: data.user?.role,
+          });
         } catch {
           // No-op: profile request is used as a session bootstrap.
         }

@@ -30,7 +30,7 @@ import {
   Typography,
 } from "antd";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 
 import { useSchool } from "@/src/modules/school-admin/school/useSchool";
 import {
@@ -38,6 +38,7 @@ import {
   useLogoutMutation,
 } from "@/src/modules/auth/api/auth.api";
 import { WEB_THEME } from "@/src/theme/tokens";
+import { clearBrowserSession } from "@/src/modules/auth/utils/session";
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -247,20 +248,21 @@ export default function SchoolAdminLayout({
   const [hasToken, setHasToken] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const sessionQuery = useGetProfileQuery(undefined, { skip: !hasToken });
-  const { school } = useSchool(pathname);
+  const { school } = useSchool();
   const [logout] = useLogoutMutation();
   const schoolName = school?.name || school?.schoolName || "School Admin";
   const schoolAddress = school?.address || "School ERP admin workspace";
 
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [menuOpenKeys, setMenuOpenKeys] = useState<string[]>([]);
   const items = useMemo(() => buildMenuItems(), []);
   const selectedKeys = useMemo(
     () => getSelectedKey(items, pathname),
     [items, pathname],
   );
-  const defaultOpenKeys = useMemo(() => {
+  useLayoutEffect(() => {
     const group = getParentGroup(pathname);
-    return group ? [group] : [];
+    setMenuOpenKeys(group ? [group] : []);
   }, [pathname]);
 
   useEffect(() => {
@@ -281,8 +283,7 @@ export default function SchoolAdminLayout({
   const handleNavigate = async ({ key }: { key: string }) => {
     if (key === "logout") {
       await logout().unwrap().catch(() => undefined);
-      localStorage.removeItem("token");
-      localStorage.removeItem("refreshToken");
+      clearBrowserSession();
       router.push("/");
       setMobileOpen(false);
       return;
@@ -294,12 +295,14 @@ export default function SchoolAdminLayout({
 
   const menu = (
     <Menu
-      key={pathname}
       theme="dark"
       mode="inline"
       items={items}
       selectedKeys={selectedKeys}
-      defaultOpenKeys={defaultOpenKeys}
+      openKeys={menuOpenKeys}
+      onOpenChange={(keys) => {
+        setMenuOpenKeys(keys as string[]);
+      }}
       onClick={(e) => {
         void handleNavigate({ key: e.key });
       }}
@@ -314,7 +317,7 @@ export default function SchoolAdminLayout({
   useEffect(() => {
     if (!hasToken || !sessionQuery.isError) return;
 
-    localStorage.removeItem("token");
+    clearBrowserSession();
     router.replace("/");
   }, [hasToken, router, sessionQuery.isError]);
 

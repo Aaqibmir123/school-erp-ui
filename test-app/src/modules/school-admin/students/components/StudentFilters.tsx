@@ -1,6 +1,7 @@
 "use client";
 
 import { Col, Input, Row, Select } from "antd";
+import { memo } from "react";
 
 type SelectOption = {
   label: string;
@@ -18,7 +19,7 @@ interface Props {
   onSearchChange: (value: string) => void;
 }
 
-export default function StudentFilters({
+function StudentFilters({
   classOptions,
   sectionOptions,
   selectedClassId,
@@ -70,3 +71,5 @@ export default function StudentFilters({
     </Row>
   );
 }
+
+export default memo(StudentFilters);

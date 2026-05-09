@@ -1,6 +1,6 @@
 "use client";
 
-import { APP_ENV } from "@/src/config/env";
+import { resolveProtectedDocumentUrl } from "@/src/utils/documents";
 import ResponsiveTable from "@/src/components/ResponsiveTable";
 import { App, Button, Popconfirm, Space, Tag, Typography } from "antd";
 import { useState } from "react";
@@ -28,9 +28,7 @@ export default function FeeHistoryTable({ student }: any) {
 
   const getReceiptUrl = (pdfUrl?: string) => {
     if (!pdfUrl) return "";
-    return pdfUrl.startsWith("http")
-      ? pdfUrl
-      : `${APP_ENV.SERVER_URL}${pdfUrl}`;
+    return resolveProtectedDocumentUrl(pdfUrl);
   };
 
   const handleDelete = async (fee: any) => {
