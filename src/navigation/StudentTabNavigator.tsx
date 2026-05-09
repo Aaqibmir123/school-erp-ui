@@ -16,7 +16,6 @@ export default function StudentTabNavigator() {
   return (
     <Tab.Navigator
       detachInactiveScreens
-      lazy
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarHideOnKeyboard: true,

@@ -498,7 +498,7 @@ const AttendanceScreen = ({ navigation }: any) => {
               </View>
               <View style={styles.linkTextWrap}>
                 <Text style={styles.linkTitle}>Open Timetable</Text>
-                <Text style={styles.linkSub}>Check today's live classes.</Text>
+                <Text style={styles.linkSub}>Check today&apos;s live classes.</Text>
               </View>
             </View>
             <Ionicons
