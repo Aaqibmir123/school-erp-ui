@@ -11,7 +11,7 @@ import {
 
 import { useAuth } from "@/src/context/AuthContext";
 import { useGetStudentExamsQuery } from "../../../api/student/student.api";
-import { COLORS, RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from "@/src/theme";
+import { COLORS, RADIUS, SHADOWS, TYPOGRAPHY } from "@/src/theme";
 import { STUDENT_GLAS_CARD } from "../studentTheme";
 
 type ExamItem = {
@@ -58,7 +58,7 @@ const formatWindow = (
   if (!startLabel && !endLabel) return "N/A";
   if (!endLabel || startLabel === endLabel) return startLabel || endLabel;
 
-  return `${startLabel} → ${endLabel}`;
+  return `${startLabel} â†’ ${endLabel}`;
 };
 
 function ExamScreen() {

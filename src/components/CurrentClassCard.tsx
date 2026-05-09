@@ -39,7 +39,6 @@ const TeacherHome = () => {
   );
 
   const currentClass = data?.currentClass || null;
-  const upcomingClasses = data?.upcomingClasses || [];
   const students = data?.students || [];
   const showLiveClassCard = !!currentClass;
 

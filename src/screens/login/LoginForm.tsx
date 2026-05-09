@@ -51,7 +51,7 @@ function LoginForm({
   onEditPhone,
 }: Props) {
   const phoneRef = useRef<TextInput>(null);
-  const otpRefs = useRef<Array<TextInput | null>>([]);
+  const otpRefs = useRef<(TextInput | null)[]>([]);
 
   const isPhoneStep = step === "phone";
   const canSend = normalizedPhone.length === 10 && !sendingOtp;

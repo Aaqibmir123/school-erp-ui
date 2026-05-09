@@ -16,7 +16,7 @@ import {
 } from "react-native";
 
 import { useAuth } from "@/src/context/AuthContext";
-import { COLORS, RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from "@/src/theme";
+import { COLORS, SHADOWS, SPACING } from "@/src/theme";
 import { resolveProtectedDocumentUrl } from "@/src/utils/documents";
 import { showToast } from "@/src/utils/toast";
 import { useGetMyAdmitCardsQuery } from "../../../api/student/student.api";
@@ -218,7 +218,7 @@ export default function AdmitCardsScreen() {
               <View style={styles.softChip}>
                 <Text style={styles.softChipText}>
                   {item.className}
-                  {item.sectionName !== "All" ? ` • ${item.sectionName}` : ""}
+                  {item.sectionName !== "All" ? ` â€¢ ${item.sectionName}` : ""}
                 </Text>
               </View>
               {item.date ? (
@@ -472,4 +472,5 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 });
+
 

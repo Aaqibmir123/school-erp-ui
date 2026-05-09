@@ -12,7 +12,7 @@ import {
 
 import BrandLoader from "@/src/components/BrandLoader";
 import FallbackBanner from "@/src/components/FallbackBanner";
-import { COLORS, RADIUS, SHADOWS, SPACING } from "@/src/theme";
+import { COLORS, SPACING } from "@/src/theme";
 import { showToast } from "@/src/utils/toast";
 import {
   useDeleteExamMutation,
@@ -314,3 +314,4 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
 });
+

@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/src/context/AuthContext";
 import { useGetMyMarksQuery } from "@/src/api/student/student.api";
-import { COLORS, RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from "@/src/theme";
+import { COLORS, RADIUS, SHADOWS, SPACING } from "@/src/theme";
 import { resolveProtectedDocumentUrl } from "@/src/utils/documents";
 import { Image } from "expo-image";
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -230,3 +230,4 @@ const styles = StyleSheet.create({
     padding: SPACING.md,
   },
 });
+

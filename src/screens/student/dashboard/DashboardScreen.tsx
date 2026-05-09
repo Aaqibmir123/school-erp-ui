@@ -1,5 +1,4 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Image } from "expo-image";
 import { memo, type ReactNode } from "react";
@@ -103,7 +102,6 @@ const InfoCard = ({
 };
 
 function StudentDashboardScreen() {
-  const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
   const { selectedStudent } = useAuth();
   const studentId = selectedStudent?._id;
@@ -596,3 +594,5 @@ const styles = StyleSheet.create({
     padding: 2,
   },
 });
+
+

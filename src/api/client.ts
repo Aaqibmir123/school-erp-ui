@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, { isAxiosError } from "axios";
 import NetInfo from "@react-native-community/netinfo";
 
 import { APP_ENV } from "../config/env";
@@ -31,7 +31,7 @@ export interface ApiEnvelope<T> {
 }
 
 const extractErrorMessage = (error: unknown, fallback: string) => {
-  if (axios.isAxiosError(error)) {
+  if (isAxiosError(error)) {
     const status = error.response?.status;
     const code = String(error.code || "").toUpperCase();
     const message = String(error.message || "").toLowerCase();

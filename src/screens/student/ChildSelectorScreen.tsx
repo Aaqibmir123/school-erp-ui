@@ -4,8 +4,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-import { COLORS, RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from "@/src/theme";
-import { STUDENT_GLAS_CARD, STUDENT_THEME } from "./studentTheme";
+import { COLORS, SHADOWS, TYPOGRAPHY } from "@/src/theme";
+import { STUDENT_THEME } from "./studentTheme";
 
 const ChildSelectorScreen = () => {
   const { students, setSelectedStudent } = useAuth();
@@ -35,8 +35,8 @@ const ChildSelectorScreen = () => {
               <Text style={styles.name}>
                 {item.firstName} {item.lastName}
               </Text>
-              <Text style={styles.meta}>🎓 Class: {item.classId?.name || "N/A"}</Text>
-              <Text style={styles.meta}>🏫 Section: {item.sectionId?.name || "N/A"}</Text>
+              <Text style={styles.meta}>ðŸŽ“ Class: {item.classId?.name || "N/A"}</Text>
+              <Text style={styles.meta}>ðŸ« Section: {item.sectionId?.name || "N/A"}</Text>
             </View>
           </View>
         </LinearGradient>
@@ -126,3 +126,4 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 });
+

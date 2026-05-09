@@ -11,7 +11,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 
 import FallbackBanner from "@/src/components/FallbackBanner";
 import { COLORS, RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from "@/src/theme";
@@ -182,7 +181,7 @@ function FeesScreen() {
         </View>
       );
     },
-    [downloadingId, handleDownloadAndShare],
+    [downloadingId, handleDownloadAndShare, handleViewReceipt],
   );
 
   if (isLoading) {
@@ -379,3 +378,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.success,
   },
 });
+
+
+

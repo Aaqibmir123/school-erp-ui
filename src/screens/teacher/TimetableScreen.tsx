@@ -22,7 +22,7 @@ const TimetableScreen = ({ navigation }: any) => {
 
   const { data, isLoading, isFetching, isError, refetch } =
     useGetTimetableQuery();
-  const timetableByDay = data?.data || data || {};
+  const timetableByDay = useMemo(() => data?.data || data || {}, [data]);
 
   useEffect(() => {
     if (timetableByDay) {
@@ -187,3 +187,4 @@ const styles = StyleSheet.create({
     paddingBottom: SPACING.xl,
   },
 });
+

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { Animated, StyleSheet, View } from "react-native";
 
 import { COLORS, RADIUS, SPACING } from "@/src/theme";
@@ -13,7 +13,7 @@ const BrandLoader = ({ compact = false }: BrandLoaderProps) => {
   const dot1 = useRef(new Animated.Value(0.35)).current;
   const dot2 = useRef(new Animated.Value(0.35)).current;
   const dot3 = useRef(new Animated.Value(0.35)).current;
-  const values = [dot1, dot2, dot3];
+  const values = useMemo(() => [dot1, dot2, dot3], [dot1, dot2, dot3]);
 
   useEffect(() => {
     const animations = values.map((value, index) =>
@@ -39,7 +39,7 @@ const BrandLoader = ({ compact = false }: BrandLoaderProps) => {
     return () => {
       animations.forEach((animation) => animation.stop());
     };
-  }, [dot1, dot2, dot3]);
+  }, [values]);
 
   return (
     <View style={[styles.wrap, compact && styles.compactWrap]}>

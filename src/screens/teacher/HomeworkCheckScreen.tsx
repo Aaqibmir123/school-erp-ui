@@ -36,13 +36,13 @@ const HomeworkCheckScreen = ({ route }: any) => {
 
   const { data: homeworkCheckData } = useGetHomeworkCheckQuery(homeworkId);
   const [markHomeworkCheck, { isLoading }] = useMarkHomeworkCheckMutation();
-  const existingData = homeworkCheckData?.checks || [];
   const maxMarks = Number(
     homeworkCheckData?.homework?.maxMarks || route.params?.maxMarks || 0,
   );
 
   useEffect(() => {
     if (!apiStudents.length) return;
+    const existingData = homeworkCheckData?.checks || [];
 
     const formatted = apiStudents.map((s: any) => {
       const found = existingData.find(
@@ -58,7 +58,7 @@ const HomeworkCheckScreen = ({ route }: any) => {
     });
 
     setStudents(formatted);
-  }, [apiStudents, existingData]);
+  }, [apiStudents, homeworkCheckData?.checks]);
 
   useEffect(() => {
     setVisibleCount(8);
@@ -368,3 +368,6 @@ const styles = StyleSheet.create({
     height: 12,
   },
 });
+
+
+
