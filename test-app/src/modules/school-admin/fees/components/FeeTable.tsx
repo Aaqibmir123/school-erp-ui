@@ -3,7 +3,7 @@
 import ResponsiveTable from "@/src/components/ResponsiveTable";
 import { Button, Grid, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { memo, useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 
 import { StudentDTO } from "@/shared-types/student.types";
 import FeeDrawer from "./FeeDrawer";
@@ -101,6 +101,18 @@ function FeeTable({
     [isMobile],
   );
 
+  const renderExpandedRow = useCallback(
+    (record: FeeStudent) => <FeeHistoryTable student={record} />,
+    [],
+  );
+
+  const expandable = useMemo(
+    () => ({
+      expandedRowRender: renderExpandedRow,
+    }),
+    [renderExpandedRow],
+  );
+
   /* ================= UI ================= */
 
   return (
@@ -116,11 +128,7 @@ function FeeTable({
       columns={columns}
       loading={loading}
       pagination={{ pageSize: 8 }}
-      expandable={{
-        expandedRowRender: (record: FeeStudent) => (
-          <FeeHistoryTable student={record} />
-        ),
-        }}
+      expandable={expandable}
       />
 
       {selectedStudent ? (

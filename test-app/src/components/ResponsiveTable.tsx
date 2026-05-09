@@ -47,27 +47,30 @@ function ResponsiveTable(props: any) {
         position: "relative",
       }}
     >
+      <Table
+        {...rest}
+        scroll={resolvedScroll}
+        size={isMobile ? "small" : "middle"}
+        tableLayout={tableLayout ?? (isMobile ? "auto" : "fixed")}
+        pagination={resolvedPagination}
+      />
       {loading ? (
         <div
+          aria-busy="true"
           style={{
             alignItems: "center",
+            background: "rgba(255, 255, 255, 0.72)",
             display: "flex",
+            inset: 0,
             justifyContent: "center",
             minHeight: 220,
-            width: "100%",
+            position: "absolute",
+            zIndex: 2,
           }}
         >
           <BrandLoader compact />
         </div>
-      ) : (
-        <Table
-          {...rest}
-          scroll={resolvedScroll}
-          size={isMobile ? "small" : "middle"}
-          tableLayout={tableLayout ?? (isMobile ? "auto" : "fixed")}
-          pagination={resolvedPagination}
-        />
-      )}
+      ) : null}
     </div>
   );
 }

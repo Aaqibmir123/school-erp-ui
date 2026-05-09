@@ -17,6 +17,7 @@ import {
   useLogoutMutation,
 } from "@/src/modules/auth/api/auth.api";
 import { WEB_THEME } from "@/src/theme/tokens";
+import { clearBrowserSession } from "@/src/modules/auth/utils/session";
 
 const { Sider, Content, Header } = Layout;
 
@@ -52,8 +53,7 @@ export default function SuperAdminLayout({ children }: any) {
   const handleMenu = async ({ key }: any) => {
     if (key === "logout") {
       await logout().unwrap().catch(() => undefined);
-      localStorage.removeItem("token");
-      localStorage.removeItem("refreshToken");
+      clearBrowserSession();
       router.push("/");
       setMobileOpen(false);
       return;
@@ -81,7 +81,7 @@ export default function SuperAdminLayout({ children }: any) {
   useEffect(() => {
     if (!hasToken || !sessionQuery.isError) return;
 
-    localStorage.removeItem("token");
+    clearBrowserSession();
     router.replace("/");
   }, [hasToken, router, sessionQuery.isError]);
 

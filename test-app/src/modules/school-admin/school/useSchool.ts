@@ -25,7 +25,7 @@ const normalizeSchool = (data: SchoolProfile | null | undefined) =>
       }
     : null;
 
-export const useSchool = (_refreshKey?: string) => {
+export const useSchool = () => {
   const { data, isLoading, isFetching, refetch } = useGetSchoolQuery();
 
   const school = useMemo(() => normalizeSchool(data), [data]);

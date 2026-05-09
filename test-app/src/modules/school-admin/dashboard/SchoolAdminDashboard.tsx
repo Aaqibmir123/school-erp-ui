@@ -1,6 +1,5 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { memo, useCallback, useEffect, useMemo } from "react";
 import dynamic from "next/dynamic";
 
@@ -48,13 +47,30 @@ const DashboardAnalytics = dynamic(() => import("./SchoolAdminDashboardAnalytics
   ssr: false,
 });
 
+type MetricIconKind = "team" | "user" | "dollar" | "car";
+
 type MetricCardProps = {
   title: string;
   value: string | number;
   helper: string;
-  icon: ReactNode;
+  icon: MetricIconKind;
   tone?: string;
 };
+
+const metricIconFor = (kind: MetricIconKind) => {
+  switch (kind) {
+    case "team":
+      return <TeamOutlined />;
+    case "user":
+      return <UserOutlined />;
+    case "dollar":
+      return <DollarOutlined />;
+    case "car":
+      return <CarOutlined />;
+  }
+};
+
+const statisticContentStyle = { fontSize: 26, lineHeight: 1.2 } as const;
 
 const MetricCard = memo(function MetricCard({
   title,
@@ -63,6 +79,11 @@ const MetricCard = memo(function MetricCard({
   icon,
   tone = WEB_THEME.colors.primary,
 }: MetricCardProps) {
+  const statisticStyles = useMemo(
+    () => ({ content: statisticContentStyle }),
+    [],
+  );
+
   return (
     <Card variant="borderless" className={styles.metricCard}>
       <Space align="start" size={16}>
@@ -73,7 +94,7 @@ const MetricCard = memo(function MetricCard({
             color: tone,
           }}
         >
-          {icon}
+          {metricIconFor(icon)}
         </div>
 
         <div className={styles.metricMeta}>
@@ -81,7 +102,7 @@ const MetricCard = memo(function MetricCard({
             {title}
           </Text>
           <div style={{ marginTop: 4 }}>
-            <Statistic value={value} styles={{ content: { fontSize: 26, lineHeight: 1.2 } }} />
+            <Statistic value={value} styles={statisticStyles} />
           </div>
           <Text type="secondary" style={{ fontSize: 12 }}>
             {helper}
@@ -154,6 +175,10 @@ export default function SchoolAdminDashboard() {
   const router = useRouter();
   const { data, isLoading, error, refetch, isFetching } = useGetAdminDashboardOverviewQuery();
 
+  const goToAttendance = useCallback(() => {
+    router.push("/school-admin/attendance");
+  }, [router]);
+
   const refreshDashboard = useCallback(() => {
     refetch();
   }, [refetch]);
@@ -223,7 +248,7 @@ export default function SchoolAdminDashboard() {
           <Button
             type="primary"
             className={styles.attendanceAction}
-            onClick={() => router.push("/school-admin/attendance")}
+            onClick={goToAttendance}
             loading={isFetching && !data}
           >
             Open attendance
@@ -237,7 +262,7 @@ export default function SchoolAdminDashboard() {
             title="Students"
             value={data.counts.students}
             helper="Total active students in the school"
-            icon={<TeamOutlined />}
+            icon="team"
           />
         </Col>
         <Col xs={24} sm={12} xl={6}>
@@ -245,7 +270,7 @@ export default function SchoolAdminDashboard() {
             title="Teachers"
             value={data.counts.teachers}
             helper="Faculty members currently on record"
-            icon={<UserOutlined />}
+            icon="user"
             tone="#16A34A"
           />
         </Col>
@@ -254,7 +279,7 @@ export default function SchoolAdminDashboard() {
             title="Fee Collected"
             value={`Rs. ${data.finance.collected.toLocaleString()}`}
             helper={`Rs. ${data.finance.due.toLocaleString()} pending`}
-            icon={<DollarOutlined />}
+            icon="dollar"
             tone="#F59E0B"
           />
         </Col>
@@ -263,7 +288,7 @@ export default function SchoolAdminDashboard() {
             title="Transport Fleet"
             value={data.counts.transports}
             helper={`${data.counts.activeTransports} active routes`}
-            icon={<CarOutlined />}
+            icon="car"
             tone="#06B6D4"
           />
         </Col>

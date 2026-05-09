@@ -2,7 +2,7 @@
 
 import { App, Alert, Button, Card, Empty } from "antd";
 import dynamic from "next/dynamic";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import StudentFilters from "./components/StudentFilters";
 import StudentTable from "./components/StudentTable";
@@ -70,6 +70,19 @@ export default function StudentPage() {
     [sections],
   );
 
+  const handleClassChange = useCallback((value: string | null) => {
+    setSelectedClassId(value);
+    setSelectedSectionId(null);
+  }, []);
+
+  const handleSectionChange = useCallback((value: string | null) => {
+    setSelectedSectionId(value);
+  }, []);
+
+  const handleSearchChange = useCallback((value: string) => {
+    setSearch(value);
+  }, []);
+
   const handleDownloadTemplate = async () => {
     try {
       const blob = await downloadTemplate().unwrap();
@@ -130,12 +143,9 @@ export default function StudentPage() {
             selectedClassId={selectedClassId}
             selectedSectionId={selectedSectionId}
             search={search}
-            onClassChange={(value) => {
-              setSelectedClassId(value);
-              setSelectedSectionId(null);
-            }}
-            onSectionChange={setSelectedSectionId}
-            onSearchChange={setSearch}
+            onClassChange={handleClassChange}
+            onSectionChange={handleSectionChange}
+            onSearchChange={handleSearchChange}
           />
 
           <StudentTable

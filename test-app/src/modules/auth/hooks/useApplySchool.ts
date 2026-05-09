@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 
-import { ApplySchoolDTO } from "@/shared-types/auth.types";
+import type { ApplySchoolRequestBody } from "../api/auth.api";
 
 import { useApplySchoolMutation } from "../api/auth.api";
 
@@ -8,7 +8,7 @@ export const useApplySchool = () => {
   const [triggerApplySchool, result] = useApplySchoolMutation();
 
   const applySchool = useCallback(
-    async (data: ApplySchoolDTO) => {
+    async (data: ApplySchoolRequestBody) => {
       const response = await triggerApplySchool(data).unwrap();
       return response;
     },

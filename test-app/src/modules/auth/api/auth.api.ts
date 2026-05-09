@@ -1,4 +1,8 @@
 import { baseApi } from "@/src/store/api/baseApi";
+import {
+  clearBrowserSession,
+  syncBrowserSession,
+} from "@/src/modules/auth/utils/session";
 
 import type {
   ApplySchoolDTO,
@@ -6,26 +10,19 @@ import type {
   LoginResponse,
 } from "@/shared-types/auth.types";
 
+/** Matches backend Zod schema (confirmPassword stripped server-side after check). */
+export type ApplySchoolRequestBody = ApplySchoolDTO & {
+  confirmPassword: string;
+};
+
 type ApiEnvelope<T> = {
   data: T;
   message: string;
   success: boolean;
 };
 
-const syncSession = (session?: Pick<LoginResponse, "token" | "refreshToken">) => {
-  if (typeof window === "undefined" || !session?.token) return;
-
-  localStorage.setItem("token", session.token);
-
-  if (session.refreshToken) {
-    localStorage.setItem("refreshToken", session.refreshToken);
-  }
-};
-
 const clearToken = () => {
-  if (typeof window === "undefined") return;
-  localStorage.removeItem("token");
-  localStorage.removeItem("refreshToken");
+  clearBrowserSession();
 };
 
 export const authApi = baseApi.injectEndpoints({
@@ -41,7 +38,11 @@ export const authApi = baseApi.injectEndpoints({
       async onQueryStarted(_arg, { queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
-          syncSession(data);
+          syncBrowserSession({
+            token: data.token,
+            refreshToken: data.refreshToken,
+            role: data.user?.role,
+          });
         } catch {
           // Error handling happens in the UI layer.
         }
@@ -59,7 +60,11 @@ export const authApi = baseApi.injectEndpoints({
       async onQueryStarted(_arg, { queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
-          syncSession(data);
+          syncBrowserSession({
+            token: data.token,
+            refreshToken: data.refreshToken,
+            role: data.user?.role,
+          });
         } catch {
           clearToken();
         }
@@ -77,7 +82,11 @@ export const authApi = baseApi.injectEndpoints({
       async onQueryStarted(_arg, { queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
-          syncSession(data);
+          syncBrowserSession({
+            token: data.token,
+            refreshToken: data.refreshToken,
+            role: data.user?.role,
+          });
         } catch {
           // No-op: profile request is used as a session bootstrap.
         }
@@ -103,24 +112,9 @@ export const authApi = baseApi.injectEndpoints({
       invalidatesTags: ["Auth"],
     }),
 
-    applySchool: builder.mutation<unknown, ApplySchoolDTO>({
+    applySchool: builder.mutation<unknown, ApplySchoolRequestBody>({
       query: (body) => ({
         url: "/auth/apply-school",
-        method: "POST",
-        body,
-      }),
-      transformResponse: (response: ApiEnvelope<unknown>) => response.data,
-    }),
-
-    setPassword: builder.mutation<
-      unknown,
-      {
-        token: string;
-        password: string;
-      }
-    >({
-      query: (body) => ({
-        url: "/auth/set-password",
         method: "POST",
         body,
       }),
@@ -135,5 +129,4 @@ export const {
   useLoginMutation,
   useLogoutMutation,
   useRefreshSessionMutation,
-  useSetPasswordMutation,
 } = authApi;

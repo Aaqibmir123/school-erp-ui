@@ -108,14 +108,21 @@ function LoginForm() {
 
           <Form layout="vertical" onFinish={onFinish}>
             <Form.Item
-              label="Email or Phone"
-              name="email"
-              rules={[{ required: true, message: "Enter email or phone" }]}
+              label="Phone"
+              name="phone"
+              rules={[
+                { required: true, message: "Enter phone number" },
+                {
+                  pattern: /^[6-9]\d{9}$/,
+                  message: "Enter valid 10-digit phone number",
+                },
+              ]}
             >
               <Input
                 size="large"
+                maxLength={10}
                 prefix={<UserOutlined />}
-                placeholder="Enter email or phone"
+                placeholder="Enter phone number"
               />
             </Form.Item>
 

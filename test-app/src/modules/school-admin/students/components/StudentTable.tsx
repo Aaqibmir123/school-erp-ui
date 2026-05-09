@@ -30,17 +30,18 @@ function StudentTable({ classId, sectionId, search }: Props) {
     setPage(1);
   }, [classId, sectionId, search]);
 
-  const { data, isLoading } = useGetStudentsQuery(
-    {
+  const studentsQueryArg = useMemo(
+    () => ({
       classId: classId || undefined,
       page,
       limit: 10,
       search: search || undefined,
       sectionId: sectionId || undefined,
-    },
-    {
-    },
+    }),
+    [classId, page, search, sectionId],
   );
+
+  const { data, isLoading } = useGetStudentsQuery(studentsQueryArg);
 
   const students = data?.data || [];
   // Some student endpoints historically returned `students` instead of `data`,

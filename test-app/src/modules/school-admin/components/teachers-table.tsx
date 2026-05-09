@@ -45,7 +45,6 @@ interface Props {
   loading: boolean;
   onEdit?: (teacher: Teacher) => void;
   onDelete?: (teacherId: string) => Promise<void> | void;
-  onRefresh?: () => void;
 }
 
 const { Text } = Typography;
