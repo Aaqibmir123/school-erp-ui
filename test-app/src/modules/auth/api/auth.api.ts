@@ -12,6 +12,12 @@ type ApiEnvelope<T> = {
   success: boolean;
 };
 
+const normalizeLoginPhone = (value?: string) =>
+  String(value || "")
+    .trim()
+    .replace(/\D/g, "")
+    .slice(-10);
+
 const syncSession = (session?: Pick<LoginResponse, "token" | "refreshToken">) => {
   if (typeof window === "undefined" || !session?.token) return;
 
@@ -31,11 +37,20 @@ const clearToken = () => {
 export const authApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     login: builder.mutation<LoginResponse, LoginDTO>({
-      query: (body) => ({
-        url: "/auth/login",
-        method: "POST",
-        body,
-      }),
+      query: (body) => {
+        const phone = normalizeLoginPhone(
+          body.phone || body.emailOrPhone || body.email,
+        );
+
+        return {
+          url: "/auth/login",
+          method: "POST",
+          body: {
+            password: String(body.password || ""),
+            phone,
+          },
+        };
+      },
       transformResponse: (response: ApiEnvelope<LoginResponse>) =>
         response.data,
       async onQueryStarted(_arg, { queryFulfilled }) {
