@@ -1,82 +1,32 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
-
 # dependencies
 node_modules/
 
-# Expo
-.expo/
+# Next.js
+.next/
+out/
+.vercel/
+
+# build outputs
 dist/
-web-build/
-expo-env.d.ts
+coverage/
+*.tsbuildinfo
 
-# Native
-.kotlin/
-*.orig.*
-*.jks
-*.p8
-*.p12
-*.key
-*.mobileprovision
-
-# Metro
-.metro-health-check*
-
-# debug
+# logs
 npm-debug.*
 yarn-debug.*
 yarn-error.*
 
-# macOS
+# macOS / Windows
 .DS_Store
-*.pem
+Thumbs.db
 
-# local env files
-.env*.local
+# env files
 .env
 .env.*
-backend/.env
-test-app/.env
-test-app/.next/
-test-app/node_modules/
-backend/node_modules/
-backend/dist/
-**/firebase*.json
-**/*service-account*.json
+!.env.example
 
-# typescript
-*.tsbuildinfo
-
-app-example
-
-# generated native folders
-/ios
-/android
-.vercel
-
-# -----------------------------------------------------------------------------
-# Mobile / Expo (kept locally; not tracked in web-only remote)
-# Paths are repo-root–anchored so test-app/ is unaffected.
-# -----------------------------------------------------------------------------
-/App.tsx
-/index.js
-/babel.config.js
-/app.config.js
-/app.json
-/eas.json
-/google-services.json
-/package.json
-/package-lock.json
-/eslint.config.js
-/tsconfig.json
-/gradle-log.txt
-/src/
-/assets/
-/scripts/
-/mobile/
-
-# Backend API (local only; web repo uses deployed API URL in env)
-/backend/
-
-# Cursor / Codex agent blobs (local only)
-/.codex-index
-/.codex-objects/
+# local secrets
+*.pem
+*.key
+*.p12
+*.p8

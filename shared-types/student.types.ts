@@ -11,9 +11,6 @@ export interface Student {
   classId: string;
   sectionId?: string;
 
-  dateOfBirth?: string;
-  admissionDate?: string;
-
   rollNumber: number;
 
   fatherName: string;
@@ -115,9 +112,6 @@ export interface StudentPopulated {
 
   gender: "male" | "female" | "other";
 
-  dateOfBirth?: string;
-  admissionDate?: string;
-
   classId: {
     _id: string;
     name: string;
@@ -130,4 +124,7 @@ export interface StudentPopulated {
 
   rollNumber: number;
   parentPhone: string;
+
+  dateOfBirth: string;
+  admissionDate: string;
 }

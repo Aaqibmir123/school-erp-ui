@@ -1,63 +1,34 @@
-# School ERP Platform
+# School ERP UI
 
-Production-oriented School ERP workspace with three apps:
-
-- `mobile`: Expo + React Native app for students and parents
-- `backend`: Node.js + Express + TypeScript API
-- `test-app`: Next.js admin web app
+Next.js admin web app for the School ERP platform.
 
 ## Structure
 
 ```text
-school-mobile-new/
-|- backend/         # Express API, business logic, MongoDB integration
-|- shared-types/    # Shared TypeScript contracts used across apps
-|- src/             # Expo mobile application source
-|- test-app/        # Next.js admin web app
+school-erp-ui/
+|- app/            # Next.js App Router pages
+|- public/         # Static assets
+|- src/            # Shared UI features, modules, and components
+|- shared-types/   # TypeScript contracts shared with other apps
+|- package.json    # Web app scripts and dependencies
 ```
 
-## Environment
-
-Use the provided examples as the starting point:
-
-- Root mobile app: `.env.example`
-- Backend API: `backend/.env.example`
-- Admin web: `test-app/.env.example`
-
-## Useful Commands
-
-### Mobile app
+## Setup
 
 ```bash
 npm install
+npm run dev
+```
+
+## Useful commands
+
+```bash
+npm run build
 npm run start
 npm run lint
 npm run typecheck
 ```
 
-### Backend
+## Environment
 
-```bash
-cd backend
-npm install
-npm run dev
-npm run build
-npm run typecheck
-```
-
-### Admin web
-
-```bash
-cd test-app
-npm install
-npm run dev
-npm run lint
-npm run typecheck
-```
-
-## Notes
-
-- Mobile and web both read their API URL from environment variables.
-- Backend CORS origins are configurable through `CLIENT_URLS`.
-- Shared types should be updated whenever the mobile app and admin web need the
-  same response contract.
+Use `.env.example` as the starting point for local configuration.

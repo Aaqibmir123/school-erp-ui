@@ -1,7 +1,7 @@
 export interface TeacherAssignment {
   _id: string;
 
-  teacherId?: {
+  teacherId: {
     _id: string;
     firstName: string;
     lastName: string;
